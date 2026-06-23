@@ -1,0 +1,2 @@
+# AWS Deployment Guide
+Create one VPC with public subnets for ALB/Nginx and private subnets for APIs and RDS. Use EC2 instances for frontend (80/443), core API (3000), auth API (3001), reports API (3002) and RDS PostgreSQL (5432). Restrict CORS to frontend domains. Store secrets in AWS Systems Manager Parameter Store or Secrets Manager. Terminate HTTPS at ALB using ACM and forward to target groups. Logs must exclude tokens and sensitive personal data.
