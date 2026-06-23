@@ -1,0 +1,29 @@
+@startuml
+left to right direction
+actor Visitor
+actor Student
+actor Teacher
+actor BranchDirector
+actor GeneralDirector
+actor Admin
+rectangle "American Latin Class System" {
+  usecase "View landing page" as U1
+  usecase "Request enrollment" as U2
+  usecase "Login with Google" as U3
+  usecase "Record student attendance" as U4
+  usecase "Check in/out teacher" as U5
+  usecase "Review scholarship candidates" as U6
+  usecase "Approve evaluations" as U7
+  usecase "View reports" as U8
+  usecase "Audit actions" as U9
+}
+Visitor --> U1
+Visitor --> U2
+Student --> U3
+Teacher --> U4
+Teacher --> U5
+BranchDirector --> U6
+BranchDirector --> U7
+GeneralDirector --> U8
+Admin --> U9
+@enduml
