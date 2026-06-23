@@ -1,0 +1,7 @@
+const { ApiResponse } = require('../utils/ApiResponse');
+class AuthController { constructor(authService) { this.authService = authService; }
+  login = (req, res, next) => { try { const { token, user } = this.authService.loginWithGoogle(req.body.idToken); res.cookie('alc_session', token, { httpOnly:true, secure:process.env.NODE_ENV === 'production', sameSite:'strict' }); return ApiResponse.success(res, { user:{ id:user.id, email:user.email, name:user.name, role:user.role } }, 'Login successful'); } catch (e) { return next(e); } };
+  me = (req, res) => ApiResponse.success(res, { user:req.sessionUser });
+  logout = (req, res) => { const token = req.cookies?.alc_session || req.headers.authorization?.replace('Bearer ', ''); if (token) this.authService.logout(token); res.clearCookie('alc_session'); return ApiResponse.success(res, null, 'Logout successful'); };
+}
+module.exports = { AuthController };
