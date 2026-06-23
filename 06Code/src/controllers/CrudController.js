@@ -1,0 +1,3 @@
+const { ApiResponse } = require('../utils/ApiResponse');
+class CrudController { constructor(repository, entityName) { this.repository = repository; this.entityName = entityName; } index = (req, res) => ApiResponse.success(res, this.repository.all(), `${this.entityName} list`); show = (req, res) => { const row = this.repository.findById(req.params.id); return row ? ApiResponse.success(res, row) : ApiResponse.error(res, `${this.entityName} not found`, 404); }; create = (req, res) => ApiResponse.success(res, this.repository.create(req.body), `${this.entityName} created`, 201); }
+module.exports = { CrudController };
