@@ -1,0 +1,3 @@
+const { ApiResponse } = require('../utils/ApiResponse');
+class ReportsController { constructor(db, rulesService) { this.db = db; this.rulesService = rulesService; } branchSummary = (req, res) => ApiResponse.success(res, { branches:this.db.branches.all().map((b) => ({ ...b, activeStudents:this.db.students.filter((s) => s.branchId === b.id && s.active).length })) }); scholarshipCandidate = (req, res) => ApiResponse.success(res, this.rulesService.scholarshipCandidate(req.params.studentId, req.query.from, req.query.to)); teacherPayment = (req, res) => ApiResponse.success(res, this.rulesService.teacherPayment(req.params.teacherId)); }
+module.exports = { ReportsController };
