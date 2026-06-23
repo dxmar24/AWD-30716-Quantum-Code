@@ -1,0 +1,18 @@
+@startuml
+class AuthController
+class AttendanceController
+class ReportsController
+class AuthService
+class AttendanceService
+class RulesService
+class AuditService
+class InMemoryRepository
+class DatabaseContext
+AuthController --> AuthService
+AttendanceController --> AttendanceService
+ReportsController --> RulesService
+AttendanceService --> AuditService
+AuthService --> DatabaseContext
+RulesService --> AttendanceService
+DatabaseContext --> InMemoryRepository
+@enduml
