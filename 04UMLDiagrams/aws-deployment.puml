@@ -1,0 +1,12 @@
+@startuml
+node "Public Subnet" { node "ALB / HTTPS" as ALB node "Frontend EC2\nNginx 80/443" as FE }
+node "Private App Subnet" { node "Core API EC2\n3000" as CORE node "Auth API EC2\n3001" as AUTH node "Reports API EC2\n3002" as REP }
+database "Amazon RDS PostgreSQL\n5432" as RDS
+ALB --> FE
+FE --> CORE
+FE --> AUTH
+FE --> REP
+CORE --> RDS
+AUTH --> RDS
+REP --> RDS
+@enduml
