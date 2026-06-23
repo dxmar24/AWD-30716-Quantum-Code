@@ -1,0 +1,15 @@
+erDiagram
+  BRANCHES ||--o{ STUDENTS : has
+  BRANCHES ||--o{ TEACHERS : has
+  USERS ||--o| STUDENTS : maps
+  USERS ||--o| TEACHERS : maps
+  ROLES ||--o{ USERS : assigns
+  DANCE_CATEGORIES ||--o{ DANCE_STYLES : contains
+  TEACHERS ||--o{ TEACHER_STYLES : teaches
+  DANCE_STYLES ||--o{ TEACHER_STYLES : belongs
+  CLASS_GROUPS ||--o{ CLASS_SESSIONS : schedules
+  STUDENTS ||--o{ STUDENT_ATTENDANCE_RECORDS : attends
+  CLASS_SESSIONS ||--o{ STUDENT_ATTENDANCE_RECORDS : records
+  TEACHERS ||--o{ TEACHER_ATTENDANCE_RECORDS : works
+  STUDENTS ||--o{ SCHOLARSHIP_EVALUATIONS : evaluated
+  STUDENTS ||--o{ LEVEL_PROMOTION_EVALUATIONS : promoted
