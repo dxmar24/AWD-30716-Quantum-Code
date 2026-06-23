@@ -1,0 +1,2 @@
+# Database Documentation
+Production uses normalized PostgreSQL. The schema is implemented in `06Code/migrations/001_initial_schema.sql` and seed data in `06Code/seeders/001_seed.sql`. Key tables include branches, users, roles, permissions, students, teachers, dance categories/styles, class groups, class sessions, student attendance, teacher attendance, absence justifications, scholarship rules/evaluations, level promotion evaluations, sessions and audit logs.
