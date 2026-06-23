@@ -1,0 +1,9 @@
+@startuml
+[Frontend Nginx] --> [Auth & Session API]
+[Frontend Nginx] --> [Core Business API]
+[Frontend Nginx] --> [Reports & Rules API]
+[Auth & Session API] --> [PostgreSQL RDS]
+[Core Business API] --> [PostgreSQL RDS]
+[Reports & Rules API] --> [PostgreSQL RDS]
+[Auth & Session API] --> [Google OAuth]
+@enduml
