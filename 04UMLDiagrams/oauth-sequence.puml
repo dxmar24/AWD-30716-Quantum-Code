@@ -1,0 +1,12 @@
+@startuml
+actor User
+participant Browser
+participant "Auth API" as API
+participant Google
+Browser -> Google: Request sign-in
+Google --> Browser: ID token
+Browser -> API: POST /api/v1/auth/google
+API -> API: Verify ID token audience/sub/email
+API -> API: Link internal user and role
+API --> Browser: HttpOnly SameSite session cookie
+@enduml
