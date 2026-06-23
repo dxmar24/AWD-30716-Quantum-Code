@@ -1,0 +1,2 @@
+const request = require('supertest'); const jwt = require('jsonwebtoken'); const { createApp } = require('../../src/app');
+test('invalid role cannot access consolidated branch reports', async () => { const app = createApp(); const idToken = jwt.sign({ sub:'student-1', email:'student@alc.edu', name:'Student', aud:'test-google-client-id' }, 'x'); const login = await request(app).post('/api/v1/auth/google').send({ idToken }); await request(app).get('/api/v1/reports/branches/summary').set('Cookie', login.headers['set-cookie'][0]).expect(403); });
