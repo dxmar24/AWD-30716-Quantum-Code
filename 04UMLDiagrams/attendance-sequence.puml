@@ -1,0 +1,14 @@
+@startuml
+actor Teacher
+participant WebApp
+participant "Core API" as API
+participant AttendanceService
+participant Database
+Teacher -> WebApp: Mark student attendance
+WebApp -> API: POST /api/v1/student-attendance
+API -> AttendanceService: validate and record
+AttendanceService -> Database: insert attendance and audit log
+Database --> AttendanceService: record
+AttendanceService --> API: result
+API --> WebApp: 201 Created
+@enduml
