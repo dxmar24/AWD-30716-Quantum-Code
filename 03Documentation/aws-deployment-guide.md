@@ -75,3 +75,10 @@ npm start
 ```
 
 The Vite output is `06Code/dist/frontend`. Express serves that directory and keeps `/api/v1` as the API prefix. If Nginx is used, configure the site root to `06Code/dist/frontend` and proxy `/api/v1` to the Node.js process.
+
+For the current EC2 frontend instance, the reference Nginx configuration is versioned at `07Other/nginx-alc-frontend.conf`. It includes:
+- `/api/v1/auth/` proxy to Auth & Session API.
+- `/api/v1/reports/` proxy to Reports & Rules API.
+- `/api/v1/` proxy to Core Business API.
+- `/private/` no-cookie redirect to `/login.html?session=expired` plus `Cache-Control: no-store`.
+- Temporary HTTPS host `https://18-217-255-109.sslip.io` for Google OAuth validation.

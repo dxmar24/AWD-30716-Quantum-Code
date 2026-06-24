@@ -6,13 +6,14 @@ Import these two files into Postman:
 
 Manual order:
 1. Select the `American Latin Class - AWS` environment.
-2. Run `Auth & Session / Auth Config`.
-3. Open the frontend login page in the browser and sign in with Google, or paste a real Google ID token into `google_id_token`.
-4. Run `Auth & Session / Google Login - Real Token` in Postman. Postman should store the `alc_session` cookie automatically.
-5. Run `Auth & Session / Current Session`.
-6. If the user is new, promote that user to `Admin` in the database before running admin/director requests. The API intentionally creates new Google users as `Student`.
-7. Run the remaining folders in order: Public Enrollment, Identity And RBAC, Catalog CRUD, Attendance And Absences, Reports And Evaluations.
-8. Run `Auth & Session / Logout` at the end.
+2. In Google Console, add `https://18-217-255-109.sslip.io` as an Authorized JavaScript origin.
+3. Run `Auth & Session / Auth Config`.
+4. Open the frontend login page in the browser and sign in with Google, or paste a real Google ID token into `google_id_token`.
+5. Run `Auth & Session / Google Login - Real Token` in Postman. Postman should store the `alc_session` cookie automatically.
+6. Run `Auth & Session / Current Session`.
+7. If the user is new, promote that user to `Admin` in the database before running admin/director requests. The API intentionally creates new Google users as `Student`.
+8. Run the remaining folders in order: Public Enrollment, Identity And RBAC, Catalog CRUD, Attendance And Absences, Reports And Evaluations.
+9. Run `Session Teardown / Logout` at the end.
 
 Notes:
 - Do not commit real Google ID tokens, database passwords or session cookies.
