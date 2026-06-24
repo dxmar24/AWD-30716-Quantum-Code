@@ -54,3 +54,16 @@ Store secrets in AWS Systems Manager Parameter Store or Secrets Manager.
 
 ## HTTPS Recommendation
 Use ACM certificates on ALB. Redirect all HTTP traffic to HTTPS. Keep cookies Secure in production.
+
+## React Frontend Build on EC2
+Before starting the production Express process, build the React + Vite frontend:
+
+```bash
+cd 06Code
+npm ci
+npm run db:generate
+npm run frontend:build
+npm start
+```
+
+The Vite output is `06Code/dist/frontend`. Express serves that directory and keeps `/api/v1` as the API prefix. If Nginx is used, configure the site root to `06Code/dist/frontend` and proxy `/api/v1` to the Node.js process.
