@@ -8,7 +8,7 @@ datasource db {
 }
 
 model Branch {
-  id                 String              @id @default(uuid()) @db.Uuid
+  id                 String              @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   name               String              @unique @db.VarChar(80)
   city               String?             @db.VarChar(80)
   active             Boolean             @default(true)
@@ -22,7 +22,7 @@ model Branch {
 }
 
 model Role {
-  id              String           @id @default(uuid()) @db.Uuid
+  id              String           @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   name            String           @unique @db.VarChar(40)
   users           User[]
   rolePermissions RolePermission[]
@@ -31,7 +31,7 @@ model Role {
 }
 
 model Permission {
-  id              String           @id @default(uuid()) @db.Uuid
+  id              String           @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   code            String           @unique @db.VarChar(80)
   description     String?
   rolePermissions RolePermission[]
@@ -50,7 +50,7 @@ model RolePermission {
 }
 
 model User {
-  id                    String                     @id @default(uuid()) @db.Uuid
+  id                    String                     @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   googleSub             String?                    @unique @map("google_sub") @db.VarChar(160)
   email                 String                     @unique @db.VarChar(160)
   name                  String                     @db.VarChar(160)
@@ -70,7 +70,7 @@ model User {
 }
 
 model Student {
-  id                         String                     @id @default(uuid()) @db.Uuid
+  id                         String                     @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   userId                     String?                    @unique @map("user_id") @db.Uuid
   branchId                   String                     @map("branch_id") @db.Uuid
   fullName                   String                     @map("full_name") @db.VarChar(160)
@@ -87,7 +87,7 @@ model Student {
 }
 
 model Teacher {
-  id                String                    @id @default(uuid()) @db.Uuid
+  id                String                    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   userId            String?                   @unique @map("user_id") @db.Uuid
   branchId          String?                   @map("branch_id") @db.Uuid
   fullName          String                    @map("full_name") @db.VarChar(160)
@@ -103,7 +103,7 @@ model Teacher {
 }
 
 model DanceCategory {
-  id     String       @id @default(uuid()) @db.Uuid
+  id     String       @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   name   String       @unique @db.VarChar(80)
   styles DanceStyle[]
 
@@ -111,7 +111,7 @@ model DanceCategory {
 }
 
 model DanceStyle {
-  id            String         @id @default(uuid()) @db.Uuid
+  id            String         @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   categoryId    String?        @map("category_id") @db.Uuid
   name          String         @unique @db.VarChar(80)
   category      DanceCategory? @relation(fields: [categoryId], references: [id])
@@ -132,7 +132,7 @@ model TeacherStyle {
 }
 
 model ClassGroup {
-  id            String         @id @default(uuid()) @db.Uuid
+  id            String         @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   branchId      String?        @map("branch_id") @db.Uuid
   styleId       String?        @map("style_id") @db.Uuid
   teacherId     String?        @map("teacher_id") @db.Uuid
@@ -148,7 +148,7 @@ model ClassGroup {
 }
 
 model ClassSession {
-  id                       String                    @id @default(uuid()) @db.Uuid
+  id                       String                    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   classGroupId             String?                   @map("class_group_id") @db.Uuid
   startsAt                 DateTime                  @map("starts_at") @db.Timestamptz
   endsAt                   DateTime                  @map("ends_at") @db.Timestamptz
@@ -161,7 +161,7 @@ model ClassSession {
 }
 
 model StudentAttendanceRecord {
-  id                    String                 @id @default(uuid()) @db.Uuid
+  id                    String                 @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   studentId             String?                @map("student_id") @db.Uuid
   classSessionId        String?                @map("class_session_id") @db.Uuid
   status                String?                @db.VarChar(20)
@@ -177,7 +177,7 @@ model StudentAttendanceRecord {
 }
 
 model TeacherAttendanceRecord {
-  id             String        @id @default(uuid()) @db.Uuid
+  id             String        @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   teacherId      String?       @map("teacher_id") @db.Uuid
   classSessionId String?       @map("class_session_id") @db.Uuid
   checkInAt      DateTime      @map("check_in_at") @db.Timestamptz
@@ -190,7 +190,7 @@ model TeacherAttendanceRecord {
 }
 
 model AbsenceJustification {
-  id                 String                   @id @default(uuid()) @db.Uuid
+  id                 String                   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   attendanceRecordId String?                  @map("attendance_record_id") @db.Uuid
   reason             String
   evidenceUrl        String?                  @map("evidence_url")
@@ -205,7 +205,7 @@ model AbsenceJustification {
 }
 
 model ScholarshipRule {
-  id                   String  @id @default(uuid()) @db.Uuid
+  id                   String  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   minAttendancePercent Decimal @default(90.00) @map("min_attendance_percent") @db.Decimal(5, 2)
   periodMonths         Int     @default(2) @map("period_months")
   active               Boolean @default(true)
@@ -214,7 +214,7 @@ model ScholarshipRule {
 }
 
 model ScholarshipEvaluation {
-  id             String    @id @default(uuid()) @db.Uuid
+  id             String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   studentId      String?   @map("student_id") @db.Uuid
   percentage     Int?
   attendanceRate Decimal?  @map("attendance_rate") @db.Decimal(5, 2)
@@ -230,7 +230,7 @@ model ScholarshipEvaluation {
 }
 
 model LevelPromotionEvaluation {
-  id               String    @id @default(uuid()) @db.Uuid
+  id               String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   studentId        String?   @map("student_id") @db.Uuid
   fromLevel        String?   @map("from_level") @db.VarChar(2)
   toLevel          String?   @map("to_level") @db.VarChar(2)
@@ -248,7 +248,7 @@ model LevelPromotionEvaluation {
 }
 
 model EnrollmentRequest {
-  id              String   @id @default(uuid()) @db.Uuid
+  id              String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   fullName        String   @map("full_name") @db.VarChar(160)
   email           String   @db.VarChar(160)
   phone           String?  @db.VarChar(40)
@@ -264,7 +264,7 @@ model EnrollmentRequest {
 }
 
 model Session {
-  id        String   @id @default(uuid()) @db.Uuid
+  id        String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   userId    String?  @map("user_id") @db.Uuid
   tokenHash String   @map("token_hash")
   expiresAt DateTime @map("expires_at") @db.Timestamptz
@@ -276,7 +276,7 @@ model Session {
 }
 
 model AuditLog {
-  id          String   @id @default(uuid()) @db.Uuid
+  id          String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   actorUserId String?  @map("actor_user_id") @db.Uuid
   action      String   @db.VarChar(120)
   entity      String   @db.VarChar(120)
