@@ -1,9 +1,43 @@
 @startuml
-[Frontend Nginx] --> [Auth & Session API]
-[Frontend Nginx] --> [Core Business API]
-[Frontend Nginx] --> [Reports & Rules API]
-[Auth & Session API] --> [PostgreSQL RDS]
-[Core Business API] --> [PostgreSQL RDS]
-[Reports & Rules API] --> [PostgreSQL RDS]
-[Auth & Session API] --> [Google OAuth]
+package "Frontend EC2 / Nginx" {
+  [Landing Page]
+  [Private Dashboard]
+}
+
+package "Auth & Session API" {
+  [AuthController]
+  [AuthService]
+  [Session Middleware]
+  [RBAC Middleware]
+}
+
+package "Core Business API" {
+  [CrudController]
+  [AttendanceController]
+  [AcademicController]
+  [AttendanceService]
+  [AcademicService]
+  [AuditService]
+}
+
+package "Reports & Rules API" {
+  [ReportsController]
+  [RulesService]
+}
+
+database "PostgreSQL RDS" as DB
+cloud "Google OAuth" as Google
+
+[Landing Page] --> [AcademicController]
+[Private Dashboard] --> [AuthController]
+[Private Dashboard] --> [AttendanceController]
+[Private Dashboard] --> [ReportsController]
+[AuthController] --> [AuthService]
+[AuthService] --> Google
+[AuthService] --> DB
+[CrudController] --> DB
+[AttendanceService] --> DB
+[AcademicService] --> DB
+[AuditService] --> DB
+[RulesService] --> DB
 @enduml

@@ -1,16 +1,25 @@
 # Architecture Documentation
 
 ## Selected stack and justification
-Node.js with Express is used for a small, clear academic backend that supports REST, middleware, validation, testing and modular OOP service classes. PostgreSQL is documented as the production database because it supports normalized relational academic data and AWS RDS deployment.
+Node.js with Express is used for a clear academic backend that supports REST, middleware, validation, testing and modular OOP service classes. React + Vite is selected as the frontend framework for the next UI phase. PostgreSQL is the production database and Prisma ORM is the required data-access layer because it supports an explicit schema, generated client and AWS RDS deployment.
 
 ## Backend architecture
 Controllers only parse HTTP concerns and delegate to services. Services implement business rules. Repositories isolate persistence. Validators centralize request validation. Middleware handles sessions, authorization, cache control, CORS and errors.
+
+Runtime layers:
+- Controllers: `AuthController`, `CrudController`, `AttendanceController`, `ReportsController`, `AcademicController`.
+- Services: `AuthService`, `AttendanceService`, `RulesService`, `AcademicService`, `AuditService`.
+- Repositories: in-memory repositories for tests/local demos and Prisma repositories for production when `DB_DRIVER=prisma`.
+- Middleware: validation, session resolver, RBAC, private page guard, no-store cache and error handling.
 
 ## URI conventions
 All private APIs use `/api/v1`, plural nouns, JSON request/response bodies and consistent envelopes: `{ success, message, data }` or `{ success:false, message, details }`.
 
 ## OAuth/session strategy
-The backend verifies Google ID tokens, links `google_sub` to an internal user and issues an application session through HttpOnly Secure SameSite cookies. Logout revokes the server-side session. Private pages use `Cache-Control: no-store` to prevent browser back-button access after logout.
+The backend verifies Google ID tokens with Google in production, links `google_sub` to an internal user and issues an application session through HttpOnly Secure SameSite cookies. Only a session token hash is stored server-side. Logout revokes the server-side session. Private pages use `Cache-Control: no-store` and a session guard to prevent browser back-button access after logout.
+
+## Database model
+PostgreSQL schema is normalized around users/roles/permissions, branches, students, teachers, dance styles, class groups, class sessions, student attendance, teacher attendance, absence justifications, scholarship evaluations, level promotion evaluations, enrollment requests, sessions and audit logs.
 
 ## AWS deployment
 - Frontend EC2: Nginx on ports 80/443 serving static landing/app assets.

@@ -6,7 +6,9 @@ participant Google
 Browser -> Google: Request sign-in
 Google --> Browser: ID token
 Browser -> API: POST /api/v1/auth/google
-API -> API: Verify ID token audience/sub/email
+API -> Google: Verify ID token and audience
+Google --> API: Token payload sub/email/name
 API -> API: Link internal user and role
-API --> Browser: HttpOnly SameSite session cookie
+API -> API: Store session token hash
+API --> Browser: HttpOnly Secure SameSite session cookie
 @enduml

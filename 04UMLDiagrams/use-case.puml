@@ -13,17 +13,25 @@ rectangle "American Latin Class System" {
   usecase "Record student attendance" as U4
   usecase "Check in/out teacher" as U5
   usecase "Review scholarship candidates" as U6
-  usecase "Approve evaluations" as U7
+  usecase "Register evaluations" as U7
   usecase "View reports" as U8
   usecase "Audit actions" as U9
+  usecase "Submit absence justification" as U10
+  usecase "Review level promotion candidates" as U11
+  usecase "Assign internal roles" as U12
 }
 Visitor --> U1
 Visitor --> U2
 Student --> U3
+Student --> U10
 Teacher --> U4
 Teacher --> U5
+Teacher --> U10
 BranchDirector --> U6
 BranchDirector --> U7
+BranchDirector --> U11
 GeneralDirector --> U8
+GeneralDirector --> U11
 Admin --> U9
+Admin --> U12
 @enduml

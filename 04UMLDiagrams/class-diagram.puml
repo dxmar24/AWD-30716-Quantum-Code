@@ -1,18 +1,38 @@
 @startuml
 class AuthController
+class CrudController
 class AttendanceController
 class ReportsController
+class AcademicController
 class AuthService
 class AttendanceService
 class RulesService
+class AcademicService
 class AuditService
+interface Repository
 class InMemoryRepository
+class PostgresRepository
+class PostgresUserRepository
 class DatabaseContext
+class PostgresDatabaseContext
+
 AuthController --> AuthService
+CrudController --> Repository
 AttendanceController --> AttendanceService
 ReportsController --> RulesService
+AcademicController --> AcademicService
+AcademicController --> Repository
 AttendanceService --> AuditService
-AuthService --> DatabaseContext
+AttendanceService --> Repository
+AcademicService --> RulesService
+AcademicService --> AuditService
+AuthService --> Repository
 RulesService --> AttendanceService
+RulesService --> Repository
+InMemoryRepository ..|> Repository
+PostgresRepository ..|> Repository
+PostgresUserRepository ..|> Repository
 DatabaseContext --> InMemoryRepository
+PostgresDatabaseContext --> PostgresRepository
+PostgresDatabaseContext --> PostgresUserRepository
 @enduml
