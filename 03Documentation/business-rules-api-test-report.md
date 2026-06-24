@@ -13,49 +13,75 @@ This report maps the American Latin Class business rules to API URIs and manual/
 - API endpoints by `METHOD + URI`: 53.
 - Unique API URI patterns: 35.
 - Postman collection requests available for manual validation: 63.
-- RDS demo records inserted in this run: 61.
+- Latest real RDS verification records inserted: 44.
 
-## RDS Demo Seed Evidence
+## RDS Real Verification Seed Evidence
 
-The seed was executed from the Core Business API EC2 instance against the configured RDS PostgreSQL database using Prisma ORM.
+The real verification seed was executed from the Core Business API EC2 instance against the configured RDS PostgreSQL database using Prisma ORM. These records are the current source for the Postman environment IDs.
 
-- Seed prefix: `BRDEMO-20260624132922`
-- Inserted records: 61
-- Script: `06Code/scripts/seed-business-rule-demo-data.js`
-- Executed command on EC2: `node scripts/seed-business-rule-demo-data.js`
-- Reusable local command added to the project: `npm run db:seed:business-rules`
+- Seed prefix: `REAL-20260624154645`
+- Inserted records: 44
+- Script: `06Code/scripts/seed-real-verification-data.js`
+- Evidence file: `07Other/real-verification-seed-results.json`
+- Executed command on EC2: `node scripts/seed-real-verification-data.js`
+- Reusable local command added to the project: `npm run db:seed:real-verification`
+- Level normalization command executed on EC2: `node scripts/normalize-academic-levels.js`
+- Level normalization result: 2 students and 1 class group corrected; invalid levels after normalization: 0 students, 0 class groups.
 
 | Table area | Records inserted |
 | --- | ---: |
-| Enrollment requests | 8 |
+| Branches | 1 |
+| Users | 1 |
+| Dance categories | 1 |
+| Dance styles | 2 |
+| Enrollment requests | 5 |
 | Students | 6 |
 | Teachers | 3 |
-| Class groups | 3 |
-| Class sessions | 10 |
-| Student attendance records | 19 |
-| Teacher attendance records | 3 |
-| Absence justifications | 2 |
-| Scholarship evaluations | 2 |
-| Level promotion evaluations | 2 |
-| Audit logs | 3 |
-| **Total** | **61** |
+| Class groups | 2 |
+| Class sessions | 6 |
+| Student attendance records | 10 |
+| Teacher attendance records | 2 |
+| Absence justifications | 1 |
+| Scholarship evaluations | 1 |
+| Level promotion evaluations | 1 |
+| Audit logs | 2 |
+| **Total** | **44** |
 
-RDS table counts after the seed:
+Current Postman environment IDs now point to real RDS records:
+
+| Variable | Real RDS ID |
+| --- | --- |
+| `user_id` | `d8c025f6-bcd0-4f25-a6b1-1486338678e7` |
+| `branch_id` | `0c8675f1-9c30-430a-8b2c-c4dd1ec88b09` |
+| `student_id` | `85f4bbe9-5d5f-4126-89b6-ddd9de432885` |
+| `teacher_id` | `01c99342-ad47-4c4e-a094-6cab138d98e5` |
+| `dance_category_id` | `22cc3461-e755-462e-909b-66548594fb7e` |
+| `dance_style_id` | `523fd6f4-fc92-4518-a3e4-a94d6d06b95b` |
+| `class_group_id` | `ac762f2d-1658-47d3-b8c8-e6386d9b573f` |
+| `class_session_id` | `76f37581-dbbc-4201-bb13-67fbc86f6d60` |
+| `attendance_record_id` | `02309101-9774-4960-9f49-7fc4a4c6610c` |
+
+RDS table counts after the real verification seed:
 
 | Table area | Total rows after seed |
 | --- | ---: |
-| Enrollment requests | 9 |
-| Users | 2 |
-| Students | 6 |
-| Teachers | 3 |
-| Class groups | 3 |
-| Class sessions | 10 |
-| Student attendance records | 19 |
-| Teacher attendance records | 3 |
-| Absence justifications | 2 |
-| Scholarship evaluations | 2 |
-| Level promotion evaluations | 2 |
-| Audit logs | 3 |
+| Branches | 6 |
+| Users | 3 |
+| Dance categories | 4 |
+| Dance styles | 14 |
+| Enrollment requests | 14 |
+| Students | 12 |
+| Teachers | 6 |
+| Class groups | 5 |
+| Class sessions | 16 |
+| Student attendance records | 29 |
+| Teacher attendance records | 5 |
+| Absence justifications | 3 |
+| Scholarship evaluations | 3 |
+| Level promotion evaluations | 3 |
+| Audit logs | 5 |
+
+Historical note: `BRDEMO-20260624132922` previously inserted 61 business-rule demo rows. The current Postman environment uses the newer `REAL-20260624154645` records.
 
 ## Formal Business Rules From Requirements
 

@@ -17,11 +17,11 @@ const reportPath = path.join(rootDir, '03Documentation', 'api-validation-report.
 const jsonPath = path.join(rootDir, '07Other', 'api-validation-results.json');
 
 const seed = {
-  adminUserId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
-  branchId: '11111111-1111-4111-8111-111111111111',
-  studentId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
-  teacherId: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
-  classSessionId: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',
+  adminUserId: 'd8c025f6-bcd0-4f25-a6b1-1486338678e7',
+  branchId: '0c8675f1-9c30-430a-8b2c-c4dd1ec88b09',
+  studentId: '85f4bbe9-5d5f-4126-89b6-ddd9de432885',
+  teacherId: '01c99342-ad47-4c4e-a094-6cab138d98e5',
+  classSessionId: '76f37581-dbbc-4201-bb13-67fbc86f6d60',
 };
 
 function nowToken() {

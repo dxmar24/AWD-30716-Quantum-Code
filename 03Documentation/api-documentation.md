@@ -73,8 +73,8 @@ Login:
 Student attendance:
 ```json
 {
-  "studentId": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
-  "classSessionId": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+  "studentId": "85f4bbe9-5d5f-4126-89b6-ddd9de432885",
+  "classSessionId": "76f37581-dbbc-4201-bb13-67fbc86f6d60",
   "status": "present",
   "notes": "On time"
 }
@@ -83,7 +83,7 @@ Student attendance:
 Scholarship evaluation:
 ```json
 {
-  "studentId": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+  "studentId": "85f4bbe9-5d5f-4126-89b6-ddd9de432885",
   "percentage": 50,
   "theoryScore": 82,
   "practiceScore": 91,

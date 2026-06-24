@@ -4,6 +4,8 @@ Import these two files into Postman:
 - `American-Latin-Class.postman_environment.json`
 - `American-Latin-Class-API.postman_collection.json`
 
+The environment now includes real RDS verification IDs from seed `REAL-20260624154645`; the old dummy fixture IDs were removed.
+
 Manual order:
 1. Select the `American Latin Class - AWS` environment.
 2. In Google Console, add `https://18-217-255-109.sslip.io` as an Authorized JavaScript origin.
@@ -20,3 +22,4 @@ Notes:
 - `google_id_token` is intentionally blank in the environment file.
 - The collection uses `{{base_url}}` for API calls and `{{site_url}}` for private page checks.
 - Create/update requests save generated IDs back into the active Postman environment.
+- Existing environment IDs point to records already loaded in AWS RDS; they can be used immediately for read/report tests.

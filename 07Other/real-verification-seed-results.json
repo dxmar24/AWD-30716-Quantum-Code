@@ -1,0 +1,66 @@
+{
+  "prefix": "REAL-20260624154645",
+  "databaseUrlConfigured": true,
+  "created": {
+    "branches": 1,
+    "users": 1,
+    "danceCategories": 1,
+    "danceStyles": 2,
+    "enrollmentRequests": 5,
+    "students": 6,
+    "teachers": 3,
+    "classGroups": 2,
+    "classSessions": 6,
+    "studentAttendanceRecords": 10,
+    "teacherAttendanceRecords": 2,
+    "absenceJustifications": 1,
+    "scholarshipEvaluations": 1,
+    "levelPromotionEvaluations": 1,
+    "auditLogs": 2
+  },
+  "createdTotal": 44,
+  "postmanEnvironment": {
+    "user_id": "d8c025f6-bcd0-4f25-a6b1-1486338678e7",
+    "branch_id": "0c8675f1-9c30-430a-8b2c-c4dd1ec88b09",
+    "student_id": "85f4bbe9-5d5f-4126-89b6-ddd9de432885",
+    "teacher_id": "01c99342-ad47-4c4e-a094-6cab138d98e5",
+    "dance_category_id": "22cc3461-e755-462e-909b-66548594fb7e",
+    "dance_style_id": "523fd6f4-fc92-4518-a3e4-a94d6d06b95b",
+    "class_group_id": "ac762f2d-1658-47d3-b8c8-e6386d9b573f",
+    "class_session_id": "76f37581-dbbc-4201-bb13-67fbc86f6d60",
+    "absence_class_session_id": "f3784b95-751a-4bc5-85c3-9a81390283fb",
+    "attendance_record_id": "02309101-9774-4960-9f49-7fc4a4c6610c",
+    "absence_attendance_record_id": "a0d61820-a26f-4e55-abf2-cd4758d9c09e",
+    "teacher_attendance_id": "71a3063f-060c-40da-921e-466ffa675b6d",
+    "absence_justification_id": "7abe7b9e-62a2-4329-ba65-fef66e976182",
+    "enrollment_request_id": "ff82b234-b085-491b-8343-6dcd9bea315e"
+  },
+  "tableCounts": {
+    "branches": 6,
+    "users": 3,
+    "danceCategories": 4,
+    "danceStyles": 14,
+    "enrollmentRequests": 14,
+    "students": 12,
+    "teachers": 6,
+    "classGroups": 5,
+    "classSessions": 16,
+    "studentAttendanceRecords": 29,
+    "teacherAttendanceRecords": 5,
+    "absenceJustifications": 3,
+    "scholarshipEvaluations": 3,
+    "levelPromotionEvaluations": 3,
+    "auditLogs": 5
+  },
+  "normalization": {
+    "script": "06Code/scripts/normalize-academic-levels.js",
+    "normalized": {
+      "students": 2,
+      "classGroups": 1
+    },
+    "invalidAfter": {
+      "students": 0,
+      "classGroups": 0
+    }
+  }
+}

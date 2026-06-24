@@ -232,8 +232,8 @@ function AttendanceWorkflow({ onOutput }) {
   return (
     <form onSubmit={(event) => submitWorkflow(event, onOutput, '/student-attendance')} className="workflow-panel">
       <h2>Student attendance</h2>
-      <label>Student ID<input name="studentId" defaultValue="bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb" required /></label>
-      <label>Class session ID<input name="classSessionId" defaultValue="eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee" required /></label>
+      <label>Student ID<input name="studentId" defaultValue="85f4bbe9-5d5f-4126-89b6-ddd9de432885" required /></label>
+      <label>Class session ID<input name="classSessionId" defaultValue="76f37581-dbbc-4201-bb13-67fbc86f6d60" required /></label>
       <label>Status<select name="status"><option value="present">Present</option><option value="absent">Absent</option><option value="justified">Justified</option><option value="late">Late</option></select></label>
       <button type="submit">Record attendance</button>
     </form>
@@ -244,8 +244,8 @@ function TeacherCheckInWorkflow({ onOutput }) {
   return (
     <form onSubmit={(event) => submitWorkflow(event, onOutput, '/teacher-attendance/check-in')} className="workflow-panel">
       <h2>Teacher check-in</h2>
-      <label>Teacher ID<input name="teacherId" defaultValue="cccccccc-cccc-4ccc-8ccc-cccccccccccc" required /></label>
-      <label>Class session ID<input name="classSessionId" defaultValue="eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee" /></label>
+      <label>Teacher ID<input name="teacherId" defaultValue="01c99342-ad47-4c4e-a094-6cab138d98e5" required /></label>
+      <label>Class session ID<input name="classSessionId" defaultValue="76f37581-dbbc-4201-bb13-67fbc86f6d60" /></label>
       <button type="submit">Check in</button>
     </form>
   );

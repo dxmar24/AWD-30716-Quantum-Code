@@ -1,6 +1,6 @@
 # API Validation Report
 
-Generated: 2026-06-24T13:32:21.069Z
+Generated: 2026-06-24T16:01:33.449Z
 
 Scope:
 - Local Express application with in-memory repositories.
@@ -11,8 +11,8 @@ Summary:
 - Total cases: 95
 - Passed: 95
 - Failed: 0
-- Sample enrollment request id: ab767ed8-837a-43eb-98e9-2429cf2cf5b5
-- Sample attendance record id: 92ea7501-4173-483c-a16f-f27fb9f11a07
+- Sample enrollment request id: 3a7257db-3e62-4b8e-9db8-db6455a9bf29
+- Sample attendance record id: 043bf8a0-ffb2-4f2d-833a-fdb6693ba04d
 
 | Case | Method | URI | Expected | Actual | Result | Message |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -24,11 +24,11 @@ Summary:
 | Anonymous request blocked: GET /api/v1/auth/me | `GET` | `/api/v1/auth/me` | 401 | 401 | Pass | Authentication required |
 | Anonymous request blocked: GET /api/v1/enrollment-requests | `GET` | `/api/v1/enrollment-requests` | 401 | 401 | Pass | Authentication required |
 | Anonymous request blocked: GET /api/v1/users | `GET` | `/api/v1/users` | 401 | 401 | Pass | Authentication required |
-| Anonymous request blocked: PATCH /api/v1/users/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/role | `PATCH` | `/api/v1/users/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/role` | 401 | 401 | Pass | Authentication required |
+| Anonymous request blocked: PATCH /api/v1/users/d8c025f6-bcd0-4f25-a6b1-1486338678e7/role | `PATCH` | `/api/v1/users/d8c025f6-bcd0-4f25-a6b1-1486338678e7/role` | 401 | 401 | Pass | Authentication required |
 | Anonymous request blocked: GET /api/v1/roles | `GET` | `/api/v1/roles` | 401 | 401 | Pass | Authentication required |
 | Anonymous request blocked: GET /api/v1/permissions | `GET` | `/api/v1/permissions` | 401 | 401 | Pass | Authentication required |
 | Anonymous request blocked: GET /api/v1/branches | `GET` | `/api/v1/branches` | 401 | 401 | Pass | Authentication required |
-| Anonymous request blocked: GET /api/v1/branches/11111111-1111-4111-8111-111111111111 | `GET` | `/api/v1/branches/11111111-1111-4111-8111-111111111111` | 401 | 401 | Pass | Authentication required |
+| Anonymous request blocked: GET /api/v1/branches/0c8675f1-9c30-430a-8b2c-c4dd1ec88b09 | `GET` | `/api/v1/branches/0c8675f1-9c30-430a-8b2c-c4dd1ec88b09` | 401 | 401 | Pass | Authentication required |
 | Anonymous request blocked: POST /api/v1/branches | `POST` | `/api/v1/branches` | 401 | 401 | Pass | Authentication required |
 | Anonymous request blocked: GET /api/v1/students | `GET` | `/api/v1/students` | 401 | 401 | Pass | Authentication required |
 | Anonymous request blocked: POST /api/v1/students | `POST` | `/api/v1/students` | 401 | 401 | Pass | Authentication required |
@@ -41,12 +41,12 @@ Summary:
 | Anonymous request blocked: GET /api/v1/class-sessions | `GET` | `/api/v1/class-sessions` | 401 | 401 | Pass | Authentication required |
 | Anonymous request blocked: POST /api/v1/student-attendance | `POST` | `/api/v1/student-attendance` | 401 | 401 | Pass | Authentication required |
 | Anonymous request blocked: POST /api/v1/teacher-attendance/check-in | `POST` | `/api/v1/teacher-attendance/check-in` | 401 | 401 | Pass | Authentication required |
-| Anonymous request blocked: PATCH /api/v1/teacher-attendance/cccccccc-cccc-4ccc-8ccc-cccccccccccc/check-out | `PATCH` | `/api/v1/teacher-attendance/cccccccc-cccc-4ccc-8ccc-cccccccccccc/check-out` | 401 | 401 | Pass | Authentication required |
+| Anonymous request blocked: PATCH /api/v1/teacher-attendance/01c99342-ad47-4c4e-a094-6cab138d98e5/check-out | `PATCH` | `/api/v1/teacher-attendance/01c99342-ad47-4c4e-a094-6cab138d98e5/check-out` | 401 | 401 | Pass | Authentication required |
 | Anonymous request blocked: GET /api/v1/absence-justifications | `GET` | `/api/v1/absence-justifications` | 401 | 401 | Pass | Authentication required |
 | Anonymous request blocked: GET /api/v1/reports/branches/summary | `GET` | `/api/v1/reports/branches/summary` | 401 | 401 | Pass | Authentication required |
-| Anonymous request blocked: GET /api/v1/reports/scholarships/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb/candidate | `GET` | `/api/v1/reports/scholarships/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb/candidate` | 401 | 401 | Pass | Authentication required |
-| Anonymous request blocked: GET /api/v1/reports/level-promotions/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb/candidate | `GET` | `/api/v1/reports/level-promotions/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb/candidate` | 401 | 401 | Pass | Authentication required |
-| Anonymous request blocked: GET /api/v1/reports/teachers/cccccccc-cccc-4ccc-8ccc-cccccccccccc/payment | `GET` | `/api/v1/reports/teachers/cccccccc-cccc-4ccc-8ccc-cccccccccccc/payment` | 401 | 401 | Pass | Authentication required |
+| Anonymous request blocked: GET /api/v1/reports/scholarships/85f4bbe9-5d5f-4126-89b6-ddd9de432885/candidate | `GET` | `/api/v1/reports/scholarships/85f4bbe9-5d5f-4126-89b6-ddd9de432885/candidate` | 401 | 401 | Pass | Authentication required |
+| Anonymous request blocked: GET /api/v1/reports/level-promotions/85f4bbe9-5d5f-4126-89b6-ddd9de432885/candidate | `GET` | `/api/v1/reports/level-promotions/85f4bbe9-5d5f-4126-89b6-ddd9de432885/candidate` | 401 | 401 | Pass | Authentication required |
+| Anonymous request blocked: GET /api/v1/reports/teachers/01c99342-ad47-4c4e-a094-6cab138d98e5/payment | `GET` | `/api/v1/reports/teachers/01c99342-ad47-4c4e-a094-6cab138d98e5/payment` | 401 | 401 | Pass | Authentication required |
 | Anonymous request blocked: GET /api/v1/scholarship-evaluations | `GET` | `/api/v1/scholarship-evaluations` | 401 | 401 | Pass | Authentication required |
 | Anonymous request blocked: GET /api/v1/level-promotion-evaluations | `GET` | `/api/v1/level-promotion-evaluations` | 401 | 401 | Pass | Authentication required |
 | Anonymous request blocked: GET /api/v1/audit-logs | `GET` | `/api/v1/audit-logs` | 401 | 401 | Pass | Authentication required |
@@ -62,50 +62,50 @@ Summary:
 | Admin lists users | `GET` | `/api/v1/users` | 200 | 200 | Pass | Users list |
 | Admin lists roles | `GET` | `/api/v1/roles` | 200 | 200 | Pass | Roles list |
 | Admin lists permissions | `GET` | `/api/v1/permissions` | 200 | 200 | Pass | Permissions list |
-| Admin updates a user role | `PATCH` | `/api/v1/users/a5b50d5b-53f5-45e5-b790-855083a92eb4/role` | 200 | 200 | Pass | User role updated |
+| Admin updates a user role | `PATCH` | `/api/v1/users/8f475887-bdd6-4052-908b-f2e289e47c3b/role` | 200 | 200 | Pass | User role updated |
 | Admin creates branch | `POST` | `/api/v1/branches` | 201 | 201 | Pass | branches created |
 | Admin lists branches | `GET` | `/api/v1/branches` | 200 | 200 | Pass | branches list |
-| Admin reads branch by id | `GET` | `/api/v1/branches/fc6a3b19-99c4-4c17-88a4-6312add185b9` | 200 | 200 | Pass | OK |
-| Admin updates branch | `PATCH` | `/api/v1/branches/fc6a3b19-99c4-4c17-88a4-6312add185b9` | 200 | 200 | Pass | branches updated |
+| Admin reads branch by id | `GET` | `/api/v1/branches/8d13b518-502b-4823-8621-a2551a37e6b4` | 200 | 200 | Pass | OK |
+| Admin updates branch | `PATCH` | `/api/v1/branches/8d13b518-502b-4823-8621-a2551a37e6b4` | 200 | 200 | Pass | branches updated |
 | Admin creates student | `POST` | `/api/v1/students` | 201 | 201 | Pass | students created |
 | Admin lists students | `GET` | `/api/v1/students` | 200 | 200 | Pass | students list |
-| Admin reads student by id | `GET` | `/api/v1/students/97f1bad4-fe81-4a5a-90a5-ae96c4b4c8bf` | 200 | 200 | Pass | OK |
-| Admin updates student | `PATCH` | `/api/v1/students/97f1bad4-fe81-4a5a-90a5-ae96c4b4c8bf` | 200 | 200 | Pass | students updated |
+| Admin reads student by id | `GET` | `/api/v1/students/a8154d63-f95d-454c-883d-1367afd2f926` | 200 | 200 | Pass | OK |
+| Admin updates student | `PATCH` | `/api/v1/students/a8154d63-f95d-454c-883d-1367afd2f926` | 200 | 200 | Pass | students updated |
 | Admin creates teacher | `POST` | `/api/v1/teachers` | 201 | 201 | Pass | teachers created |
 | Admin lists teachers | `GET` | `/api/v1/teachers` | 200 | 200 | Pass | teachers list |
-| Admin reads teacher by id | `GET` | `/api/v1/teachers/244f2df2-a8c1-4560-8e8f-b84a72a9e945` | 200 | 200 | Pass | OK |
-| Admin updates teacher | `PATCH` | `/api/v1/teachers/244f2df2-a8c1-4560-8e8f-b84a72a9e945` | 200 | 200 | Pass | teachers updated |
+| Admin reads teacher by id | `GET` | `/api/v1/teachers/f38ebfd5-9b5e-42f6-a612-0307fd159070` | 200 | 200 | Pass | OK |
+| Admin updates teacher | `PATCH` | `/api/v1/teachers/f38ebfd5-9b5e-42f6-a612-0307fd159070` | 200 | 200 | Pass | teachers updated |
 | Admin creates dance category | `POST` | `/api/v1/dance-categories` | 201 | 201 | Pass | dance-categories created |
 | Admin lists dance categories | `GET` | `/api/v1/dance-categories` | 200 | 200 | Pass | dance-categories list |
-| Admin reads dance category by id | `GET` | `/api/v1/dance-categories/af767bc1-9086-4ba6-b735-cfc29cb2e98b` | 200 | 200 | Pass | OK |
-| Admin updates dance category | `PATCH` | `/api/v1/dance-categories/af767bc1-9086-4ba6-b735-cfc29cb2e98b` | 200 | 200 | Pass | dance-categories updated |
+| Admin reads dance category by id | `GET` | `/api/v1/dance-categories/f1aada01-ac47-41d9-bfaf-df2d7216ed7a` | 200 | 200 | Pass | OK |
+| Admin updates dance category | `PATCH` | `/api/v1/dance-categories/f1aada01-ac47-41d9-bfaf-df2d7216ed7a` | 200 | 200 | Pass | dance-categories updated |
 | Admin creates dance style | `POST` | `/api/v1/dance-styles` | 201 | 201 | Pass | dance-styles created |
 | Admin lists dance styles | `GET` | `/api/v1/dance-styles` | 200 | 200 | Pass | dance-styles list |
-| Admin reads dance style by id | `GET` | `/api/v1/dance-styles/8bfa4155-add6-49e4-975e-28c5f7a407e9` | 200 | 200 | Pass | OK |
-| Admin updates dance style | `PATCH` | `/api/v1/dance-styles/8bfa4155-add6-49e4-975e-28c5f7a407e9` | 200 | 200 | Pass | dance-styles updated |
+| Admin reads dance style by id | `GET` | `/api/v1/dance-styles/f7e335b5-da98-448a-8e1c-487e202db163` | 200 | 200 | Pass | OK |
+| Admin updates dance style | `PATCH` | `/api/v1/dance-styles/f7e335b5-da98-448a-8e1c-487e202db163` | 200 | 200 | Pass | dance-styles updated |
 | Admin creates class group | `POST` | `/api/v1/class-groups` | 201 | 201 | Pass | class-groups created |
 | Admin lists class groups | `GET` | `/api/v1/class-groups` | 200 | 200 | Pass | class-groups list |
-| Admin reads class group by id | `GET` | `/api/v1/class-groups/dc9f44f2-dff7-4297-a0b1-f519c3f8314d` | 200 | 200 | Pass | OK |
-| Admin updates class group | `PATCH` | `/api/v1/class-groups/dc9f44f2-dff7-4297-a0b1-f519c3f8314d` | 200 | 200 | Pass | class-groups updated |
+| Admin reads class group by id | `GET` | `/api/v1/class-groups/9d12a082-4a0e-414c-b40e-66b300f8fcdd` | 200 | 200 | Pass | OK |
+| Admin updates class group | `PATCH` | `/api/v1/class-groups/9d12a082-4a0e-414c-b40e-66b300f8fcdd` | 200 | 200 | Pass | class-groups updated |
 | Admin creates class session | `POST` | `/api/v1/class-sessions` | 201 | 201 | Pass | class-sessions created |
 | Admin creates absence validation class session | `POST` | `/api/v1/class-sessions` | 201 | 201 | Pass | class-sessions created |
 | Admin lists class sessions | `GET` | `/api/v1/class-sessions` | 200 | 200 | Pass | class-sessions list |
-| Admin reads class session by id | `GET` | `/api/v1/class-sessions/e5d6bdec-f73d-46de-84ce-d7155afca612` | 200 | 200 | Pass | OK |
-| Admin updates class session | `PATCH` | `/api/v1/class-sessions/e5d6bdec-f73d-46de-84ce-d7155afca612` | 200 | 200 | Pass | class-sessions updated |
+| Admin reads class session by id | `GET` | `/api/v1/class-sessions/3c63157d-5e6f-4ea4-ba02-47d1acfb650a` | 200 | 200 | Pass | OK |
+| Admin updates class session | `PATCH` | `/api/v1/class-sessions/3c63157d-5e6f-4ea4-ba02-47d1acfb650a` | 200 | 200 | Pass | class-sessions updated |
 | Admin records student attendance | `POST` | `/api/v1/student-attendance` | 201 | 201 | Pass | Attendance recorded |
 | Duplicate student attendance is rejected | `POST` | `/api/v1/student-attendance` | 409 | 409 | Pass | Attendance already recorded for this student and session |
 | Admin records absent student attendance | `POST` | `/api/v1/student-attendance` | 201 | 201 | Pass | Attendance recorded |
 | Admin checks in teacher | `POST` | `/api/v1/teacher-attendance/check-in` | 201 | 201 | Pass | Teacher checked in |
 | Duplicate open teacher check-in is rejected | `POST` | `/api/v1/teacher-attendance/check-in` | 409 | 409 | Pass | Teacher already has an open check-in |
-| Admin checks out teacher | `PATCH` | `/api/v1/teacher-attendance/b2f108aa-fdb8-4dab-b4b5-dd38ad9a4a04/check-out` | 200 | 200 | Pass | Teacher checked out |
-| Duplicate teacher checkout is rejected | `PATCH` | `/api/v1/teacher-attendance/b2f108aa-fdb8-4dab-b4b5-dd38ad9a4a04/check-out` | 409 | 409 | Pass | Teacher attendance record already checked out |
+| Admin checks out teacher | `PATCH` | `/api/v1/teacher-attendance/a75d10e1-f319-4dfc-a66c-47c16e0e46ef/check-out` | 200 | 200 | Pass | Teacher checked out |
+| Duplicate teacher checkout is rejected | `PATCH` | `/api/v1/teacher-attendance/a75d10e1-f319-4dfc-a66c-47c16e0e46ef/check-out` | 409 | 409 | Pass | Teacher attendance record already checked out |
 | Admin creates absence justification | `POST` | `/api/v1/absence-justifications` | 201 | 201 | Pass | Absence justification created |
 | Admin lists absence justifications | `GET` | `/api/v1/absence-justifications` | 200 | 200 | Pass | Absence justifications |
-| Admin reviews absence justification | `PATCH` | `/api/v1/absence-justifications/c4d1d439-c958-4156-86cb-fcd697707643/review` | 200 | 200 | Pass | Absence justification reviewed |
+| Admin reviews absence justification | `PATCH` | `/api/v1/absence-justifications/ba81b7fa-5297-4247-ab3c-d6886cbbe02a/review` | 200 | 200 | Pass | Absence justification reviewed |
 | Admin gets branch summary report | `GET` | `/api/v1/reports/branches/summary` | 200 | 200 | Pass | OK |
-| Admin gets scholarship candidate report | `GET` | `/api/v1/reports/scholarships/97f1bad4-fe81-4a5a-90a5-ae96c4b4c8bf/candidate` | 200 | 200 | Pass | OK |
-| Admin gets level promotion candidate report | `GET` | `/api/v1/reports/level-promotions/97f1bad4-fe81-4a5a-90a5-ae96c4b4c8bf/candidate` | 200 | 200 | Pass | OK |
-| Admin gets teacher payment report | `GET` | `/api/v1/reports/teachers/244f2df2-a8c1-4560-8e8f-b84a72a9e945/payment` | 200 | 200 | Pass | OK |
+| Admin gets scholarship candidate report | `GET` | `/api/v1/reports/scholarships/a8154d63-f95d-454c-883d-1367afd2f926/candidate` | 200 | 200 | Pass | OK |
+| Admin gets level promotion candidate report | `GET` | `/api/v1/reports/level-promotions/a8154d63-f95d-454c-883d-1367afd2f926/candidate` | 200 | 200 | Pass | OK |
+| Admin gets teacher payment report | `GET` | `/api/v1/reports/teachers/f38ebfd5-9b5e-42f6-a612-0307fd159070/payment` | 200 | 200 | Pass | OK |
 | Admin lists scholarship evaluations | `GET` | `/api/v1/scholarship-evaluations` | 200 | 200 | Pass | Scholarship evaluations |
 | Admin creates scholarship evaluation | `POST` | `/api/v1/scholarship-evaluations` | 201 | 201 | Pass | Scholarship evaluation registered |
 | Admin lists level promotion evaluations | `GET` | `/api/v1/level-promotion-evaluations` | 200 | 200 | Pass | Level promotion evaluations |

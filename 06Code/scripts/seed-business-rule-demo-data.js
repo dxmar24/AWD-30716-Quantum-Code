@@ -101,7 +101,7 @@ async function createEnrollmentRequests(prefix, branch) {
 }
 
 async function createStudents(prefix, branch) {
-  const levels = ['B1', 'B1', 'B1', 'A2', 'A1', 'B1'];
+  const levels = ['B1', 'B1', 'B1', 'B2', 'B1', 'B1'];
 
   return Promise.all(
     levels.map((level, index) =>
@@ -141,7 +141,7 @@ async function createGroups(prefix, branch, style, teachers) {
           styleId: style.id,
           teacherId: teacher.id,
           name: `${prefix} Group ${index + 1}`,
-          level: index === 2 ? 'A2' : 'B1',
+          level: index === 2 ? 'B2' : 'B1',
           active: true,
         },
       }),
