@@ -14,6 +14,7 @@
     "frontend:dev": "vite --host 0.0.0.0",
     "frontend:build": "vite build",
     "db:smoke:prisma": "node scripts/prisma-smoke.js",
+    "db:seed:business-rules": "node scripts/seed-business-rule-demo-data.js",
     "test:api:validation": "node scripts/api-validation-suite.js"
   },
   "dependencies": {
