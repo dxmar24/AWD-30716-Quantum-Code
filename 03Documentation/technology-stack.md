@@ -42,3 +42,14 @@ Current implementation status:
 
 Legacy note:
 - The previous raw `pg` repository remains as fallback with `DB_DRIVER=pg`, but the required production ORM path is Prisma.
+
+## Implemented React + Vite Frontend
+The frontend migration is now implemented under `06Code/frontend` with React components for the public landing page and private dashboard workflows. Vite builds the browser application into `06Code/dist/frontend` using `npm run frontend:build`.
+
+Implemented components:
+- `LandingPage`, `EnrollmentForm`, `BranchSummary`, and `StylesLevels` for the public enrollment experience.
+- `PrivateDashboard`, `AttendanceWorkflow`, `TeacherCheckInWorkflow`, `ReportsPanel`, `AuthStatus`, and `LogoutButton` for authenticated operations.
+
+Deployment note:
+- Express serves `06Code/dist/frontend` first and then falls back to `06Code/public` for legacy static assets such as `assets/dance-hero.png`.
+- AWS EC2 deployments should run `npm run frontend:build` before `npm start`; Nginx may also serve `06Code/dist/frontend` directly while proxying `/api/v1` to Express.
