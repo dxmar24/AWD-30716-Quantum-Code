@@ -1,0 +1,288 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Branch {
+  id                 String              @id @default(uuid()) @db.Uuid
+  name               String              @unique @db.VarChar(80)
+  city               String?             @db.VarChar(80)
+  active             Boolean             @default(true)
+  createdAt          DateTime            @default(now()) @map("created_at") @db.Timestamptz
+  students           Student[]
+  teachers           Teacher[]
+  classGroups        ClassGroup[]
+  enrollmentRequests EnrollmentRequest[]
+
+  @@map("branches")
+}
+
+model Role {
+  id              String           @id @default(uuid()) @db.Uuid
+  name            String           @unique @db.VarChar(40)
+  users           User[]
+  rolePermissions RolePermission[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id              String           @id @default(uuid()) @db.Uuid
+  code            String           @unique @db.VarChar(80)
+  description     String?
+  rolePermissions RolePermission[]
+
+  @@map("permissions")
+}
+
+model RolePermission {
+  roleId       String     @map("role_id") @db.Uuid
+  permissionId String     @map("permission_id") @db.Uuid
+  role         Role       @relation(fields: [roleId], references: [id])
+  permission   Permission @relation(fields: [permissionId], references: [id])
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model User {
+  id                    String                     @id @default(uuid()) @db.Uuid
+  googleSub             String?                    @unique @map("google_sub") @db.VarChar(160)
+  email                 String                     @unique @db.VarChar(160)
+  name                  String                     @db.VarChar(160)
+  roleId                String?                    @map("role_id") @db.Uuid
+  active                Boolean                    @default(true)
+  createdAt             DateTime                   @default(now()) @map("created_at") @db.Timestamptz
+  role                  Role?                      @relation(fields: [roleId], references: [id])
+  student               Student?
+  teacher               Teacher?
+  sessions              Session[]
+  reviewedJustifications AbsenceJustification[]
+  scholarshipEvaluations ScholarshipEvaluation[]
+  auditLogs             AuditLog[]
+
+  @@map("users")
+}
+
+model Student {
+  id                         String                     @id @default(uuid()) @db.Uuid
+  userId                     String?                    @unique @map("user_id") @db.Uuid
+  branchId                   String                     @map("branch_id") @db.Uuid
+  fullName                   String                     @map("full_name") @db.VarChar(160)
+  level                      String                     @db.VarChar(2)
+  active                     Boolean                    @default(true)
+  user                       User?                      @relation(fields: [userId], references: [id])
+  branch                     Branch                     @relation(fields: [branchId], references: [id])
+  attendanceRecords          StudentAttendanceRecord[]
+  scholarshipEvaluations     ScholarshipEvaluation[]
+  levelPromotionEvaluations  LevelPromotionEvaluation[]
+
+  @@index([branchId])
+  @@map("students")
+}
+
+model Teacher {
+  id                String                    @id @default(uuid()) @db.Uuid
+  userId            String?                   @unique @map("user_id") @db.Uuid
+  branchId          String?                   @map("branch_id") @db.Uuid
+  fullName          String                    @map("full_name") @db.VarChar(160)
+  hourlyRate        Decimal                   @default(12.50) @map("hourly_rate") @db.Decimal(10, 2)
+  active            Boolean                   @default(true)
+  user              User?                     @relation(fields: [userId], references: [id])
+  branch            Branch?                   @relation(fields: [branchId], references: [id])
+  teacherStyles     TeacherStyle[]
+  classGroups       ClassGroup[]
+  attendanceRecords TeacherAttendanceRecord[]
+
+  @@map("teachers")
+}
+
+model DanceCategory {
+  id     String       @id @default(uuid()) @db.Uuid
+  name   String       @unique @db.VarChar(80)
+  styles DanceStyle[]
+
+  @@map("dance_categories")
+}
+
+model DanceStyle {
+  id            String         @id @default(uuid()) @db.Uuid
+  categoryId    String?        @map("category_id") @db.Uuid
+  name          String         @unique @db.VarChar(80)
+  category      DanceCategory? @relation(fields: [categoryId], references: [id])
+  teacherStyles TeacherStyle[]
+  classGroups   ClassGroup[]
+
+  @@map("dance_styles")
+}
+
+model TeacherStyle {
+  teacherId String     @map("teacher_id") @db.Uuid
+  styleId   String     @map("style_id") @db.Uuid
+  teacher   Teacher    @relation(fields: [teacherId], references: [id])
+  style     DanceStyle @relation(fields: [styleId], references: [id])
+
+  @@id([teacherId, styleId])
+  @@map("teacher_styles")
+}
+
+model ClassGroup {
+  id            String         @id @default(uuid()) @db.Uuid
+  branchId      String?        @map("branch_id") @db.Uuid
+  styleId       String?        @map("style_id") @db.Uuid
+  teacherId     String?        @map("teacher_id") @db.Uuid
+  name          String         @db.VarChar(120)
+  level         String?        @db.VarChar(2)
+  active        Boolean        @default(true)
+  branch        Branch?        @relation(fields: [branchId], references: [id])
+  style         DanceStyle?    @relation(fields: [styleId], references: [id])
+  teacher       Teacher?       @relation(fields: [teacherId], references: [id])
+  classSessions ClassSession[]
+
+  @@map("class_groups")
+}
+
+model ClassSession {
+  id                       String                    @id @default(uuid()) @db.Uuid
+  classGroupId             String?                   @map("class_group_id") @db.Uuid
+  startsAt                 DateTime                  @map("starts_at") @db.Timestamptz
+  endsAt                   DateTime                  @map("ends_at") @db.Timestamptz
+  status                   String?                   @default("scheduled") @db.VarChar(20)
+  classGroup               ClassGroup?               @relation(fields: [classGroupId], references: [id])
+  studentAttendanceRecords StudentAttendanceRecord[]
+  teacherAttendanceRecords TeacherAttendanceRecord[]
+
+  @@map("class_sessions")
+}
+
+model StudentAttendanceRecord {
+  id                    String                 @id @default(uuid()) @db.Uuid
+  studentId             String?                @map("student_id") @db.Uuid
+  classSessionId        String?                @map("class_session_id") @db.Uuid
+  status                String?                @db.VarChar(20)
+  notes                 String?
+  createdAt             DateTime               @default(now()) @map("created_at") @db.Timestamptz
+  student               Student?               @relation(fields: [studentId], references: [id])
+  classSession          ClassSession?          @relation(fields: [classSessionId], references: [id])
+  absenceJustifications AbsenceJustification[]
+
+  @@unique([studentId, classSessionId])
+  @@index([studentId])
+  @@map("student_attendance_records")
+}
+
+model TeacherAttendanceRecord {
+  id             String        @id @default(uuid()) @db.Uuid
+  teacherId      String?       @map("teacher_id") @db.Uuid
+  classSessionId String?       @map("class_session_id") @db.Uuid
+  checkInAt      DateTime      @map("check_in_at") @db.Timestamptz
+  checkOutAt     DateTime?     @map("check_out_at") @db.Timestamptz
+  teacher        Teacher?      @relation(fields: [teacherId], references: [id])
+  classSession   ClassSession? @relation(fields: [classSessionId], references: [id])
+
+  @@index([teacherId])
+  @@map("teacher_attendance_records")
+}
+
+model AbsenceJustification {
+  id                 String                   @id @default(uuid()) @db.Uuid
+  attendanceRecordId String?                  @map("attendance_record_id") @db.Uuid
+  reason             String
+  evidenceUrl        String?                  @map("evidence_url")
+  status             String?                  @default("pending") @db.VarChar(20)
+  reviewedBy         String?                  @map("reviewed_by") @db.Uuid
+  reviewNotes        String?                  @map("review_notes")
+  reviewedAt         DateTime?                @map("reviewed_at") @db.Timestamptz
+  attendanceRecord   StudentAttendanceRecord? @relation(fields: [attendanceRecordId], references: [id])
+  reviewer           User?                    @relation(fields: [reviewedBy], references: [id])
+
+  @@map("absence_justifications")
+}
+
+model ScholarshipRule {
+  id                   String  @id @default(uuid()) @db.Uuid
+  minAttendancePercent Decimal @default(90.00) @map("min_attendance_percent") @db.Decimal(5, 2)
+  periodMonths         Int     @default(2) @map("period_months")
+  active               Boolean @default(true)
+
+  @@map("scholarship_rules")
+}
+
+model ScholarshipEvaluation {
+  id             String    @id @default(uuid()) @db.Uuid
+  studentId      String?   @map("student_id") @db.Uuid
+  percentage     Int?
+  attendanceRate Decimal?  @map("attendance_rate") @db.Decimal(5, 2)
+  theoryScore    Decimal?  @map("theory_score") @db.Decimal(5, 2)
+  practiceScore  Decimal?  @map("practice_score") @db.Decimal(5, 2)
+  approved       Boolean   @default(false)
+  evaluatedBy    String?   @map("evaluated_by") @db.Uuid
+  evaluatedAt    DateTime? @map("evaluated_at") @db.Timestamptz
+  student        Student?  @relation(fields: [studentId], references: [id])
+  evaluator      User?     @relation(fields: [evaluatedBy], references: [id])
+
+  @@map("scholarship_evaluations")
+}
+
+model LevelPromotionEvaluation {
+  id               String    @id @default(uuid()) @db.Uuid
+  studentId        String?   @map("student_id") @db.Uuid
+  fromLevel        String?   @map("from_level") @db.VarChar(2)
+  toLevel          String?   @map("to_level") @db.VarChar(2)
+  attendanceRate   Decimal?  @map("attendance_rate") @db.Decimal(5, 2)
+  consistencyScore Decimal?  @map("consistency_score") @db.Decimal(5, 2)
+  theoryScore      Decimal?  @map("theory_score") @db.Decimal(5, 2)
+  practiceScore    Decimal?  @map("practice_score") @db.Decimal(5, 2)
+  approved         Boolean   @default(false)
+  evaluatedBy      String?   @map("evaluated_by") @db.Uuid
+  evaluatedAt      DateTime? @map("evaluated_at") @db.Timestamptz
+  student          Student?  @relation(fields: [studentId], references: [id])
+
+  @@map("level_promotion_evaluations")
+}
+
+model EnrollmentRequest {
+  id              String   @id @default(uuid()) @db.Uuid
+  fullName        String   @map("full_name") @db.VarChar(160)
+  email           String   @db.VarChar(160)
+  phone           String?  @db.VarChar(40)
+  branchId        String?  @map("branch_id") @db.Uuid
+  preferredBranch String?  @map("preferred_branch") @db.VarChar(80)
+  styleInterest   String?  @map("style_interest") @db.VarChar(120)
+  message         String?
+  status          String?  @default("pending") @db.VarChar(20)
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz
+  branch          Branch?  @relation(fields: [branchId], references: [id])
+
+  @@map("enrollment_requests")
+}
+
+model Session {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String?  @map("user_id") @db.Uuid
+  tokenHash String   @map("token_hash")
+  expiresAt DateTime @map("expires_at") @db.Timestamptz
+  revoked   Boolean  @default(false)
+  user      User?    @relation(fields: [userId], references: [id])
+
+  @@index([tokenHash])
+  @@map("sessions")
+}
+
+model AuditLog {
+  id          String   @id @default(uuid()) @db.Uuid
+  actorUserId String?  @map("actor_user_id") @db.Uuid
+  action      String   @db.VarChar(120)
+  entity      String   @db.VarChar(120)
+  entityId    String?  @map("entity_id") @db.Uuid
+  metadata    Json?    @default("{}")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  actor       User?    @relation(fields: [actorUserId], references: [id])
+
+  @@index([actorUserId])
+  @@map("audit_logs")
+}

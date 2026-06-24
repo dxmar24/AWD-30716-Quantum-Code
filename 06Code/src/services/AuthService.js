@@ -1,13 +1,48 @@
+const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
+const { OAuth2Client } = require('google-auth-library');
 const { AppError } = require('../exceptions/AppError');
 const { env } = require('../config/env');
 const { Roles } = require('../models/constants');
 class AuthService {
-  constructor(db) { this.db = db; }
-  verifyGoogleIdToken(idToken) { const decoded = jwt.decode(idToken) || {}; if (!decoded.sub || !decoded.email) throw new AppError('Invalid Google ID token', 401); if (decoded.aud && decoded.aud !== env.googleClientId) throw new AppError('Invalid Google audience', 401); return { googleSub: decoded.sub, email: decoded.email, name: decoded.name || decoded.email }; }
-  loginWithGoogle(idToken) { const profile = this.verifyGoogleIdToken(idToken); let user = this.db.users.findBy('googleSub', profile.googleSub) || this.db.users.findBy('email', profile.email); if (!user) user = this.db.users.create({ email: profile.email, name: profile.name, googleSub: profile.googleSub, role: Roles.STUDENT }); else this.db.users.update(user.id, { googleSub: profile.googleSub, name: profile.name }); const token = jwt.sign({ sid: crypto.randomUUID(), userId: user.id }, env.sessionSecret, { expiresIn: '2h' }); this.db.sessions.create({ token, userId: user.id, revoked:false, expiresAt: new Date(Date.now()+7200000).toISOString() }); return { token, user }; }
-  resolveSession(token) { try { jwt.verify(token, env.sessionSecret); } catch { return null; } const session = this.db.sessions.findBy('token', token); if (!session || session.revoked || new Date(session.expiresAt) < new Date()) return null; return this.db.users.findById(session.userId); }
-  logout(token) { const session = this.db.sessions.findBy('token', token); if (session) this.db.sessions.update(session.id, { revoked:true }); }
+  constructor(db, googleClient = new OAuth2Client(env.googleClientId)) { this.db = db; this.googleClient = googleClient; }
+  hashToken(token) { return crypto.createHash('sha256').update(token).digest('hex'); }
+  async verifyGoogleIdToken(idToken) {
+    if (env.allowMockGoogleTokens) {
+      const decoded = jwt.decode(idToken) || {};
+      if (!decoded.sub || !decoded.email) throw new AppError('Invalid Google ID token', 401);
+      if (decoded.aud && decoded.aud !== env.googleClientId) throw new AppError('Invalid Google audience', 401);
+      return { googleSub: decoded.sub, email: decoded.email, name: decoded.name || decoded.email };
+    }
+    try {
+      const ticket = await this.googleClient.verifyIdToken({ idToken, audience: env.googleClientId });
+      const payload = ticket.getPayload();
+      if (!payload?.sub || !payload?.email) throw new AppError('Invalid Google ID token', 401);
+      return { googleSub: payload.sub, email: payload.email, name: payload.name || payload.email };
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      throw new AppError('Invalid Google ID token', 401);
+    }
+  }
+  async loginWithGoogle(idToken) {
+    const profile = await this.verifyGoogleIdToken(idToken);
+    let user = await this.db.users.findBy('googleSub', profile.googleSub) || await this.db.users.findBy('email', profile.email);
+    if (!user) user = await this.db.users.create({ email: profile.email, name: profile.name, googleSub: profile.googleSub, role: Roles.STUDENT });
+    else user = await this.db.users.update(user.id, { googleSub: profile.googleSub, name: profile.name });
+    const ttlMs = env.sessionTtlMinutes * 60 * 1000;
+    const token = jwt.sign({ sid: crypto.randomUUID(), userId: user.id }, env.sessionSecret, { expiresIn: `${env.sessionTtlMinutes}m` });
+    await this.db.sessions.create({ tokenHash: this.hashToken(token), userId: user.id, revoked:false, expiresAt: new Date(Date.now()+ttlMs).toISOString() });
+    return { token, user };
+  }
+  async resolveSession(token) {
+    try { jwt.verify(token, env.sessionSecret); } catch { return null; }
+    const session = await this.db.sessions.findBy('tokenHash', this.hashToken(token));
+    if (!session || session.revoked || new Date(session.expiresAt) < new Date()) return null;
+    return this.db.users.findById(session.userId);
+  }
+  async logout(token) {
+    const session = await this.db.sessions.findBy('tokenHash', this.hashToken(token));
+    if (session) await this.db.sessions.update(session.id, { revoked:true });
+  }
 }
-const crypto = require('crypto');
 module.exports = { AuthService };

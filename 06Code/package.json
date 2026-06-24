@@ -1,1 +1,43 @@
-{"scripts":{"start":"node src/server.js","dev":"node src/server.js","test":"jest --runInBand"},"dependencies":{"@jest/globals":"latest","cookie-parser":"latest","cors":"latest","dotenv":"latest","express":"latest","express-rate-limit":"latest","helmet":"latest","jsonwebtoken":"latest","pg":"latest","uuid":"latest","zod":"latest","supertest":"latest"},"devDependencies":{"jest":"latest"},"jest":{"testEnvironment":"node","testMatch":["**/tests/**/*.test.js"]}}
+{
+  "name": "american-latin-class-attendance-system",
+  "version": "1.0.0",
+  "description": "Academic-professional attendance and academic tracking backend for American Latin Class.",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node src/server.js",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:push": "prisma db push",
+    "test": "jest --runInBand",
+    "test:watch": "jest --watch"
+  },
+  "dependencies": {
+    "cookie-parser": "1.4.7",
+    "cors": "2.8.5",
+    "dotenv": "16.4.7",
+    "express": "4.21.2",
+    "express-rate-limit": "7.5.0",
+    "google-auth-library": "9.15.1",
+    "helmet": "8.0.0",
+    "jsonwebtoken": "9.0.2",
+    "pg": "8.13.1",
+    "@prisma/client": "5.22.0",
+    "uuid": "11.0.5",
+    "zod": "3.24.1"
+  },
+  "devDependencies": {
+    "jest": "29.7.0",
+    "prisma": "5.22.0",
+    "supertest": "7.0.0"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "testMatch": [
+      "**/tests/**/*.test.js"
+    ]
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
