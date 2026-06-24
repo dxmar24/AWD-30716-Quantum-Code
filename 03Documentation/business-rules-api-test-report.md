@@ -12,7 +12,7 @@ This report maps the American Latin Class business rules to API URIs and manual/
 - API-verifiable business rule areas implemented by the system: 16.
 - API endpoints by `METHOD + URI`: 53.
 - Unique API URI patterns: 35.
-- Postman collection requests available for manual validation: 63.
+- Postman collection requests available for manual validation: 64.
 - Latest real RDS verification records inserted: 44.
 
 ## RDS Real Verification Seed Evidence
@@ -387,7 +387,7 @@ The API validation suite covers auth, sessions, RBAC, CRUD, attendance, absence,
 
 - Command: `npm run test:api:validation`
 - Evidence file: `03Documentation/api-validation-report.md`
-- Result: 95 total cases, 95 passed, 0 failed.
+- Result: 97 total cases, 97 passed, 0 failed.
 
 The Jest suite covers integration, auth, RBAC and unit-level rules tests.
 

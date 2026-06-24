@@ -20,7 +20,7 @@ Common status codes: `200`, `201`, `400`, `401`, `403`, `404`, `409`, `422`, `50
 | Method | URI | Description | Required Role | Params/Query | Body | Success | Business/Validation | Errors |
 |---|---|---|---|---|---|---|---|---|
 | GET | `/auth/config` | Public auth client configuration for the React login page. | Visitor | None | None | `200` Google client id | Does not expose secrets; client id is public OAuth metadata. | `500` |
-| POST | `/auth/google` | Login/register with Google ID token. | Visitor | None | `{ "idToken": "jwt" }` | `200` user and HttpOnly cookie | Token must be valid Google ID token in production; internal role is app-owned. Rate limited. | `401`, `422` |
+| POST | `/auth/google` | Login/register with Google ID token. | Visitor | None | `{ "idToken": "jwt" }` | `200` user, JWT `sessionToken`, Bearer token type and HttpOnly cookie | Token must be valid Google ID token in production; internal role is app-owned. Rate limited. | `401`, `422` |
 | GET | `/auth/me` | Current session user. | Authenticated | None | None | `200` user | Session must exist, not revoked and not expired. | `401` |
 | POST | `/auth/logout` | Revoke session and clear cookie. | Any | None | None | `200` | Revokes server session/token hash. | `200` even without active session |
 | POST | `/enrollment-requests` | Public enrollment request. | Visitor | None | fullName, email, optional phone/preferredBranch/styleInterest/message | `201` request | Email format and name length validated. | `422` |
@@ -60,7 +60,7 @@ Common status codes: `200`, `201`, `400`, `401`, `403`, `404`, `409`, `422`, `50
 - Latest JSON result evidence: `07Other/api-validation-results.json`
 - Manual Postman verification assets: `postman/American-Latin-Class-API.postman_collection.json` and `postman/American-Latin-Class.postman_environment.json`
 
-The automated validation covers auth config, malformed Google token rejection, Google session creation with mock test tokens, session revocation, anonymous/private redirects, RBAC failures, public enrollment validation, CRUD flows, attendance duplication rules, teacher check-in/check-out, absence review, reports, scholarship evaluations, promotion evaluations and audit log visibility.
+The automated validation covers auth config, malformed Google token rejection, Google session creation with mock test tokens, JWT Bearer access, session revocation, revoked token rejection, anonymous/private redirects, RBAC failures, public enrollment validation, CRUD flows, attendance duplication rules, teacher check-in/check-out, absence review, reports, scholarship evaluations, promotion evaluations and audit log visibility.
 
 ## JSON Examples
 Login:
@@ -68,6 +68,43 @@ Login:
 {
   "idToken": "eyJhbGciOi..."
 }
+```
+
+Login response:
+```json
+{
+  "success": true,
+  "message": "Login successful",
+  "data": {
+    "sessionToken": "eyJhbGciOi...",
+    "tokenType": "Bearer",
+    "expiresInMinutes": 120,
+    "user": {
+      "id": "d8c025f6-bcd0-4f25-a6b1-1486338678e7",
+      "email": "student@example.com",
+      "name": "Student Example",
+      "role": "Student"
+    }
+  }
+}
+```
+
+Postman authenticated request:
+```http
+GET /api/v1/auth/me
+Authorization: Bearer {{session_token}}
+```
+
+Logout invalidates the backend session:
+```http
+POST /api/v1/auth/logout
+Authorization: Bearer {{session_token}}
+```
+
+After logout, the same token must return `401`:
+```http
+GET /api/v1/auth/me
+Authorization: Bearer {{session_token}}
 ```
 
 Student attendance:

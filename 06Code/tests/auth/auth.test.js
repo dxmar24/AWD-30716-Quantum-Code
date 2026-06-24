@@ -15,10 +15,15 @@ describe('auth/session', () => {
     const idToken = jwt.sign({ sub:'google-1', email:'new@alc.edu', name:'New User', aud:'test-google-client-id' }, 'x');
     const login = await request(app).post('/api/v1/auth/google').send({ idToken }).expect(200);
     const cookie = login.headers['set-cookie'][0];
+    const sessionToken = login.body.data.sessionToken;
 
+    expect(sessionToken).toMatch(/^[^.]+\.[^.]+\.[^.]+$/);
+    expect(login.body.data.tokenType).toBe('Bearer');
     await request(app).get('/api/v1/auth/me').set('Cookie', cookie).expect(200);
+    await request(app).get('/api/v1/auth/me').set('Authorization', `Bearer ${sessionToken}`).expect(200);
     await request(app).post('/api/v1/auth/logout').set('Cookie', cookie).expect(200);
     await request(app).get('/api/v1/auth/me').set('Cookie', cookie).expect(401);
+    await request(app).get('/api/v1/auth/me').set('Authorization', `Bearer ${sessionToken}`).expect(401);
   });
 
   test('invalid Google token is rejected', async () => {

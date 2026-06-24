@@ -48,12 +48,13 @@ async function main() {
   const app = createApp();
   const results = [];
 
-  async function runCase({ name, method, route, client = request(app), body, expectedStatus, assert }) {
+  async function runCase({ name, method, route, client = request(app), headers = {}, body, expectedStatus, assert }) {
     const startedAt = Date.now();
     let response;
 
     try {
       const call = client[method.toLowerCase()](route);
+      Object.entries(headers).forEach(([key, value]) => call.set(key, value));
       response = body === undefined ? await call : await call.send(body);
       const expected = Array.isArray(expectedStatus) ? expectedStatus : [expectedStatus];
       if (!expected.includes(response.status)) {
@@ -106,11 +107,15 @@ async function main() {
         if (!res.headers['set-cookie']?.some((cookie) => cookie.startsWith('alc_session='))) {
           throw new Error('Session cookie was not issued.');
         }
+        if (!res.body.data.sessionToken || res.body.data.sessionToken.split('.').length !== 3) {
+          throw new Error('JWT session token was not returned.');
+        }
+        if (res.body.data.tokenType !== 'Bearer') throw new Error('Unexpected token type.');
       },
     });
     const data = requireSuccess(response, `Login as ${role}`);
     await app.locals.db.users.update(data.user.id, { role });
-    return { agent, user: { ...data.user, role } };
+    return { agent, sessionToken: data.sessionToken, user: { ...data.user, role } };
   }
 
   await runCase({
@@ -244,6 +249,17 @@ async function main() {
   });
 
   await runCase({
+    name: 'Bearer session token can read current session',
+    method: 'get',
+    route: `${apiPrefix}/auth/me`,
+    headers: { Authorization: `Bearer ${limited.sessionToken}` },
+    expectedStatus: 200,
+    assert: (res) => {
+      if (res.body.data.user.email !== limited.user.email) throw new Error('Unexpected bearer session user.');
+    },
+  });
+
+  await runCase({
     name: 'Logout revokes student session',
     method: 'post',
     route: `${apiPrefix}/auth/logout`,
@@ -256,6 +272,14 @@ async function main() {
     method: 'get',
     route: `${apiPrefix}/auth/me`,
     client: limited.agent,
+    expectedStatus: 401,
+  });
+
+  await runCase({
+    name: 'Revoked bearer token cannot access /auth/me',
+    method: 'get',
+    route: `${apiPrefix}/auth/me`,
+    headers: { Authorization: `Bearer ${limited.sessionToken}` },
     expectedStatus: 401,
   });
 
@@ -569,7 +593,7 @@ Generated: ${new Date().toISOString()}
 Scope:
 - Local Express application with in-memory repositories.
 - Mock Google ID tokens enabled only for automated validation.
-- Session cookie, RBAC middleware, validation middleware, CRUD flows, attendance flows, reports and private page guard are exercised through HTTP requests.
+- Session cookie, JWT Bearer token, RBAC middleware, validation middleware, CRUD flows, attendance flows, reports and private page guard are exercised through HTTP requests.
 
 Summary:
 - Total cases: ${results.length}

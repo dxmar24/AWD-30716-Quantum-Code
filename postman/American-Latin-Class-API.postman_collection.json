@@ -5,6 +5,12 @@
     "description": "Manual verification collection for the American Latin Class Attendance System. Run against AWS with a real Google ID token and a Postman cookie jar session. New Google users start as Student; promote the user in the database before running admin/director folders.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      { "key": "token", "value": "{{session_token}}", "type": "string" }
+    ]
+  },
   "item": [
     {
       "name": "Auth & Session",
@@ -38,12 +44,21 @@
             "body": { "mode": "raw", "raw": "{\n  \"idToken\": \"{{google_id_token}}\"\n}", "options": { "raw": { "language": "json" } } },
             "url": "{{base_url}}/auth/google"
           },
-          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', () => pm.response.to.have.status(200));", "const json = pm.response.json();", "pm.environment.set('user_id', json.data.user.id);", "pm.test('Session cookie issued', () => pm.expect(pm.cookies.has('alc_session')).to.be.true);"] } }]
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', () => pm.response.to.have.status(200));", "const json = pm.response.json();", "pm.environment.set('user_id', json.data.user.id);", "pm.environment.set('session_token', json.data.sessionToken);", "pm.test('JWT session token returned', () => pm.expect(json.data.sessionToken.split('.')).to.have.length(3));", "pm.test('Bearer token type returned', () => pm.expect(json.data.tokenType).to.eql('Bearer'));", "pm.test('Session cookie issued', () => pm.expect(pm.cookies.has('alc_session')).to.be.true);"] } }]
         },
         {
           "name": "Current Session",
           "request": { "method": "GET", "url": "{{base_url}}/auth/me" },
           "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', () => pm.response.to.have.status(200));", "const json = pm.response.json();", "pm.environment.set('user_id', json.data.user.id);"] } }]
+        },
+        {
+          "name": "Current Session - Bearer Token",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{session_token}}" }],
+            "url": "{{base_url}}/auth/me"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200 with bearer token', () => pm.response.to.have.status(200));", "const json = pm.response.json();", "pm.test('Session user returned', () => pm.expect(json.data.user.id).to.eql(pm.environment.get('user_id')));"] } }]
         },
         {
           "name": "Private Dashboard - With Session",
@@ -413,8 +428,12 @@
         },
         {
           "name": "Current Session - After Logout",
-          "request": { "method": "GET", "url": "{{base_url}}/auth/me" },
-          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 401 after logout', () => pm.response.to.have.status(401));"] } }]
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{session_token}}" }],
+            "url": "{{base_url}}/auth/me"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 401 after logout', () => pm.response.to.have.status(401));", "pm.environment.unset('session_token');"] } }]
         }
       ]
     }

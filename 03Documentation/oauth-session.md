@@ -26,12 +26,21 @@ Google documentation reference: https://support.google.com/cloud/answer/15549257
 `ALLOW_MOCK_GOOGLE_TOKENS=true` or `NODE_ENV=test` allows signed mock JWT payloads for automated tests. Production must keep mock tokens disabled.
 
 ## Session Strategy
-- The application issues its own signed session token after Google verification.
-- The token is sent in cookie `alc_session`.
+- The application issues its own signed JWT session token after Google verification.
+- `POST /api/v1/auth/google` returns the token as `data.sessionToken` with `data.tokenType = "Bearer"` for Postman/API verification.
+- The same token is also sent in cookie `alc_session` for browser/private page usage.
 - Cookie options: HttpOnly, SameSite strict, Secure in production.
 - Server persistence stores only a SHA-256 token hash, not the raw token.
 - Session expiration defaults to `SESSION_TTL_MINUTES=120`.
-- Logout revokes the server-side session hash and clears the cookie.
+- Authenticated API requests can use either cookie `alc_session` or `Authorization: Bearer <sessionToken>`.
+- Logout revokes the server-side session hash and clears the cookie; the same Bearer token must return `401` after logout.
+
+## Postman Session Verification
+1. Run `Auth & Session / Google Login - Real Token`.
+2. The Postman test stores `data.sessionToken` into `session_token`.
+3. Run `Auth & Session / Current Session - Bearer Token`; it must return `200`.
+4. Run `Session Teardown / Logout`; the backend revokes the persisted session hash.
+5. Run `Session Teardown / Current Session - After Logout`; the same Bearer token must return `401`.
 
 ## Back Button And Expiration Controls
 - API and private pages send `Cache-Control: no-store`.
