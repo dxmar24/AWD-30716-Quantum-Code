@@ -9,14 +9,14 @@ Reason:
 - Keeps the codebase understandable for Advanced Web Development review.
 
 ## Frontend Framework
-Selected framework for the next frontend phase: **React + Vite**.
+Selected and implemented framework: **React + Vite**.
 
 Reason:
 - React is widely accepted for academic and professional web applications.
 - Vite gives a simple, fast frontend build pipeline.
-- The current landing/private dashboard are HTML/CSS/vanilla JS and should be migrated into React components in the next implementation phase.
+- The landing page and private dashboard are implemented as React components under `06Code/frontend`.
 
-Required frontend migration target:
+Implemented frontend components:
 - `LandingPage`
 - `EnrollmentForm`
 - `PrivateDashboard`
@@ -51,5 +51,6 @@ Implemented components:
 - `PrivateDashboard`, `AttendanceWorkflow`, `TeacherCheckInWorkflow`, `ReportsPanel`, `AuthStatus`, and `LogoutButton` for authenticated operations.
 
 Deployment note:
-- Express serves `06Code/dist/frontend` first and then falls back to `06Code/public` for legacy static assets such as `assets/dance-hero.png`.
+- Express serves `06Code/dist/frontend` first. The private dashboard route is handled by the React app, and legacy `/public/private` files are not used.
+- The hero asset is available through the Vite public assets folder and is included in the frontend build.
 - AWS EC2 deployments should run `npm run frontend:build` before `npm start`; Nginx may also serve `06Code/dist/frontend` directly while proxying `/api/v1` to Express.

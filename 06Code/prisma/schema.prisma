@@ -63,6 +63,7 @@ model User {
   sessions              Session[]
   reviewedJustifications AbsenceJustification[]
   scholarshipEvaluations ScholarshipEvaluation[]
+  levelPromotionEvaluations LevelPromotionEvaluation[]
   auditLogs             AuditLog[]
 
   @@map("users")
@@ -241,6 +242,7 @@ model LevelPromotionEvaluation {
   evaluatedBy      String?   @map("evaluated_by") @db.Uuid
   evaluatedAt      DateTime? @map("evaluated_at") @db.Timestamptz
   student          Student?  @relation(fields: [studentId], references: [id])
+  evaluator        User?     @relation(fields: [evaluatedBy], references: [id])
 
   @@map("level_promotion_evaluations")
 }

@@ -1,4 +1,5 @@
 const express = require('express');
+const fs = require('fs');
 const path = require('path');
 const cookieParser = require('cookie-parser');
 const cors = require('cors');
@@ -15,6 +16,12 @@ const { errorHandler } = require('./middleware/errorHandler');
 const { sessionResolver } = require('./middleware/sessionResolver');
 const { noStore } = require('./middleware/cacheControl');
 const { privatePageGuard } = require('./middleware/privatePageGuard');
+
+function frontendIndexPath(frontendBuildPath) {
+  const builtIndex = path.join(frontendBuildPath, 'index.html');
+  if (fs.existsSync(builtIndex)) return builtIndex;
+  return path.join(__dirname, '..', 'frontend', 'index.html');
+}
 
 function createApp() {
   const app = express();
@@ -36,8 +43,8 @@ function createApp() {
   app.use(express.static(frontendBuildPath));
   app.use(express.static(publicPath));
   app.use('/api/v1', noStore, buildApi({ db, authService, attendanceService, rulesService, academicService }));
-  app.get(['/private/dashboard.html', '/private/*'], (req, res) => res.sendFile(path.join(frontendBuildPath, 'index.html')));
-  app.get('/', (req, res) => res.sendFile(path.join(frontendBuildPath, 'index.html')));
+  app.get(['/private/dashboard.html', '/private/*'], (req, res) => res.sendFile(frontendIndexPath(frontendBuildPath)));
+  app.get('/', (req, res) => res.sendFile(frontendIndexPath(frontendBuildPath)));
   app.use(errorHandler);
   app.locals.db = db;
   return app;

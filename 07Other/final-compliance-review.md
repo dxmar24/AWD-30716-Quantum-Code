@@ -8,7 +8,8 @@ The project now satisfies the Advanced Web Development review path for a serious
 - Backend remains Node.js + Express with `/api/v1` routes and controller/service/repository layering.
 - ORM production path is Prisma with `DB_DRIVER=prisma`, `06Code/prisma/schema.prisma`, `PrismaDatabaseContext`, and `PrismaRepository`.
 - React + Vite frontend exists under `06Code/frontend` and builds to `06Code/dist/frontend`.
-- Express serves the built React frontend while keeping legacy public assets available.
+- Express serves the built React frontend, including `/private/dashboard.html`, through the React app instead of the removed legacy private dashboard files.
+- SQL and Prisma schemas are aligned for level promotion evaluation auditing (`evaluated_by` and `evaluated_at`).
 - Prisma smoke validation is available with `npm run db:smoke:prisma` when `DATABASE_URL` points to PostgreSQL.
 - AWS documentation remains EC2/RDS oriented and does not rely on Render or Netlify.
 

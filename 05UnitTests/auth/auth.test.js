@@ -43,10 +43,13 @@ describe('auth/session', () => {
     const idToken = jwt.sign({ sub:'google-private', email:'private@alc.edu', name:'Private User', aud:'test-google-client-id' }, 'x');
     const login = await request(app).post('/api/v1/auth/google').send({ idToken }).expect(200);
 
-    await request(app)
+    const response = await request(app)
       .get('/private/dashboard.html')
       .set('Cookie', login.headers['set-cookie'][0])
       .expect('Cache-Control', /no-store/)
       .expect(200);
+
+    expect(response.text).toContain('id="root"');
+    expect(response.text).not.toContain('/private/dashboard.js');
   });
 });

@@ -4,7 +4,7 @@ const react = require('@vitejs/plugin-react');
 module.exports = defineConfig({
   root: 'frontend',
   plugins: [react()],
-  publicDir: '../public',
+  publicDir: 'public',
   build: {
     outDir: '../dist/frontend',
     emptyOutDir: true,

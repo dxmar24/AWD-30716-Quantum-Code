@@ -2,6 +2,8 @@
 
 Production uses normalized PostgreSQL with Prisma ORM as the required application data-access layer. The SQL schema is in `06Code/migrations/001_initial_schema.sql`, seed data is in `06Code/seeders/001_seed.sql`, and the ORM schema is in `06Code/prisma/schema.prisma`.
 
+The SQL schema and Prisma schema are kept aligned for the academic model, including the `level_promotion_evaluations.evaluated_by` user relation and `evaluated_at` timestamp.
+
 ## Main Tables
 | Table | Purpose |
 |---|---|
