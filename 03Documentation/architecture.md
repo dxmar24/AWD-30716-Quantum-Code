@@ -16,7 +16,7 @@ Runtime layers:
 All private APIs use `/api/v1`, plural nouns, JSON request/response bodies and consistent envelopes: `{ success, message, data }` or `{ success:false, message, details }`.
 
 ## OAuth/session strategy
-The backend verifies Google ID tokens with Google in production, links `google_sub` to an internal user and issues an application session through HttpOnly Secure SameSite cookies. Only a session token hash is stored server-side. Logout revokes the server-side session. Private pages use `Cache-Control: no-store` and a session guard to prevent browser back-button access after logout.
+The React login page reads public OAuth configuration through `GET /api/v1/auth/config`, loads Google Identity Services and sends the Google ID token to `POST /api/v1/auth/google`. The backend verifies Google ID tokens with Google in production, links `google_sub` to an internal user and issues an application session through HttpOnly Secure SameSite cookies. Only a session token hash is stored server-side. Logout revokes the server-side session. Private pages use `Cache-Control: no-store` and a session guard that redirects anonymous users to `/login.html?session=expired`.
 
 ## Database model
 PostgreSQL schema is normalized around users/roles/permissions, branches, students, teachers, dance styles, class groups, class sessions, student attendance, teacher attendance, absence justifications, scholarship evaluations, level promotion evaluations, enrollment requests, sessions and audit logs.

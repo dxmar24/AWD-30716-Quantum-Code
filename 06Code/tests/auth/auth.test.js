@@ -3,6 +3,13 @@ const jwt = require('jsonwebtoken');
 const { createApp } = require('../../src/app');
 
 describe('auth/session', () => {
+  test('auth config exposes the Google client id without requiring a session', async () => {
+    const app = createApp();
+    const response = await request(app).get('/api/v1/auth/config').expect(200);
+
+    expect(response.body.data.googleClientId).toBe('test-google-client-id');
+  });
+
   test('login and logout invalidate session', async () => {
     const app = createApp();
     const idToken = jwt.sign({ sub:'google-1', email:'new@alc.edu', name:'New User', aud:'test-google-client-id' }, 'x');
@@ -34,8 +41,15 @@ describe('auth/session', () => {
     await request(app)
       .get('/private/dashboard.html')
       .expect('Cache-Control', /no-store/)
-      .expect('Location', /session=expired/)
+      .expect('Location', '/login.html?session=expired')
       .expect(302);
+  });
+
+  test('login page is public and served by the React app', async () => {
+    const app = createApp();
+    const response = await request(app).get('/login.html').expect(200);
+
+    expect(response.text).toContain('id="root"');
   });
 
   test('private dashboard is available with a valid session', async () => {

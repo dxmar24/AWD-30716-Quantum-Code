@@ -34,7 +34,18 @@ function createApp() {
   const frontendBuildPath = path.join(__dirname, '..', 'dist', 'frontend');
   const publicPath = path.join(__dirname, '..', 'public');
 
-  app.use(helmet());
+  app.use(helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", 'https://accounts.google.com'],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", 'data:', 'https://*.googleusercontent.com', 'https://*.gstatic.com'],
+        connectSrc: ["'self'", 'https://accounts.google.com'],
+        frameSrc: ["'self'", 'https://accounts.google.com'],
+      },
+    },
+  }));
   app.use(cors({ origin: env.corsOrigins, credentials: true }));
   app.use(express.json());
   app.use(cookieParser());
@@ -43,6 +54,7 @@ function createApp() {
   app.use(express.static(frontendBuildPath));
   app.use(express.static(publicPath));
   app.use('/api/v1', noStore, buildApi({ db, authService, attendanceService, rulesService, academicService }));
+  app.get(['/login.html', '/login'], (req, res) => res.sendFile(frontendIndexPath(frontendBuildPath)));
   app.get(['/private/dashboard.html', '/private/*'], (req, res) => res.sendFile(frontendIndexPath(frontendBuildPath)));
   app.get('/', (req, res) => res.sendFile(frontendIndexPath(frontendBuildPath)));
   app.use(errorHandler);

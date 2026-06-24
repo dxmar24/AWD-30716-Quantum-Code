@@ -13,7 +13,8 @@
     "test:watch": "jest --watch",
     "frontend:dev": "vite --host 0.0.0.0",
     "frontend:build": "vite build",
-    "db:smoke:prisma": "node scripts/prisma-smoke.js"
+    "db:smoke:prisma": "node scripts/prisma-smoke.js",
+    "test:api:validation": "node scripts/api-validation-suite.js"
   },
   "dependencies": {
     "@prisma/client": "5.22.0",

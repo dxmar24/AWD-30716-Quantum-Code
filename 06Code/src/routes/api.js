@@ -32,6 +32,7 @@ function buildApi(deps) {
   const academic = new AcademicController(deps.academicService, deps.db);
   const authLimiter = rateLimit({ windowMs: 15*60*1000, max: env.authRateLimitMax });
 
+  router.get('/auth/config', wrap(auth.config));
   router.post('/auth/google', authLimiter, validate(z.object({ idToken:z.string().min(10) })), wrap(auth.login));
   router.get('/auth/me', requireAuth, wrap(auth.me));
   router.post('/auth/logout', wrap(auth.logout));

@@ -14,7 +14,7 @@ Base prefix: `/api/v1`
 ## Resource Areas
 | Area | URI Pattern |
 |---|---|
-| Auth/session | `/auth/google`, `/auth/me`, `/auth/logout` |
+| Auth/session | `/auth/config`, `/auth/google`, `/auth/me`, `/auth/logout` |
 | Users/roles | `/users`, `/users/{id}/role`, `/roles`, `/permissions` |
 | Academic catalog | `/branches`, `/dance-categories`, `/dance-styles` |
 | People | `/students`, `/teachers` |

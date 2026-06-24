@@ -19,6 +19,7 @@ Common status codes: `200`, `201`, `400`, `401`, `403`, `404`, `409`, `422`, `50
 ## Endpoint Reference
 | Method | URI | Description | Required Role | Params/Query | Body | Success | Business/Validation | Errors |
 |---|---|---|---|---|---|---|---|---|
+| GET | `/auth/config` | Public auth client configuration for the React login page. | Visitor | None | None | `200` Google client id | Does not expose secrets; client id is public OAuth metadata. | `500` |
 | POST | `/auth/google` | Login/register with Google ID token. | Visitor | None | `{ "idToken": "jwt" }` | `200` user and HttpOnly cookie | Token must be valid Google ID token in production; internal role is app-owned. Rate limited. | `401`, `422` |
 | GET | `/auth/me` | Current session user. | Authenticated | None | None | `200` user | Session must exist, not revoked and not expired. | `401` |
 | POST | `/auth/logout` | Revoke session and clear cookie. | Any | None | None | `200` | Revokes server session/token hash. | `200` even without active session |
@@ -52,6 +53,14 @@ Common status codes: `200`, `201`, `400`, `401`, `403`, `404`, `409`, `422`, `50
 | GET | `/level-promotion-evaluations` | List promotion evaluations. | BranchDirector, GeneralDirector, Admin | None | None | `200` list | Director evidence. | `401`, `403` |
 | GET | `/reports/teachers/{teacherId}/payment` | Teacher payment calculation. | BranchDirector, GeneralDirector, Admin | Path teacherId | None | `200` report | Uses checked-out records only. | `401`, `403` |
 | GET | `/audit-logs` | List audit logs. | GeneralDirector, Admin | None | None | `200` list | Restricted traceability. | `401`, `403` |
+
+## Validation Evidence
+- Automated API validation command: `cd 06Code && npm run test:api:validation`
+- Latest generated report: `03Documentation/api-validation-report.md`
+- Latest JSON result evidence: `07Other/api-validation-results.json`
+- Manual Postman verification assets: `postman/American-Latin-Class-API.postman_collection.json` and `postman/American-Latin-Class.postman_environment.json`
+
+The automated validation covers auth config, malformed Google token rejection, Google session creation with mock test tokens, session revocation, anonymous/private redirects, RBAC failures, public enrollment validation, CRUD flows, attendance duplication rules, teacher check-in/check-out, absence review, reports, scholarship evaluations, promotion evaluations and audit log visibility.
 
 ## JSON Examples
 Login:

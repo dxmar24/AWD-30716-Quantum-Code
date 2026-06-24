@@ -55,6 +55,14 @@ Store secrets in AWS Systems Manager Parameter Store or Secrets Manager.
 ## HTTPS Recommendation
 Use ACM certificates on ALB. Redirect all HTTP traffic to HTTPS. Keep cookies Secure in production.
 
+## Google OAuth Origins
+For Google Sign-In, configure Authorized JavaScript origins with an HTTPS public domain:
+
+- Local development: `http://localhost:5500`, `http://127.0.0.1:5500`
+- Production: `https://app.americanlatinclass.edu` or another domain controlled by the team
+
+Do not use raw public IP origins such as `http://18.217.255.109`; Google rejects them because they do not end with a public top-level domain. If the team uses a temporary DNS name, configure HTTPS first and add the exact origin used by the browser.
+
 ## React Frontend Build on EC2
 Before starting the production Express process, build the React + Vite frontend:
 

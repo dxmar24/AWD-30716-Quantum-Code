@@ -18,12 +18,14 @@ Reason:
 
 Implemented frontend components:
 - `LandingPage`
+- `LoginPage`
 - `EnrollmentForm`
 - `PrivateDashboard`
 - `AttendanceWorkflow`
 - `TeacherCheckInWorkflow`
 - `ReportsPanel`
 - API client module using `fetch` with credentials.
+- Google Identity Services integration through the React login page.
 
 ## ORM
 Selected ORM: **Prisma ORM**.
@@ -48,6 +50,7 @@ The frontend migration is now implemented under `06Code/frontend` with React com
 
 Implemented components:
 - `LandingPage`, `EnrollmentForm`, `BranchSummary`, and `StylesLevels` for the public enrollment experience.
+- `LoginPage` for Google Sign-In.
 - `PrivateDashboard`, `AttendanceWorkflow`, `TeacherCheckInWorkflow`, `ReportsPanel`, `AuthStatus`, and `LogoutButton` for authenticated operations.
 
 Deployment note:
