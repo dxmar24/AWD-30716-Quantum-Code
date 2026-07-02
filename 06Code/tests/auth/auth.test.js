@@ -26,6 +26,30 @@ describe('auth/session', () => {
     await request(app).get('/api/v1/auth/me').set('Authorization', `Bearer ${sessionToken}`).expect(401);
   });
 
+  test('Postman password login returns a revocable bearer token', async () => {
+    const app = createApp();
+
+    await request(app).get('/api/v1/auth/me').expect(401);
+    await request(app)
+      .post('/api/v1/auth/login')
+      .send({ email:'admin@alc.edu', password:'wrong-password' })
+      .expect(401);
+
+    const login = await request(app)
+      .post('/api/v1/auth/login')
+      .send({ email:'admin@alc.edu', password:'AmericanLatin2026!' })
+      .expect(200);
+
+    const sessionToken = login.body.data.sessionToken;
+    expect(sessionToken).toMatch(/^[^.]+\.[^.]+\.[^.]+$/);
+    expect(login.body.data.tokenType).toBe('Bearer');
+    expect(login.body.data.user.email).toBe('admin@alc.edu');
+
+    await request(app).get('/api/v1/auth/me').set('Authorization', `Bearer ${sessionToken}`).expect(200);
+    await request(app).post('/api/v1/auth/logout').set('Authorization', `Bearer ${sessionToken}`).expect(200);
+    await request(app).get('/api/v1/auth/me').set('Authorization', `Bearer ${sessionToken}`).expect(401);
+  });
+
   test('invalid Google token is rejected', async () => {
     const app = createApp();
     await request(app).post('/api/v1/auth/google').send({ idToken:'not-a-valid-google-token' }).expect(401);

@@ -2,6 +2,7 @@
 
 ## Authentication And Authorization
 - Google identity is verified server-side in production.
+- The email/password endpoint `/auth/login` is for controlled academic Postman verification and must be explicitly enabled with `POSTMAN_LOGIN_ENABLED=true`.
 - Application roles are internal and are not derived from Google profile data.
 - Protected endpoints use `requireAuth` or `allowRoles`.
 - Role updates are restricted to `Admin` and are audited.

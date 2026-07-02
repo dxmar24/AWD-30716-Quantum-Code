@@ -115,16 +115,19 @@ Methods to test:
 - `GET` Student/Teacher -> expect `403`.
 - `GET` BranchDirector/GeneralDirector/Admin -> expect `200`.
 
-### R-02 Google OAuth Login
+### R-02 Authentication Login
 
-What it does: the backend exposes the Google client ID, validates Google ID tokens, links users by `google_sub`, and issues an application session cookie.
+What it does: the backend exposes the Google client ID, validates Google ID tokens for browser login, supports a configured Postman email/password verification login, and issues an application session cookie plus JWT session token.
 
 URIs:
 - `GET /api/v1/auth/config`
+- `POST /api/v1/auth/login`
 - `POST /api/v1/auth/google`
 
 Methods to test:
 - `GET` config -> expect `200` and the configured Google client ID.
+- `POST /auth/login` with valid configured email/password -> expect `200`, `sessionToken`, `tokenType=Bearer` and `alc_session` cookie.
+- `POST /auth/login` with invalid credentials -> expect `401`.
 - `POST` valid Google ID token -> expect `200` and `alc_session` cookie.
 - `POST` malformed/invalid token -> expect `401`.
 - `POST` with token audience mismatch -> expect `401`.
@@ -134,6 +137,7 @@ Methods to test:
 What it does: Google is used only for identity; application roles are stored internally and are not inferred from Google profile data.
 
 URIs:
+- `POST /api/v1/auth/login`
 - `POST /api/v1/auth/google`
 - `GET /api/v1/users`
 - `PATCH /api/v1/users/:id/role`
@@ -141,6 +145,7 @@ URIs:
 - `GET /api/v1/permissions`
 
 Methods to test:
+- `POST /auth/login` as configured Admin verification user -> expect Admin-owned API access for Postman proof.
 - `POST` first Google login -> expect new user role `Student`.
 - `PATCH` role as Admin -> expect `200`.
 - `PATCH` role as non-Admin -> expect `403`.

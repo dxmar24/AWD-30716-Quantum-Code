@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-02T20:35:37.637Z",
+  "generatedAt": "2026-07-02T22:18:54.448Z",
   "tool": "Newman/Postman collection runner",
   "collection": "postman/American-Latin-Class-API.postman_collection.json",
   "environment": "Generated local JWT evidence environment",
@@ -8,43 +8,69 @@
     "base_url": "http://127.0.0.1:4010/api/v1",
     "node_env": "test",
     "db_driver": "memory",
-    "google_token_mode": "mock Google ID token for existing Admin user"
+    "google_token_mode": "mock Google ID token for existing Admin user",
+    "postman_password_login": "enabled for seeded Admin user"
   },
   "stats": {
     "requests": {
-      "total": 64,
+      "total": 67,
       "pending": 0,
       "failed": 0
     },
     "assertions": {
-      "total": 71,
+      "total": 78,
       "pending": 0,
       "failed": 0
     },
     "testScripts": {
-      "total": 64,
+      "total": 67,
       "pending": 0,
       "failed": 0
     },
     "prerequestScripts": {
-      "total": 0,
+      "total": 1,
       "pending": 0,
       "failed": 0
     }
   },
   "authenticationChecks": [
     {
-      "request": "Google Login - Real Token",
+      "request": "Current Session - No Token",
+      "assertion": "HTTP 401 without token",
+      "passed": true
+    },
+    {
+      "request": "Password Login - Invalid Credentials",
+      "assertion": "HTTP 401 invalid credentials",
+      "passed": true
+    },
+    {
+      "request": "Password Login - Demo",
       "assertion": "JWT session token returned",
       "passed": true
     },
     {
-      "request": "Google Login - Real Token",
+      "request": "Password Login - Demo",
       "assertion": "Bearer token type returned",
       "passed": true
     },
     {
-      "request": "Google Login - Real Token",
+      "request": "Password Login - Demo",
+      "assertion": "Session cookie issued",
+      "passed": true
+    },
+    {
+      "request": "Google Login - Optional Real Token",
+      "assertion": "JWT session token returned",
+      "passed": true
+    },
+    {
+      "request": "Google Login - Optional Real Token",
+      "assertion": "Bearer token type returned",
+      "passed": true
+    },
+    {
+      "request": "Google Login - Optional Real Token",
       "assertion": "Session cookie issued",
       "passed": true
     },

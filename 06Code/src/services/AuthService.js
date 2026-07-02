@@ -7,6 +7,18 @@ const { Roles } = require('../models/constants');
 class AuthService {
   constructor(db, googleClient = new OAuth2Client(env.googleClientId)) { this.db = db; this.googleClient = googleClient; }
   hashToken(token) { return crypto.createHash('sha256').update(token).digest('hex'); }
+  safeCompare(left, right) {
+    const leftBuffer = Buffer.from(String(left || ''), 'utf8');
+    const rightBuffer = Buffer.from(String(right || ''), 'utf8');
+    if (leftBuffer.length !== rightBuffer.length) return false;
+    return crypto.timingSafeEqual(leftBuffer, rightBuffer);
+  }
+  async createSession(user) {
+    const ttlMs = env.sessionTtlMinutes * 60 * 1000;
+    const token = jwt.sign({ sid: crypto.randomUUID(), userId: user.id }, env.sessionSecret, { expiresIn: `${env.sessionTtlMinutes}m` });
+    await this.db.sessions.create({ tokenHash: this.hashToken(token), userId: user.id, revoked:false, expiresAt: new Date(Date.now()+ttlMs).toISOString() });
+    return token;
+  }
   async verifyGoogleIdToken(idToken) {
     if (env.allowMockGoogleTokens) {
       const decoded = jwt.decode(idToken) || {};
@@ -29,9 +41,19 @@ class AuthService {
     let user = await this.db.users.findBy('googleSub', profile.googleSub) || await this.db.users.findBy('email', profile.email);
     if (!user) user = await this.db.users.create({ email: profile.email, name: profile.name, googleSub: profile.googleSub, role: Roles.STUDENT });
     else user = await this.db.users.update(user.id, { googleSub: profile.googleSub, name: profile.name });
-    const ttlMs = env.sessionTtlMinutes * 60 * 1000;
-    const token = jwt.sign({ sid: crypto.randomUUID(), userId: user.id }, env.sessionSecret, { expiresIn: `${env.sessionTtlMinutes}m` });
-    await this.db.sessions.create({ tokenHash: this.hashToken(token), userId: user.id, revoked:false, expiresAt: new Date(Date.now()+ttlMs).toISOString() });
+    const token = await this.createSession(user);
+    return { token, user };
+  }
+  async loginWithPassword(email, password) {
+    if (!env.postmanLoginEnabled) throw new AppError('Postman password login is disabled', 403);
+    const normalizedEmail = String(email || '').trim().toLowerCase();
+    const expectedEmail = String(env.postmanLoginEmail || '').trim().toLowerCase();
+    if (normalizedEmail !== expectedEmail || !this.safeCompare(password, env.postmanLoginPassword)) {
+      throw new AppError('Invalid email or password', 401);
+    }
+    const user = await this.db.users.findBy('email', normalizedEmail);
+    if (!user || user.active === false) throw new AppError('Invalid email or password', 401);
+    const token = await this.createSession(user);
     return { token, user };
   }
   async resolveSession(token) {

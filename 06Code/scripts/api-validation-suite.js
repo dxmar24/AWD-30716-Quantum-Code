@@ -3,6 +3,9 @@ process.env.DB_DRIVER = 'memory';
 process.env.GOOGLE_CLIENT_ID = 'test-google-client-id';
 process.env.ALLOW_MOCK_GOOGLE_TOKENS = 'true';
 process.env.CORS_ORIGINS = 'http://localhost:8080';
+process.env.POSTMAN_LOGIN_ENABLED = 'true';
+process.env.POSTMAN_LOGIN_EMAIL = 'admin@alc.edu';
+process.env.POSTMAN_LOGIN_PASSWORD = 'AmericanLatin2026!';
 
 const fs = require('fs');
 const path = require('path');
@@ -137,6 +140,14 @@ async function main() {
   });
 
   await runCase({
+    name: 'Postman password login rejects invalid credentials',
+    method: 'post',
+    route: `${apiPrefix}/auth/login`,
+    body: { email: 'admin@alc.edu', password: 'wrong-password' },
+    expectedStatus: 401,
+  });
+
+  await runCase({
     name: 'Logout without an active session is harmless',
     method: 'post',
     route: `${apiPrefix}/auth/logout`,
@@ -226,6 +237,47 @@ async function main() {
     },
     expectedStatus: 201,
   }), 'Public enrollment');
+
+  const postmanLogin = requireSuccess(await runCase({
+    name: 'Postman password login returns JWT session token',
+    method: 'post',
+    route: `${apiPrefix}/auth/login`,
+    body: { email: 'admin@alc.edu', password: 'AmericanLatin2026!' },
+    expectedStatus: 200,
+    assert: (res) => {
+      if (!res.body.data.sessionToken || res.body.data.sessionToken.split('.').length !== 3) {
+        throw new Error('JWT session token was not returned.');
+      }
+      if (res.body.data.tokenType !== 'Bearer') throw new Error('Unexpected token type.');
+    },
+  }), 'Postman password login');
+
+  await runCase({
+    name: 'Postman bearer token can read current session',
+    method: 'get',
+    route: `${apiPrefix}/auth/me`,
+    headers: { Authorization: `Bearer ${postmanLogin.sessionToken}` },
+    expectedStatus: 200,
+    assert: (res) => {
+      if (res.body.data.user.email !== 'admin@alc.edu') throw new Error('Unexpected Postman login user.');
+    },
+  });
+
+  await runCase({
+    name: 'Postman logout revokes bearer token',
+    method: 'post',
+    route: `${apiPrefix}/auth/logout`,
+    headers: { Authorization: `Bearer ${postmanLogin.sessionToken}` },
+    expectedStatus: 200,
+  });
+
+  await runCase({
+    name: 'Postman revoked bearer token is rejected',
+    method: 'get',
+    route: `${apiPrefix}/auth/me`,
+    headers: { Authorization: `Bearer ${postmanLogin.sessionToken}` },
+    expectedStatus: 401,
+  });
 
   const limited = await loginAs(Roles.STUDENT, `student-${nowToken()}@alc.test`, `student-${nowToken()}`, 'Validation Student User');
 

@@ -1,6 +1,6 @@
 # PDF Deliverables
 
-Generated: 2026-07-02T20:37:05.271Z
+Generated: 2026-07-02T22:21:39.939Z
 
 This folder contains the academic-professional PDF package for the American Latin Class Attendance System.
 
@@ -29,6 +29,7 @@ node 07Other/pdf-tools/generate-pdfs.js
 | Clean Code Solid | `03Documentation/clean-code-solid.pdf` | `03Documentation/clean-code-solid.md` |
 | Database | `03Documentation/database.pdf` | `03Documentation/database.md` |
 | Oauth Session | `03Documentation/oauth-session.pdf` | `03Documentation/oauth-session.md` |
+| Postman Token Auth Proof | `03Documentation/postman-token-auth-proof.pdf` | `03Documentation/postman-token-auth-proof.md` |
 | Security Guide | `03Documentation/security-guide.pdf` | `03Documentation/security-guide.md` |
 | Technology Stack | `03Documentation/technology-stack.pdf` | `03Documentation/technology-stack.md` |
 | Testing Guide | `03Documentation/testing-guide.pdf` | `03Documentation/testing-guide.md` |

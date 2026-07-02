@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "89119ee1-20d5-4e6d-8f60-9b2a23ca34b1",
     "name": "American Latin Class API",
-    "description": "Manual verification collection for the American Latin Class Attendance System. Run against AWS with a real Google ID token and a Postman cookie jar session. New Google users start as Student; promote the user in the database before running admin/director folders.",
+    "description": "Manual verification collection for the American Latin Class Attendance System. Primary authentication proof uses Postman-only email/password login at /auth/login, stores the returned JWT in session_token and validates protected routes with Bearer auth. Google OAuth requests remain available as optional checks.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -27,6 +27,41 @@
           "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 302 without session', () => pm.response.to.have.status(302));", "pm.test('Redirects to login', () => pm.expect(pm.response.headers.get('Location')).to.include('/login.html?session=expired'));"] } }]
         },
         {
+          "name": "Current Session - No Token",
+          "auth": { "type": "noauth" },
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Cookie", "value": "alc_session=" }],
+            "url": "{{base_url}}/auth/me"
+          },
+          "event": [
+            { "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["pm.environment.unset('session_token');"] } },
+            { "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 401 without token', () => pm.response.to.have.status(401));", "pm.test('Authentication required message', () => pm.expect(pm.response.json().message).to.include('Authentication required'));"] } }
+          ]
+        },
+        {
+          "name": "Password Login - Invalid Credentials",
+          "auth": { "type": "noauth" },
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{login_email}}\",\n  \"password\": \"wrong-password\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": "{{base_url}}/auth/login"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 401 invalid credentials', () => pm.response.to.have.status(401));"] } }]
+        },
+        {
+          "name": "Password Login - Demo",
+          "auth": { "type": "noauth" },
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{login_email}}\",\n  \"password\": \"{{login_password}}\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": "{{base_url}}/auth/login"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', () => pm.response.to.have.status(200));", "const json = pm.response.json();", "pm.environment.set('user_id', json.data.user.id);", "pm.environment.set('session_token', json.data.sessionToken);", "pm.test('JWT session token returned', () => pm.expect(json.data.sessionToken.split('.')).to.have.length(3));", "pm.test('Bearer token type returned', () => pm.expect(json.data.tokenType).to.eql('Bearer'));", "pm.test('Session cookie issued', () => pm.expect(pm.cookies.has('alc_session')).to.be.true);"] } }]
+        },
+        {
           "name": "Google Login - Invalid Token",
           "request": {
             "method": "POST",
@@ -37,14 +72,14 @@
           "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 401', () => pm.response.to.have.status(401));"] } }]
         },
         {
-          "name": "Google Login - Real Token",
+          "name": "Google Login - Optional Real Token",
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": { "mode": "raw", "raw": "{\n  \"idToken\": \"{{google_id_token}}\"\n}", "options": { "raw": { "language": "json" } } },
             "url": "{{base_url}}/auth/google"
           },
-          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', () => pm.response.to.have.status(200));", "const json = pm.response.json();", "pm.environment.set('user_id', json.data.user.id);", "pm.environment.set('session_token', json.data.sessionToken);", "pm.test('JWT session token returned', () => pm.expect(json.data.sessionToken.split('.')).to.have.length(3));", "pm.test('Bearer token type returned', () => pm.expect(json.data.tokenType).to.eql('Bearer'));", "pm.test('Session cookie issued', () => pm.expect(pm.cookies.has('alc_session')).to.be.true);"] } }]
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["const token = pm.environment.get('google_id_token');", "if (!token) {", "  pm.test('Skipped when google_id_token is empty', () => pm.expect([401, 422]).to.include(pm.response.code));", "} else {", "  pm.test('HTTP 200', () => pm.response.to.have.status(200));", "  const json = pm.response.json();", "  pm.environment.set('user_id', json.data.user.id);", "  pm.environment.set('session_token', json.data.sessionToken);", "  pm.test('JWT session token returned', () => pm.expect(json.data.sessionToken.split('.')).to.have.length(3));", "  pm.test('Bearer token type returned', () => pm.expect(json.data.tokenType).to.eql('Bearer'));", "  pm.test('Session cookie issued', () => pm.expect(pm.cookies.has('alc_session')).to.be.true);", "}"] } }]
         },
         {
           "name": "Current Session",

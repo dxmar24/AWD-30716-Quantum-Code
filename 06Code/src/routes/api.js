@@ -33,6 +33,7 @@ function buildApi(deps) {
   const authLimiter = rateLimit({ windowMs: 15*60*1000, max: env.authRateLimitMax });
 
   router.get('/auth/config', wrap(auth.config));
+  router.post('/auth/login', authLimiter, validate(z.object({ email:z.string().email(), password:z.string().min(8).max(120) })), wrap(auth.passwordLogin));
   router.post('/auth/google', authLimiter, validate(z.object({ idToken:z.string().min(10) })), wrap(auth.login));
   router.get('/auth/me', requireAuth, wrap(auth.me));
   router.post('/auth/logout', wrap(auth.logout));

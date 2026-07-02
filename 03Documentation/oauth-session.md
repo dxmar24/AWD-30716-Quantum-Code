@@ -27,7 +27,9 @@ Google documentation reference: https://support.google.com/cloud/answer/15549257
 
 ## Session Strategy
 - The application issues its own signed JWT session token after Google verification.
+- `POST /api/v1/auth/login` is available for academic Postman verification with configured email/password credentials and an existing internal user.
 - `POST /api/v1/auth/google` returns the token as `data.sessionToken` with `data.tokenType = "Bearer"` for Postman/API verification.
+- `POST /api/v1/auth/login` returns the same response shape and session behavior as Google login.
 - The same token is also sent in cookie `alc_session` for browser/private page usage.
 - Cookie options: HttpOnly, SameSite strict, Secure in production.
 - Server persistence stores only a SHA-256 token hash, not the raw token.
@@ -36,11 +38,13 @@ Google documentation reference: https://support.google.com/cloud/answer/15549257
 - Logout revokes the server-side session hash and clears the cookie; the same Bearer token must return `401` after logout.
 
 ## Postman Session Verification
-1. Run `Auth & Session / Google Login - Real Token`.
-2. The Postman test stores `data.sessionToken` into `session_token`.
-3. Run `Auth & Session / Current Session - Bearer Token`; it must return `200`.
-4. Run `Session Teardown / Logout`; the backend revokes the persisted session hash.
-5. Run `Session Teardown / Current Session - After Logout`; the same Bearer token must return `401`.
+1. Run `Auth & Session / Current Session - No Token`; it must return `401`.
+2. Run `Auth & Session / Password Login - Invalid Credentials`; it must return `401`.
+3. Run `Auth & Session / Password Login - Demo`.
+4. The Postman test stores `data.sessionToken` into `session_token`.
+5. Run `Auth & Session / Current Session - Bearer Token`; it must return `200`.
+6. Run `Session Teardown / Logout`; the backend revokes the persisted session hash.
+7. Run `Session Teardown / Current Session - After Logout`; the same Bearer token must return `401`.
 
 ## Back Button And Expiration Controls
 - API and private pages send `Cache-Control: no-store`.
@@ -59,4 +63,7 @@ Google documentation reference: https://support.google.com/cloud/answer/15549257
 - `SESSION_SECRET`
 - `SESSION_TTL_MINUTES`
 - `ALLOW_MOCK_GOOGLE_TOKENS`
+- `POSTMAN_LOGIN_ENABLED`
+- `POSTMAN_LOGIN_EMAIL`
+- `POSTMAN_LOGIN_PASSWORD`
 - `CORS_ORIGINS`

@@ -35,6 +35,9 @@ The current academic executable is one Express codebase. For AWS, run the same c
 - `SESSION_TTL_MINUTES`
 - `GOOGLE_CLIENT_ID`
 - `ALLOW_MOCK_GOOGLE_TOKENS=false`
+- `POSTMAN_LOGIN_ENABLED=true` only when the academic Postman password-login proof is required.
+- `POSTMAN_LOGIN_EMAIL=verification-admin-real-20260624154645@alc.test`
+- `POSTMAN_LOGIN_PASSWORD=<academic-demo-password>`
 - `CORS_ORIGINS=https://app.americanlatinclass.edu`
 - `AUTH_RATE_LIMIT_MAX=20`
 - `AWS_REGION`

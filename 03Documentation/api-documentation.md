@@ -20,6 +20,7 @@ Common status codes: `200`, `201`, `400`, `401`, `403`, `404`, `409`, `422`, `50
 | Method | URI | Description | Required Role | Params/Query | Body | Success | Business/Validation | Errors |
 |---|---|---|---|---|---|---|---|---|
 | GET | `/auth/config` | Public auth client configuration for the React login page. | Visitor | None | None | `200` Google client id | Does not expose secrets; client id is public OAuth metadata. | `500` |
+| POST | `/auth/login` | Postman/backend verification login with configured email and password. | Visitor | None | `{ "email": "admin@alc.edu", "password": "secret" }` | `200` user, JWT `sessionToken`, Bearer token type and HttpOnly cookie | Uses configured demo credentials and an existing internal user. Rate limited. Intended for academic Postman verification. | `401`, `403`, `422` |
 | POST | `/auth/google` | Login/register with Google ID token. | Visitor | None | `{ "idToken": "jwt" }` | `200` user, JWT `sessionToken`, Bearer token type and HttpOnly cookie | Token must be valid Google ID token in production; internal role is app-owned. Rate limited. | `401`, `422` |
 | GET | `/auth/me` | Current session user. | Authenticated | None | None | `200` user | Session must exist, not revoked and not expired. | `401` |
 | POST | `/auth/logout` | Revoke session and clear cookie. | Any | None | None | `200` | Revokes server session/token hash. | `200` even without active session |
@@ -60,10 +61,18 @@ Common status codes: `200`, `201`, `400`, `401`, `403`, `404`, `409`, `422`, `50
 - Latest JSON result evidence: `07Other/api-validation-results.json`
 - Manual Postman verification assets: `postman/American-Latin-Class-API.postman_collection.json` and `postman/American-Latin-Class.postman_environment.json`
 
-The automated validation covers auth config, malformed Google token rejection, Google session creation with mock test tokens, JWT Bearer access, session revocation, revoked token rejection, anonymous/private redirects, RBAC failures, public enrollment validation, CRUD flows, attendance duplication rules, teacher check-in/check-out, absence review, reports, scholarship evaluations, promotion evaluations and audit log visibility.
+The automated validation covers auth config, Postman email/password login, malformed Google token rejection, Google session creation with mock test tokens, JWT Bearer access, session revocation, revoked token rejection, anonymous/private redirects, RBAC failures, public enrollment validation, CRUD flows, attendance duplication rules, teacher check-in/check-out, absence review, reports, scholarship evaluations, promotion evaluations and audit log visibility.
 
 ## JSON Examples
-Login:
+Postman password login:
+```json
+{
+  "email": "verification-admin-real-20260624154645@alc.test",
+  "password": "AmericanLatin2026!"
+}
+```
+
+Google login:
 ```json
 {
   "idToken": "eyJhbGciOi..."
