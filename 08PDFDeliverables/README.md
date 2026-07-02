@@ -1,6 +1,6 @@
 # PDF Deliverables
 
-Generated: 2026-06-24T16:30:41.044Z
+Generated: 2026-07-02T20:37:05.271Z
 
 This folder contains the academic-professional PDF package for the American Latin Class Attendance System.
 
@@ -43,6 +43,7 @@ node 07Other/pdf-tools/generate-pdfs.js
 | Codex Cloud Handoff Prompt | `07Other/codex-cloud-handoff-prompt.pdf` | `07Other/codex-cloud-handoff-prompt.md` |
 | Final Compliance Review | `07Other/final-compliance-review.pdf` | `07Other/final-compliance-review.md` |
 | README | `07Other/README.pdf` | `07Other/README.md` |
+| Postman Local Jwt Auth Evidence | `postman/evidence/postman-local-jwt-auth-evidence.pdf` | `postman/evidence/postman-local-jwt-auth-evidence.md` |
 | Postman Collection Summary | `postman/postman-collection-summary.pdf` | `generated from postman/American-Latin-Class-API.postman_collection.json and postman/American-Latin-Class.postman_environment.json` |
 | README | `postman/README.pdf` | `postman/README.md` |
 | Documentation Package Index | `00_INDEX/documentation-package-index.pdf` | generated index |

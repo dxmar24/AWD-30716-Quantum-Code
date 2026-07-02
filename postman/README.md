@@ -25,3 +25,13 @@ Notes:
 - The collection is configured with Bearer auth using `{{session_token}}`, while the browser flow still uses the `alc_session` cookie.
 - Create/update requests save generated IDs back into the active Postman environment.
 - Existing environment IDs point to records already loaded in AWS RDS; they can be used immediately for read/report tests.
+
+Automated evidence:
+```bash
+cd 06Code
+npm run postman:evidence:local
+```
+
+This produces:
+- `postman/evidence/postman-local-jwt-auth-evidence.md`
+- `postman/evidence/postman-local-jwt-auth-evidence.json`

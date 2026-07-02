@@ -1,0 +1,63 @@
+{
+  "generatedAt": "2026-07-02T20:35:37.637Z",
+  "tool": "Newman/Postman collection runner",
+  "collection": "postman/American-Latin-Class-API.postman_collection.json",
+  "environment": "Generated local JWT evidence environment",
+  "target": {
+    "site_url": "http://127.0.0.1:4010",
+    "base_url": "http://127.0.0.1:4010/api/v1",
+    "node_env": "test",
+    "db_driver": "memory",
+    "google_token_mode": "mock Google ID token for existing Admin user"
+  },
+  "stats": {
+    "requests": {
+      "total": 64,
+      "pending": 0,
+      "failed": 0
+    },
+    "assertions": {
+      "total": 71,
+      "pending": 0,
+      "failed": 0
+    },
+    "testScripts": {
+      "total": 64,
+      "pending": 0,
+      "failed": 0
+    },
+    "prerequestScripts": {
+      "total": 0,
+      "pending": 0,
+      "failed": 0
+    }
+  },
+  "authenticationChecks": [
+    {
+      "request": "Google Login - Real Token",
+      "assertion": "JWT session token returned",
+      "passed": true
+    },
+    {
+      "request": "Google Login - Real Token",
+      "assertion": "Bearer token type returned",
+      "passed": true
+    },
+    {
+      "request": "Google Login - Real Token",
+      "assertion": "Session cookie issued",
+      "passed": true
+    },
+    {
+      "request": "Current Session - Bearer Token",
+      "assertion": "HTTP 200 with bearer token",
+      "passed": true
+    },
+    {
+      "request": "Current Session - After Logout",
+      "assertion": "HTTP 401 after logout",
+      "passed": true
+    }
+  ],
+  "failures": []
+}
