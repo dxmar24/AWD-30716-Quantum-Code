@@ -34,6 +34,7 @@ const markdownSources = [
   '07Other/final-compliance-review.md',
   '07Other/README.md',
   'postman/README.md',
+  'postman/evidence/python-analytics-api-evidence.md',
   'postman/evidence/postman-local-jwt-auth-evidence.md',
 ];
 
