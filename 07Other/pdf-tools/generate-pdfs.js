@@ -24,6 +24,7 @@ const markdownSources = [
   '03Documentation/database.md',
   '03Documentation/oauth-session.md',
   '03Documentation/postman-token-auth-proof.md',
+  '03Documentation/product-backlog-validation.md',
   '03Documentation/python-analytics-api.md',
   '03Documentation/security-guide.md',
   '03Documentation/technology-stack.md',
