@@ -25,6 +25,7 @@ function frontendIndexPath(frontendBuildPath) {
 
 function createApp() {
   const app = express();
+  if (env.trustProxy) app.set('trust proxy', 1);
   const db = createDatabaseContext();
   const auditService = new AuditService(db);
   const authService = new AuthService(db);

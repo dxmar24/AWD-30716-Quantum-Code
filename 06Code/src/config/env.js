@@ -14,5 +14,6 @@ const env = {
   corsOrigins: (process.env.CORS_ORIGINS || 'http://localhost:8080').split(',').map((v) => v.trim()),
   teacherHourlyRate: Number(process.env.TEACHER_HOURLY_RATE || 12.5),
   authRateLimitMax: Number(process.env.AUTH_RATE_LIMIT_MAX || 20),
+  trustProxy: process.env.TRUST_PROXY === 'true' || ['production', 'staging'].includes(process.env.NODE_ENV),
 };
 module.exports = { env };
