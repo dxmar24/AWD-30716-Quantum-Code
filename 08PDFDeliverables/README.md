@@ -1,6 +1,6 @@
 # PDF Deliverables
 
-Generated: 2026-07-02T22:21:39.939Z
+Generated: 2026-07-03T09:41:43.554Z
 
 This folder contains the academic-professional PDF package for the American Latin Class Attendance System.
 
@@ -30,6 +30,7 @@ node 07Other/pdf-tools/generate-pdfs.js
 | Database | `03Documentation/database.pdf` | `03Documentation/database.md` |
 | Oauth Session | `03Documentation/oauth-session.pdf` | `03Documentation/oauth-session.md` |
 | Postman Token Auth Proof | `03Documentation/postman-token-auth-proof.pdf` | `03Documentation/postman-token-auth-proof.md` |
+| Python Analytics Api | `03Documentation/python-analytics-api.pdf` | `03Documentation/python-analytics-api.md` |
 | Security Guide | `03Documentation/security-guide.pdf` | `03Documentation/security-guide.md` |
 | Technology Stack | `03Documentation/technology-stack.pdf` | `03Documentation/technology-stack.md` |
 | Testing Guide | `03Documentation/testing-guide.pdf` | `03Documentation/testing-guide.md` |
@@ -45,6 +46,6 @@ node 07Other/pdf-tools/generate-pdfs.js
 | Final Compliance Review | `07Other/final-compliance-review.pdf` | `07Other/final-compliance-review.md` |
 | README | `07Other/README.pdf` | `07Other/README.md` |
 | Postman Local Jwt Auth Evidence | `postman/evidence/postman-local-jwt-auth-evidence.pdf` | `postman/evidence/postman-local-jwt-auth-evidence.md` |
-| Postman Collection Summary | `postman/postman-collection-summary.pdf` | `generated from postman/American-Latin-Class-API.postman_collection.json and postman/American-Latin-Class.postman_environment.json` |
+| Postman Collection Summary | `postman/postman-collection-summary.pdf` | `generated from Postman collection files and postman/American-Latin-Class.postman_environment.json` |
 | README | `postman/README.pdf` | `postman/README.md` |
 | Documentation Package Index | `00_INDEX/documentation-package-index.pdf` | generated index |

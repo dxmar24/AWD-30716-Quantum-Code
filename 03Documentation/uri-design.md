@@ -1,6 +1,8 @@
 # URI Design
 
-Base prefix: `/api/v1`
+Node API base prefix: `/api/v1`
+
+Python Analytics API base prefix: `/api/analytics/v1`
 
 ## Conventions
 - Use plural nouns for resources: `/students`, `/teachers`, `/branches`.
@@ -9,7 +11,7 @@ Base prefix: `/api/v1`
 - Use path parameters for identity: `/users/{id}/role`.
 - Use query parameters for report filters: `?from=2026-01-01T00:00:00.000Z&to=2026-03-01T00:00:00.000Z`.
 - Use JSON request/response bodies.
-- Return consistent envelopes: `{ success, message, data }` and `{ success:false, message, details }`.
+- Return consistent envelopes: `{ success, message, data }` and `{ success:false, message, details }` for Node APIs or `{ success:false, message, data:null }` for Python analytics errors.
 
 ## Resource Areas
 | Area | URI Pattern |
@@ -23,4 +25,5 @@ Base prefix: `/api/v1`
 | Justifications | `/absence-justifications`, `/absence-justifications/{id}/review` |
 | Evaluations | `/scholarship-evaluations`, `/level-promotion-evaluations` |
 | Reports | `/reports/branches/summary`, `/reports/scholarships/{studentId}/candidate`, `/reports/level-promotions/{studentId}/candidate`, `/reports/teachers/{teacherId}/payment` |
+| Python analytics | `/api/analytics/v1/health`, `/api/analytics/v1/students/{student_id}/attendance-risk`, `/api/analytics/v1/students/{student_id}/scholarship-readiness`, `/api/analytics/v1/branches/{branch_id}/performance-summary`, `/api/analytics/v1/teachers/{teacher_id}/workload-summary` |
 | Audit | `/audit-logs` |

@@ -24,6 +24,7 @@ const markdownSources = [
   '03Documentation/database.md',
   '03Documentation/oauth-session.md',
   '03Documentation/postman-token-auth-proof.md',
+  '03Documentation/python-analytics-api.md',
   '03Documentation/security-guide.md',
   '03Documentation/technology-stack.md',
   '03Documentation/testing-guide.md',
@@ -282,18 +283,26 @@ function maskEnvironmentValue(key, value) {
 }
 
 function writePostmanSummaryMarkdown() {
-  const collectionPath = path.join(repoRoot, 'postman', 'American-Latin-Class-API.postman_collection.json');
+  const collectionPaths = [
+    path.join(repoRoot, 'postman', 'American-Latin-Class-API.postman_collection.json'),
+    path.join(repoRoot, 'postman', 'American-Latin-Class-Analytics-API.postman_collection.json'),
+  ];
   const environmentPath = path.join(repoRoot, 'postman', 'American-Latin-Class.postman_environment.json');
-  const collection = JSON.parse(fs.readFileSync(collectionPath, 'utf8'));
+  const collections = collectionPaths.map((collectionPath) => JSON.parse(fs.readFileSync(collectionPath, 'utf8')));
   const environment = JSON.parse(fs.readFileSync(environmentPath, 'utf8'));
-  const requests = collectPostmanRequests(collection.item);
-  const folders = [...new Set(requests.map((request) => request.folder))];
+  const requests = collections.flatMap((collection) =>
+    collectPostmanRequests(collection.item).map((request) => ({
+      collection: collection.info?.name || 'Unnamed collection',
+      ...request,
+    })),
+  );
+  const folders = [...new Set(requests.map((request) => `${request.collection} / ${request.folder}`))];
   const outputPath = path.join(generatedMarkdownRoot, 'postman-collection-summary.md');
 
   ensureDir(path.dirname(outputPath));
 
   const requestRows = requests
-    .map((request) => `| ${request.folder} | \`${request.method}\` | ${request.name} | \`${request.url}\` |`)
+    .map((request) => `| ${request.collection} | ${request.folder} | \`${request.method}\` | ${request.name} | \`${request.url}\` |`)
     .join('\n');
 
   const envRows = (environment.values || [])
@@ -306,7 +315,7 @@ function writePostmanSummaryMarkdown() {
 
 ## Overview
 
-- Collection: ${collection.info?.name || 'American Latin Class API'}
+- Collections: ${collections.map((collection) => collection.info?.name || 'Unnamed collection').join(', ')}
 - Total requests: ${requests.length}
 - Folders: ${folders.length}
 - Environment: ${environment.name || 'American Latin Class'}
@@ -319,8 +328,8 @@ ${envRows}
 
 ## Requests
 
-| Folder | Method | Request | URL |
-| --- | --- | --- | --- |
+| Collection | Folder | Method | Request | URL |
+| --- | --- | --- | --- | --- |
 ${requestRows}
 `,
     'utf8',
@@ -438,7 +447,7 @@ async function main() {
   convertMarkdownToPdf(chromePath, path.relative(repoRoot, postmanSummary), postmanPdfPath);
   generatedPdfs.push({
     title: 'Postman Collection Summary',
-    source: 'generated from postman/American-Latin-Class-API.postman_collection.json and postman/American-Latin-Class.postman_environment.json',
+    source: 'generated from Postman collection files and postman/American-Latin-Class.postman_environment.json',
     relativePdf: path.relative(outputRoot, postmanPdfPath),
   });
   console.log(`PDF: ${path.relative(repoRoot, postmanPdfPath)}`);

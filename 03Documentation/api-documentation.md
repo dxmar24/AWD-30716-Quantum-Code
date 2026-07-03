@@ -1,6 +1,8 @@
 # REST API Documentation
 
-Base URI: `/api/v1`
+Node API base URI: `/api/v1`
+
+Python Analytics API base URI: `/api/analytics/v1`
 
 Common headers:
 - `Content-Type: application/json`
@@ -55,11 +57,23 @@ Common status codes: `200`, `201`, `400`, `401`, `403`, `404`, `409`, `422`, `50
 | GET | `/reports/teachers/{teacherId}/payment` | Teacher payment calculation. | BranchDirector, GeneralDirector, Admin | Path teacherId | None | `200` report | Uses checked-out records only. | `401`, `403` |
 | GET | `/audit-logs` | List audit logs. | GeneralDirector, Admin | None | None | `200` list | Restricted traceability. | `401`, `403` |
 
+## Python Analytics API Reference
+
+The Python Analytics API is implemented with FastAPI under `06Code/python-analytics-api`. It reuses the JWT session token issued by the Node Auth API, so Postman can test it with the same `{{session_token}}`.
+
+| Method | URI | Description | Required Role | Params/Query | Body | Success | Business/Validation | Errors |
+|---|---|---|---|---|---|---|---|---|
+| GET | `/api/analytics/v1/health` | Python API health check. | Visitor | None | None | `200` service status | Confirms FastAPI service is alive. | `500` |
+| GET | `/api/analytics/v1/students/{student_id}/attendance-risk` | Student attendance risk analytics. | Authenticated | Path `student_id`; optional `from`, `to` ISO datetimes | None | `200` attendance rate, risk level, recommendation | Reads attendance records and class sessions. Risk is high below 75%, medium below 90%, low at 90% or above. | `401`, `404` |
+| GET | `/api/analytics/v1/students/{student_id}/scholarship-readiness` | Scholarship readiness analytics. | Authenticated | Path `student_id`; optional `from`, `to` ISO datetimes | None | `200` attendance threshold comparison | Uses the active scholarship rule and computes missing percentage points. | `401`, `404` |
+| GET | `/api/analytics/v1/branches/{branch_id}/performance-summary` | Branch performance analytics. | Authenticated | Path `branch_id` | None | `200` branch totals, attendance rate, performance level | Aggregates students, teachers, groups, sessions, attendance and pending enrollments. | `401`, `404` |
+| GET | `/api/analytics/v1/teachers/{teacher_id}/workload-summary` | Teacher workload analytics. | Authenticated | Path `teacher_id`; optional `from`, `to` ISO datetimes | None | `200` check-ins, completed hours, estimated pay | Uses checked-out teacher attendance records and teacher hourly rate. | `401`, `404` |
+
 ## Validation Evidence
 - Automated API validation command: `cd 06Code && npm run test:api:validation`
 - Latest generated report: `03Documentation/api-validation-report.md`
 - Latest JSON result evidence: `07Other/api-validation-results.json`
-- Manual Postman verification assets: `postman/American-Latin-Class-API.postman_collection.json` and `postman/American-Latin-Class.postman_environment.json`
+- Manual Postman verification assets: `postman/American-Latin-Class-API.postman_collection.json`, `postman/American-Latin-Class-Analytics-API.postman_collection.json` and `postman/American-Latin-Class.postman_environment.json`
 
 The automated validation covers auth config, Postman email/password login, malformed Google token rejection, Google session creation with mock test tokens, JWT Bearer access, session revocation, revoked token rejection, anonymous/private redirects, RBAC failures, public enrollment validation, CRUD flows, attendance duplication rules, teacher check-in/check-out, absence review, reports, scholarship evaluations, promotion evaluations and audit log visibility.
 
@@ -114,6 +128,21 @@ After logout, the same token must return `401`:
 ```http
 GET /api/v1/auth/me
 Authorization: Bearer {{session_token}}
+```
+
+Python analytics authenticated request:
+```http
+GET /api/analytics/v1/students/{{student_id}}/attendance-risk
+Authorization: Bearer {{session_token}}
+```
+
+Python analytics unauthorized response:
+```json
+{
+  "success": false,
+  "message": "Authentication required",
+  "data": null
+}
 ```
 
 Student attendance:

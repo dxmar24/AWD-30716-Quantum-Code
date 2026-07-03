@@ -45,6 +45,20 @@ Current implementation status:
 Legacy note:
 - The previous raw `pg` repository remains as fallback with `DB_DRIVER=pg`, but the required production ORM path is Prisma.
 
+## Python API Framework
+Selected framework: **FastAPI**.
+
+Reason:
+- Satisfies the additional Python API requirement without weakening the existing Node.js backend architecture.
+- Provides automatic OpenAPI metadata, clean route definitions and strong support for JSON APIs.
+- Works well as a small analytics microservice behind Nginx or an AWS load balancer.
+
+Current implementation status:
+- The Python API lives under `06Code/python-analytics-api`.
+- It exposes `/api/analytics/v1` endpoints for attendance risk, scholarship readiness, branch performance and teacher workload.
+- It reuses the JWT session token issued by the Node Auth API and validates the token against the shared PostgreSQL `sessions` table.
+- It is designed for a separate AWS EC2 instance on port `8000`.
+
 ## Implemented React + Vite Frontend
 The frontend migration is now implemented under `06Code/frontend` with React components for the public landing page and private dashboard workflows. Vite builds the browser application into `06Code/dist/frontend` using `npm run frontend:build`.
 

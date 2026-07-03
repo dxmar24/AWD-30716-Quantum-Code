@@ -9,6 +9,7 @@ Do not use Render or Netlify. The target deployment uses EC2 plus Amazon RDS Pos
 | Core Business API EC2 | 3000 | Branches, students, teachers, classes, schedules, attendance. |
 | Auth & Session API EC2 | 3001 | Google OAuth, sessions, refresh/session revocation, roles. |
 | Reports & Rules API EC2 | 3002 | Reports, scholarship candidates, promotion candidates, teacher hours/payment. |
+| Python Analytics API EC2 | 8000 | Attendance risk, scholarship readiness, branch performance and workload analytics. |
 | Amazon RDS PostgreSQL | 5432 | Normalized relational database. |
 
 The current academic executable is one Express codebase. For AWS, run the same codebase as separate Node processes with route ownership documented above, or split by route module if the course requires physical service separation.
@@ -24,8 +25,8 @@ The current academic executable is one Express codebase. For AWS, run the same c
 |---|---|
 | ALB | `443` from internet, optional `80` redirect to HTTPS. |
 | Frontend EC2 | `80/443` only from ALB. |
-| API EC2 | `3000/3001/3002` only from ALB or frontend security group. |
-| RDS | `5432` only from API security groups. |
+| API EC2 | `3000/3001/3002/8000` only from ALB or frontend security group. |
+| RDS | `5432` only from Node API and Python Analytics API security groups. |
 
 ## Environment Variables
 - `NODE_ENV=production`
@@ -42,6 +43,13 @@ The current academic executable is one Express codebase. For AWS, run the same c
 - `AUTH_RATE_LIMIT_MAX=20`
 - `AWS_REGION`
 
+Python Analytics API variables:
+- `DATABASE_URL=postgres://...`
+- `SESSION_SECRET` with the same value used by the Auth & Session API.
+- `ANALYTICS_AUTH_REQUIRED=true`
+- `ANALYTICS_CORS_ORIGINS=https://18-217-255-109.sslip.io`
+- `ANALYTICS_SERVICE_NAME=American Latin Class Analytics API`
+
 Store secrets in AWS Systems Manager Parameter Store or Secrets Manager.
 
 ## Deployment Steps
@@ -51,9 +59,10 @@ Store secrets in AWS Systems Manager Parameter Store or Secrets Manager.
 4. Copy project or deploy from repository.
 5. Run `npm ci --omit=dev` on production instances.
 6. Start each Node process with its assigned port.
-7. Configure Nginx reverse proxy or ALB target groups.
-8. Enable HTTPS and configure HSTS at ALB/Nginx.
-9. Verify `/api/v1/auth/me`, `/api/v1/branches`, reports and private page redirects.
+7. On the Python Analytics API EC2 instance, install Python, create a virtual environment, install `06Code/python-analytics-api/requirements.txt` and start Uvicorn on port `8000`.
+8. Configure Nginx reverse proxy or ALB target groups.
+9. Enable HTTPS and configure HSTS at ALB/Nginx.
+10. Verify `/api/v1/auth/me`, `/api/v1/branches`, reports, `/api/analytics/v1/health` and private page redirects.
 
 ## HTTPS Recommendation
 Use ACM certificates on ALB. Redirect all HTTP traffic to HTTPS. Keep cookies Secure in production.
@@ -82,6 +91,48 @@ The Vite output is `06Code/dist/frontend`. Express serves that directory and kee
 For the current EC2 frontend instance, the reference Nginx configuration is versioned at `07Other/nginx-alc-frontend.conf`. It includes:
 - `/api/v1/auth/` proxy to Auth & Session API.
 - `/api/v1/reports/` proxy to Reports & Rules API.
+- `/api/analytics/v1/` proxy to Python Analytics API.
 - `/api/v1/` proxy to Core Business API.
 - `/private/` no-cookie redirect to `/login.html?session=expired` plus `Cache-Control: no-store`.
 - Temporary HTTPS host `https://18-217-255-109.sslip.io` for Google OAuth validation.
+
+## Python Analytics API EC2
+
+Recommended setup:
+
+```bash
+sudo apt update
+sudo apt install -y python3 python3-venv python3-pip
+git clone https://github.com/dxmar24/AWD-30716-Quantum-Code.git
+cd AWD-30716-Quantum-Code/06Code/python-analytics-api
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+Create `.env` on the instance:
+
+```text
+DATABASE_URL=postgres://alc_user:<password>@american-latin-class.c38uoym8e77j.us-east-2.rds.amazonaws.com:5432/american_latin_class
+SESSION_SECRET=<same secret used by Auth & Session API>
+ANALYTICS_AUTH_REQUIRED=true
+ANALYTICS_CORS_ORIGINS=https://18-217-255-109.sslip.io
+```
+
+Start command:
+
+```bash
+uvicorn app.main:app --host 0.0.0.0 --port 8000
+```
+
+Production should run it with `systemd` or PM2 and proxy it through the Frontend EC2 Nginx site:
+
+```nginx
+location /api/analytics/v1/ {
+    proxy_pass http://<python-analytics-private-ip>:8000/api/analytics/v1/;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+}
+```

@@ -1,0 +1,301 @@
+{
+  "info": {
+    "_postman_id": "268f94c6-b3ec-4319-80ee-1428b8d5a56c",
+    "name": "American Latin Class - Python Analytics API",
+    "description": "Postman verification for the FastAPI analytics microservice. Run the Node Auth password login first so {{session_token}} is available.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{session_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Analytics Health",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const body = pm.response.json();",
+                  "pm.test('service is healthy', function () {",
+                  "  pm.expect(body.success).to.eql(true);",
+                  "  pm.expect(body.data.status).to.eql('healthy');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{analytics_base_url}}/health",
+              "host": [
+                "{{analytics_base_url}}"
+              ],
+              "path": [
+                "health"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Authentication Proof",
+      "item": [
+        {
+          "name": "Student Attendance Risk - No Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 401 without token', function () {",
+                  "  pm.response.to.have.status(401);",
+                  "});",
+                  "const body = pm.response.json();",
+                  "pm.test('request is rejected', function () {",
+                  "  pm.expect(body.success).to.eql(false);",
+                  "  pm.expect(body.message).to.match(/Authentication required|Invalid session token/);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{analytics_base_url}}/students/{{student_id}}/attendance-risk",
+              "host": [
+                "{{analytics_base_url}}"
+              ],
+              "path": [
+                "students",
+                "{{student_id}}",
+                "attendance-risk"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Student Analytics",
+      "item": [
+        {
+          "name": "Student Attendance Risk",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const body = pm.response.json();",
+                  "pm.test('attendance risk data is present', function () {",
+                  "  pm.expect(body.success).to.eql(true);",
+                  "  pm.expect(body.data.studentId).to.eql(pm.environment.get('student_id'));",
+                  "  pm.expect(body.data).to.have.property('attendanceRate');",
+                  "  pm.expect(body.data).to.have.property('riskLevel');",
+                  "  pm.expect(body.data).to.have.property('recommendation');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{analytics_base_url}}/students/{{student_id}}/attendance-risk",
+              "host": [
+                "{{analytics_base_url}}"
+              ],
+              "path": [
+                "students",
+                "{{student_id}}",
+                "attendance-risk"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Student Scholarship Readiness",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const body = pm.response.json();",
+                  "pm.test('scholarship readiness data is present', function () {",
+                  "  pm.expect(body.success).to.eql(true);",
+                  "  pm.expect(body.data.studentId).to.eql(pm.environment.get('student_id'));",
+                  "  pm.expect(body.data).to.have.property('requiredAttendanceRate');",
+                  "  pm.expect(body.data).to.have.property('scholarshipEligible');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{analytics_base_url}}/students/{{student_id}}/scholarship-readiness",
+              "host": [
+                "{{analytics_base_url}}"
+              ],
+              "path": [
+                "students",
+                "{{student_id}}",
+                "scholarship-readiness"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Branch Analytics",
+      "item": [
+        {
+          "name": "Branch Performance Summary",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const body = pm.response.json();",
+                  "pm.test('branch summary data is present', function () {",
+                  "  pm.expect(body.success).to.eql(true);",
+                  "  pm.expect(body.data.branchId).to.eql(pm.environment.get('branch_id'));",
+                  "  pm.expect(body.data).to.have.property('studentsTotal');",
+                  "  pm.expect(body.data).to.have.property('attendanceRate');",
+                  "  pm.expect(body.data).to.have.property('performanceLevel');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{analytics_base_url}}/branches/{{branch_id}}/performance-summary",
+              "host": [
+                "{{analytics_base_url}}"
+              ],
+              "path": [
+                "branches",
+                "{{branch_id}}",
+                "performance-summary"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Teacher Analytics",
+      "item": [
+        {
+          "name": "Teacher Workload Summary",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const body = pm.response.json();",
+                  "pm.test('teacher workload data is present', function () {",
+                  "  pm.expect(body.success).to.eql(true);",
+                  "  pm.expect(body.data.teacherId).to.eql(pm.environment.get('teacher_id'));",
+                  "  pm.expect(body.data).to.have.property('completedHours');",
+                  "  pm.expect(body.data).to.have.property('estimatedPay');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{analytics_base_url}}/teachers/{{teacher_id}}/workload-summary",
+              "host": [
+                "{{analytics_base_url}}"
+              ],
+              "path": [
+                "teachers",
+                "{{teacher_id}}",
+                "workload-summary"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
