@@ -22,7 +22,10 @@ INSERT INTO permissions(code, description) VALUES
 ('reports.branch','View branch reports'),
 ('reports.consolidated','View consolidated reports'),
 ('audit.view','View audit logs'),
-('users.manage_roles','Assign internal application roles')
+('users.manage_roles','Assign internal application roles'),
+('users.assign_branch_access','Assign branch access to branch-scoped users'),
+('self.view','View own academic profile'),
+('absence.justify','Submit own absence justification')
 ON CONFLICT DO NOTHING;
 
 INSERT INTO role_permissions(role_id, permission_id)
@@ -43,6 +46,11 @@ ON CONFLICT DO NOTHING;
 INSERT INTO role_permissions(role_id, permission_id)
 SELECT r.id, p.id FROM roles r JOIN permissions p ON p.code IN ('reports.branch','reports.consolidated','audit.view')
 WHERE r.name = 'GeneralDirector'
+ON CONFLICT DO NOTHING;
+
+INSERT INTO role_permissions(role_id, permission_id)
+SELECT r.id, p.id FROM roles r JOIN permissions p ON p.code IN ('self.view','absence.justify')
+WHERE r.name = 'Student'
 ON CONFLICT DO NOTHING;
 
 INSERT INTO dance_categories(name) VALUES
