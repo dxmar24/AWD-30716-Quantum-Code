@@ -17,6 +17,7 @@
 | FR-12 | Teacher worked hours and payment report. | Medium | Completed check-in/out records produce hours, hourly rate and amount. |
 | FR-13 | Branch and consolidated reports. | Medium | GeneralDirector/Admin can view branch summaries and restricted reports. |
 | FR-14 | Audit logs. | Medium | Administrative and attendance actions are recorded and visible to GeneralDirector/Admin. |
+| FR-15 | Controlled cache management for safe repeated reads. | Medium | Public, private, no-store and memory-cache policies are explicit; cache hits/misses are visible through headers; state-changing actions invalidate affected cache tags. |
 
 ## Non-Functional Requirements
 | ID | Requirement | Evidence |
@@ -32,6 +33,7 @@
 | NFR-09 | Consistent error handling. | `AppError` and `errorHandler` middleware. |
 | NFR-10 | AWS deployment preparation. | EC2/RDS/ALB guide and PlantUML deployment diagram. |
 | NFR-11 | Production-safe configuration. | Production/staging fails fast on default secrets, missing database URL or enabled mock Google tokens. |
+| NFR-12 | Controlled HTTP and in-memory cache behavior. | `03Documentation/cache-management.md`, `06Code/src/services/CacheService.js`, `06Code/src/middleware/cacheControl.js`, `07Other/nginx-alc-frontend.conf` |
 
 ## User Stories
 | ID | Story |
@@ -43,6 +45,7 @@
 | US-05 | As a BranchDirector, I want to review scholarship and promotion candidates before registering evaluations. |
 | US-06 | As a GeneralDirector, I want consolidated branch reports and audit logs. |
 | US-07 | As an Admin, I want to assign internal roles, branch access and role-test users without depending on Google profile data. |
+| US-08 | As a school director, I want repeated catalog and report reads to be faster while private academic data remains protected from browser or shared-cache reuse. |
 
 ## Role/Permission Matrix
 | Feature | Visitor | Student | Teacher | BranchDirector | GeneralDirector | Admin |
@@ -78,6 +81,7 @@
 - BR-11: Private pages and APIs must use `Cache-Control: no-store`.
 - BR-12: Administrative and academic state-changing actions must be audited.
 - BR-13: Manual role-test credentials must be stored as password hashes and remain disabled unless `POSTMAN_LOGIN_ENABLED=true`.
+- BR-14: Cacheable non-sensitive responses must declare an explicit TTL, expose cache evidence headers and invalidate affected memory-cache tags after state-changing academic actions.
 
 ## Prioritized Backlog
 1. Auth/session, RBAC, no-store private pages and tests.
@@ -89,7 +93,8 @@
 7. Reports by branch, teachers and consolidated roles.
 8. Landing page, enrollment form and private dashboard shell.
 9. AWS EC2/RDS/ALB deployment documentation and diagrams.
-10. Final test evidence and requirement reevaluation.
+10. Controlled cache management with automated evidence.
+11. Final test evidence and requirement reevaluation.
 
 ## Requirement-To-Endpoint Traceability
 | Requirement | Endpoints |
@@ -108,3 +113,4 @@
 | FR-12 | `GET /api/v1/reports/teachers/{teacherId}/payment` |
 | FR-13 | `GET /api/v1/reports/branches/summary` |
 | FR-14 | `GET /api/v1/audit-logs` |
+| FR-15 | `GET /api/v1/auth/config`, `GET /api/v1/roles`, `GET /api/v1/branches`, `GET /api/v1/reports/branches/summary`, static `/assets/*`, protected `/api/analytics/v1/*` |

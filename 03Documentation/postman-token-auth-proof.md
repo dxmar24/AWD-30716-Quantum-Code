@@ -156,5 +156,5 @@ Latest Newman evidence:
 | --- | --- |
 | Requests | `67 executed, 0 failed` |
 | Assertions | `78 executed, 0 failed` |
-| API validation | `102/102 passed` |
-| Jest tests | `16 passed` |
+| API validation | `114/114 passed` |
+| Jest tests | `24 passed` |

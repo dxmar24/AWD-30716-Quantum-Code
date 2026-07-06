@@ -1,6 +1,6 @@
 # Business Rules API Test Report
 
-Generated: 2026-06-24
+Generated: 2026-07-06
 
 ## Scope
 
@@ -8,11 +8,11 @@ This report maps the American Latin Class business rules to API URIs and manual/
 
 ## Counts
 
-- Formal business rules declared in `02Requirements/requirements.md`: 10.
-- API-verifiable business rule areas implemented by the system: 16.
+- Formal business rules declared in `02Requirements/requirements.md`: 14.
+- API-verifiable business rule areas implemented by the system: 17.
 - API endpoints by `METHOD + URI`: 53.
 - Unique API URI patterns: 35.
-- Postman collection requests available for manual validation: 64.
+- Postman collection requests available for manual validation: 67.
 - Latest real RDS verification records inserted: 44.
 
 ## RDS Real Verification Seed Evidence
@@ -95,8 +95,12 @@ Historical note: `BRDEMO-20260624132922` previously inserted 61 business-rule de
 | BR-06 | A student can have only one attendance record per class session. |
 | BR-07 | A teacher can have only one open check-in at a time. |
 | BR-08 | Roles are owned by the application and are not inferred from Google claims. |
-| BR-09 | Private pages and APIs must use `Cache-Control: no-store`. |
-| BR-10 | Administrative and academic state-changing actions must be audited. |
+| BR-09 | BranchDirector permissions require explicit branch assignment and must not expose other branches. |
+| BR-10 | Student and Teacher users can only access their own academic/profile records and teaching context. |
+| BR-11 | Private pages and APIs must use `Cache-Control: no-store`. |
+| BR-12 | Administrative and academic state-changing actions must be audited. |
+| BR-13 | Manual role-test credentials must be stored as password hashes and remain disabled unless `POSTMAN_LOGIN_ENABLED=true`. |
+| BR-14 | Cacheable non-sensitive responses must declare an explicit TTL, expose cache evidence headers and invalidate affected memory-cache tags after state-changing academic actions. |
 
 ## API-Verifiable Rule Matrix
 
@@ -183,6 +187,7 @@ Methods to test:
 - `GET` protected API with session -> expect `Cache-Control: no-store`.
 - `GET /private/dashboard.html` with session -> expect `Cache-Control: no-store`.
 - `GET /private/dashboard.html` after logout/back navigation -> expect redirect instead of cached private content.
+- `GET` protected Python analytics endpoint without token -> expect `Cache-Control: no-store`.
 
 ### R-06 Role-Based Authorization
 
@@ -372,6 +377,29 @@ Methods to test:
 - `GET` audit logs as GeneralDirector/Admin -> expect `200`.
 - `GET` audit logs as Student/Teacher/BranchDirector -> expect `403`.
 
+### R-17 Controlled Cache Management
+
+What it does: the system caches only safe repeated reads, exposes cache evidence through headers and invalidates affected entries after academic writes.
+
+URIs:
+- `GET /api/v1/auth/config`
+- `GET /api/v1/roles`
+- `GET /api/v1/permissions`
+- `GET /api/v1/branches`
+- `GET /api/v1/dance-categories`
+- `GET /api/v1/dance-styles`
+- `GET /api/v1/reports/branches/summary`
+- `GET /api/analytics/v1/health`
+
+Methods to test:
+- `GET /auth/config` -> expect public cache headers and `X-Cache-Policy: public-auth-config`.
+- `GET /auth/me` anonymous or authenticated -> expect `Cache-Control: no-store`.
+- Repeat `GET /roles` as the same authenticated user -> expect `X-Memory-Cache: MISS` then `HIT`.
+- Repeat `GET /branches` as the same authenticated user -> expect `MISS` then `HIT`.
+- Update a branch -> expect the next `GET /branches` to return `MISS` after tag invalidation.
+- Repeat branch summary as a BranchDirector -> expect `HIT` only for that actor-scoped cache key.
+- `GET /api/analytics/v1/health` -> expect public short cache.
+
 ## Postman Verification Guidance
 
 Use the files under `postman/`:
@@ -389,13 +417,13 @@ Recommended manual order:
 
 ## Automated Validation Evidence
 
-The API validation suite covers auth, sessions, RBAC, CRUD, attendance, absence, reports, evaluations and private page protection.
+The API validation suite covers auth, sessions, RBAC, CRUD, attendance, absence, reports, evaluations, private page protection and controlled cache behavior.
 
 - Command: `npm run test:api:validation`
 - Evidence file: `03Documentation/api-validation-report.md`
-- Result: 97 total cases, 97 passed, 0 failed.
+- Result: 114 total cases, 114 passed, 0 failed.
 
-The Jest suite covers integration, auth, RBAC and unit-level rules tests.
+The Jest suite covers integration, auth, RBAC, cache management and unit-level rules tests.
 
 - Command: `npm test`
-- Result: 4 test suites passed, 15 tests passed, 0 failed.
+- Result: 5 test suites passed, 24 tests passed, 0 failed.

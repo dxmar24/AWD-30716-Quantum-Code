@@ -68,7 +68,7 @@ Branch directors must be assigned to one or more branches through `/api/v1/users
 9. On the Python Analytics API EC2 instance, install Python, create a virtual environment, install `06Code/python-analytics-api/requirements.txt` and start Uvicorn on port `8000`.
 10. Configure Nginx reverse proxy or ALB target groups.
 11. Enable HTTPS and configure HSTS at ALB/Nginx.
-12. Verify `/api/v1/auth/me`, `/api/v1/branches`, reports, `/api/analytics/v1/health` and private page redirects.
+12. Verify `/api/v1/auth/me`, `/api/v1/branches`, reports, `/api/analytics/v1/health`, cache headers and private page redirects.
 
 ## HTTPS Recommendation
 Use ACM certificates on ALB. Redirect all HTTP traffic to HTTPS. Keep cookies Secure in production.
@@ -100,7 +100,38 @@ For the current EC2 frontend instance, the reference Nginx configuration is vers
 - `/api/analytics/v1/` proxy to Python Analytics API.
 - `/api/v1/` proxy to Core Business API.
 - `/private/` no-cookie redirect to `/login.html?session=expired` plus `Cache-Control: no-store`.
+- `/assets/` immutable static cache with `Cache-Control: public, max-age=31536000, immutable`.
+- `/` and `/login.html` HTML revalidation with `Cache-Control: no-cache, must-revalidate`.
 - Temporary HTTPS host `https://18-217-255-109.sslip.io` for Google OAuth validation.
+
+## Cache Management Deployment Checks
+
+After deploying the latest code and reloading Nginx, verify cache policy headers through HTTPS:
+
+```bash
+curl -k -I https://18-217-255-109.sslip.io/
+curl -k -I https://18-217-255-109.sslip.io/login.html
+curl -k -I https://18-217-255-109.sslip.io/assets/<built-asset-file>
+curl -k -I https://18-217-255-109.sslip.io/api/v1/auth/config
+curl -k -I https://18-217-255-109.sslip.io/api/v1/auth/me
+curl -k -I https://18-217-255-109.sslip.io/api/analytics/v1/health
+```
+
+Expected policies:
+- HTML pages: `X-Cache-Policy: html-revalidate`.
+- Static assets: `X-Cache-Policy: public-static-immutable`.
+- Auth config: `X-Cache-Policy: public-auth-config`.
+- Anonymous/private API responses: `X-Cache-Policy: sensitive-no-store`.
+- Python health: `X-Cache-Policy: public-health-short`.
+
+Authenticated memory-cache evidence can be validated by logging in, then repeating the same protected read twice:
+
+```bash
+curl -k -H "Authorization: Bearer <session-token>" https://18-217-255-109.sslip.io/api/v1/roles
+curl -k -H "Authorization: Bearer <session-token>" https://18-217-255-109.sslip.io/api/v1/roles
+```
+
+The first response should include `X-Memory-Cache: MISS`; the repeated response should include `X-Memory-Cache: HIT`.
 
 ## Python Analytics API EC2
 

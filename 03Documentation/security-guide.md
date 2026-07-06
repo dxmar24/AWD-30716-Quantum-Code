@@ -19,6 +19,13 @@
 - Logout revokes the server-side session.
 - Private pages and APIs send no-store cache headers.
 
+## Cache Privacy
+- Sensitive session, user, attendance, evaluation and protected analytics responses use `Cache-Control: no-store, no-cache, must-revalidate, private`.
+- Public cache is limited to non-secret metadata such as `/api/v1/auth/config` and the Python analytics health check.
+- Private memory-cache entries include actor scope when the response can differ by role, branch assignment, teacher profile or student ownership.
+- State-changing academic actions invalidate related memory-cache tags so repeated reads do not keep stale branch, attendance or report data.
+- Cache behavior is visible through `X-Cache-Policy` and, for server memory cache, `X-Memory-Cache` headers.
+
 ## Input Validation
 - Zod validators centralize request body validation.
 - Invalid bodies return `422`.

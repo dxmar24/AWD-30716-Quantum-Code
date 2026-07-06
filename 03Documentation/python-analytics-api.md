@@ -84,6 +84,15 @@ Unauthorized response:
 }
 ```
 
+## Cache Headers
+
+The Python Analytics API follows the same cache privacy model as the Node API:
+
+- `GET /api/analytics/v1/health` returns `Cache-Control: public, max-age=60, must-revalidate` and `X-Cache-Policy: public-health-short`.
+- Protected analytics endpoints and authentication errors return `Cache-Control: no-store, no-cache, must-revalidate, private` and `X-Cache-Policy: sensitive-no-store`.
+
+This allows infrastructure health checks to be cached briefly while preventing student, branch, teacher or session data from being stored by browsers or shared proxies.
+
 ## Postman Verification
 
 Import:
@@ -147,7 +156,14 @@ cd 06Code/python-analytics-api
 python -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements.txt
-python -m unittest discover -s tests -v
+.\.venv\Scripts\python.exe -m unittest discover -s tests -v
 ```
 
-The tests validate service calculations and the health endpoint.
+The tests validate service calculations, the health endpoint and analytics cache headers.
+
+Latest verified result:
+
+```text
+Ran 9 tests
+OK
+```

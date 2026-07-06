@@ -29,6 +29,12 @@ Base prefix:
 | `GET` | `/branches/{branch_id}/performance-summary` | Scoped student, teacher, session and attendance summary by branch. |
 | `GET` | `/teachers/{teacher_id}/workload-summary` | Scoped completed hours, open check-ins and estimated pay. |
 
+## Cache Headers
+
+- `/health` returns `Cache-Control: public, max-age=60, must-revalidate` and `X-Cache-Policy: public-health-short`.
+- Protected analytics endpoints return `Cache-Control: no-store, no-cache, must-revalidate, private` and `X-Cache-Policy: sensitive-no-store`.
+- Authentication errors also return no-store headers so private analytics data is never cached by browsers or shared proxies.
+
 ## Local Setup
 
 ```bash
@@ -61,7 +67,7 @@ For isolated local development without database authentication, `ANALYTICS_AUTH_
 
 ```bash
 cd 06Code/python-analytics-api
-python -m unittest discover -s tests
+.\.venv\Scripts\python.exe -m unittest discover -s tests -v
 ```
 
 ## AWS Target

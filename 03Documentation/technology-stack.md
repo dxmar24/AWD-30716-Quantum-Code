@@ -45,6 +45,22 @@ Current implementation status:
 Legacy note:
 - The previous raw `pg` repository remains as fallback with `DB_DRIVER=pg`, but the required production ORM path is Prisma.
 
+## Cache Management
+
+Selected approach: **HTTP cache headers plus an in-process Node.js TTL cache**.
+
+Reason:
+- The project needs demonstrable cache management without introducing another server such as Redis for the academic deployment.
+- HTTP headers clearly separate public cache, private browser cache, no-store sensitive data and immutable frontend assets.
+- The in-memory cache improves repeated catalog/report reads while keeping the implementation simple enough for EC2 deployment.
+- Tag invalidation keeps branch, student, attendance and report reads fresh after writes.
+
+Current implementation status:
+- `CacheService` provides TTL entries, cache tags, invalidation and memory-cache evidence headers.
+- `cacheControl` middleware centralizes `Cache-Control` and `X-Cache-Policy` responses.
+- Nginx applies immutable cache to built assets and revalidation to HTML.
+- Python Analytics applies a short public cache to `/health` and no-store to protected analytics responses.
+
 ## Python API Framework
 Selected framework: **FastAPI**.
 

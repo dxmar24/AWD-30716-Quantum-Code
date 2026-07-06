@@ -8,19 +8,30 @@ Controllers only parse HTTP concerns and delegate to services. Services implemen
 
 Runtime layers:
 - Controllers: `AuthController`, `CrudController`, `AttendanceController`, `ReportsController`, `AcademicController`.
-- Services: `AuthService`, `AccessPolicy`, `AttendanceService`, `RulesService`, `AcademicService`, `AuditService`.
+- Services: `AuthService`, `AccessPolicy`, `AttendanceService`, `RulesService`, `AcademicService`, `AuditService`, `CacheService`.
 - Repositories: in-memory repositories for tests/local demos and Prisma repositories for production when `DB_DRIVER=prisma`.
-- Middleware: validation, session resolver, RBAC, private page guard, no-store cache and error handling.
+- Middleware: validation, session resolver, RBAC, private page guard, explicit cache control and error handling.
 
 RBAC decides whether a role can enter a workflow. `AccessPolicy` then checks the specific resource scope: BranchDirector users are limited by `user_branch_access`, Teacher users are limited to their linked teacher profile/classes, and Student users are limited to their own academic records.
+
+## Cache management architecture
+The Express application creates one in-process `CacheService` at startup and passes it into controllers/services through dependency injection. The cache stores safe repeated reads with TTLs and tag invalidation. Cache keys include the authenticated actor role and id/email whenever the response can differ by role or branch scope.
+
+HTTP cache policies are centralized in `src/middleware/cacheControl.js`:
+- Sensitive API and private page responses use `Cache-Control: no-store, no-cache, must-revalidate, private`.
+- Public OAuth client configuration uses a one-hour public cache.
+- Reference catalog and branch/report reads use private browser cache plus server memory cache where safe.
+- Memory cache evidence is exposed through `X-Memory-Cache`, `X-Memory-Cache-Key` and `X-Memory-Cache-TTL`.
+
+State-changing services invalidate tags such as `branches`, `students`, `attendance`, `evaluations` and `reports`. This keeps repeated director dashboards fast while preventing stale academic data from remaining after writes.
 
 ## Python analytics microservice
 An additional Python FastAPI API is included under `06Code/python-analytics-api` for analytical academic endpoints. It is not responsible for creating sessions or writing transactional attendance records. It reads from the same PostgreSQL database and validates the same JWT session token issued by the Node Auth API.
 
 Runtime responsibility:
 - Base path: `/api/analytics/v1`.
-- Health endpoint: public service check.
-- Protected endpoints: student attendance risk, scholarship readiness, branch performance and teacher workload.
+- Health endpoint: public service check with a 60 second cache policy.
+- Protected endpoints: student attendance risk, scholarship readiness, branch performance and teacher workload with no-store cache policy.
 - Session validation: JWT signature check plus server-side token hash lookup in the shared `sessions` table.
 - Resource authorization: analytics responses are filtered by the same student, teacher and branch scope rules used by the Node API.
 

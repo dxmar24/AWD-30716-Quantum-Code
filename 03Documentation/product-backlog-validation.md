@@ -17,6 +17,7 @@ The objective is to demonstrate that the backlog was not only listed as planning
 | Python analytics collection | `postman/American-Latin-Class-Analytics-API.postman_collection.json` |
 | JWT/Postman evidence | `postman/evidence/postman-local-jwt-auth-evidence.md` |
 | Python API evidence | `postman/evidence/python-analytics-api-evidence.md` |
+| Cache management evidence | `03Documentation/cache-management.md`, `03Documentation/api-validation-report.md` |
 | Database evidence | `06Code/migrations/001_initial_schema.sql`, `06Code/seeders/001_seed.sql` |
 | Deployment evidence | `03Documentation/aws-deployment-guide.md`, `07Other/nginx-alc-frontend.conf` |
 
@@ -25,10 +26,10 @@ The objective is to demonstrate that the backlog was not only listed as planning
 | Metric | Result |
 | --- | ---: |
 | Original prioritized backlog items | 10 |
-| Additional validated extension items | 1 |
-| Validated backlog items | 11 |
-| Items with endpoint/API evidence | 11 |
-| Items with automated or manual test evidence | 11 |
+| Additional validated extension items | 2 |
+| Validated backlog items | 12 |
+| Items with endpoint/API evidence | 12 |
+| Items with automated or manual test evidence | 12 |
 | Final validation status | Completed |
 
 ## Backlog Item Validations
@@ -142,6 +143,17 @@ The objective is to demonstrate that the backlog was not only listed as planning
 | Test evidence | `postman/evidence/python-analytics-api-evidence.md` |
 | Status | Completed / Validated |
 
+### PBI-12 - Controlled Cache Management Extension
+
+| Field | Validation |
+| --- | --- |
+| Related stories / requirements | US-08, FR-15, NFR-12, BR-14 |
+| Acceptance criteria | Public, private and no-store cache policies are explicit; repeated safe reads expose memory-cache `MISS/HIT`; state-changing academic actions invalidate affected cache tags; scoped reports are cached per authenticated actor. |
+| Code evidence | `06Code/src/services/CacheService.js`, `06Code/src/middleware/cacheControl.js`, `06Code/src/routes/api.js`, `07Other/nginx-alc-frontend.conf` |
+| Endpoint evidence | `/api/v1/auth/config`, `/api/v1/roles`, `/api/v1/branches`, `/api/v1/reports/branches/summary`, `/api/analytics/v1/health` |
+| Test evidence | `06Code/tests/integration/cache.test.js`, `03Documentation/api-validation-report.md` |
+| Status | Completed / Validated |
+
 ## Requirement Coverage
 
 | Requirement | Covered By Backlog Items | Validation Result |
@@ -160,14 +172,16 @@ The objective is to demonstrate that the backlog was not only listed as planning
 | FR-12 Teacher hours/payment report | PBI-07, PBI-11 | Validated |
 | FR-13 Branch/consolidated reports | PBI-07, PBI-11 | Validated |
 | FR-14 Audit logs | PBI-05 | Validated |
+| FR-15 Controlled cache management | PBI-12 | Validated |
+| NFR-12 Controlled HTTP and in-memory cache behavior | PBI-12 | Validated |
 
 ## Validation Methods
 
 | Method | Command / Tool | Result |
 | --- | --- | --- |
-| Node.js automated tests | `cd 06Code && npm test` | 4 suites passed, 16 tests passed |
-| API validation suite | `cd 06Code && npm run test:api:validation` | 102/102 validation cases passed |
-| Python API tests | `cd 06Code/python-analytics-api && python -m unittest discover -s tests -v` | 7 tests passed |
+| Node.js automated tests | `cd 06Code && npm test` | 5 suites passed, 24 tests passed |
+| API validation suite | `cd 06Code && npm run test:api:validation` | 114/114 validation cases passed |
+| Python API tests | `cd 06Code/python-analytics-api && .\.venv\Scripts\python.exe -m unittest discover -s tests -v` | 9 tests passed |
 | Manual Postman verification | Main API collection and Python analytics collection | Login, token use, API calculations and logout validated |
 | AWS deployment verification | HTTPS routes through Nginx and EC2 services | Node API and Python API reachable through public domain |
 | PDF deliverables | `node 07Other/pdf-tools/generate-pdfs.js` | Documentation package generated |
@@ -189,3 +203,5 @@ The objective is to demonstrate that the backlog was not only listed as planning
 The Product Backlog is fully validated for the current academic submission. Each backlog item is connected to implemented code, REST endpoints, database support, tests, Postman evidence or AWS deployment documentation.
 
 The additional Python FastAPI analytics API is also validated as an extension item. It demonstrates a separate Python backend service that reads real project data, calculates academic indicators and reuses the existing JWT session model.
+
+The controlled cache management extension is validated through headers, memory-cache hit/miss evidence, invalidation checks and deployment-ready Nginx cache rules.
