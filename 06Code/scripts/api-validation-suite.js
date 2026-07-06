@@ -122,12 +122,15 @@ async function main() {
   }
 
   await runCase({
-    name: 'Auth config exposes Google client id',
+    name: 'Auth config exposes Google client id and public cache policy',
     method: 'get',
     route: `${apiPrefix}/auth/config`,
     expectedStatus: 200,
     assert: (res) => {
       if (res.body.data.googleClientId !== process.env.GOOGLE_CLIENT_ID) throw new Error('Unexpected Google client id.');
+      if (!res.headers['cache-control']?.includes('public')) throw new Error('Auth config was not marked as public cache.');
+      if (!res.headers['cache-control']?.includes('max-age=3600')) throw new Error('Auth config cache TTL was not exposed.');
+      if (res.headers['x-cache-policy'] !== 'public-auth-config') throw new Error('Unexpected auth config cache policy.');
     },
   });
 
@@ -217,6 +220,17 @@ async function main() {
   }
 
   await runCase({
+    name: 'Anonymous session response is no-store',
+    method: 'get',
+    route: `${apiPrefix}/auth/me`,
+    expectedStatus: 401,
+    assert: (res) => {
+      if (!res.headers['cache-control']?.includes('no-store')) throw new Error('Anonymous session response was cacheable.');
+      if (res.headers['x-cache-policy'] !== 'sensitive-no-store') throw new Error('Unexpected anonymous session cache policy.');
+    },
+  });
+
+  await runCase({
     name: 'Enrollment validation rejects invalid email',
     method: 'post',
     route: `${apiPrefix}/enrollment-requests`,
@@ -260,6 +274,8 @@ async function main() {
     expectedStatus: 200,
     assert: (res) => {
       if (res.body.data.user.email !== 'admin@alc.edu') throw new Error('Unexpected Postman login user.');
+      if (!res.headers['cache-control']?.includes('no-store')) throw new Error('Session endpoint should be no-store.');
+      if (res.headers['x-cache-policy'] !== 'sensitive-no-store') throw new Error('Unexpected session cache policy.');
     },
   });
 
@@ -340,7 +356,29 @@ async function main() {
 
   await runCase({ name: 'Admin lists enrollment requests', method: 'get', route: `${apiPrefix}/enrollment-requests`, client: admin.agent, expectedStatus: 200 });
   await runCase({ name: 'Admin lists users', method: 'get', route: `${apiPrefix}/users`, client: admin.agent, expectedStatus: 200 });
-  await runCase({ name: 'Admin lists roles', method: 'get', route: `${apiPrefix}/roles`, client: admin.agent, expectedStatus: 200 });
+  await runCase({
+    name: 'Admin lists roles with private memory cache miss',
+    method: 'get',
+    route: `${apiPrefix}/roles`,
+    client: admin.agent,
+    expectedStatus: 200,
+    assert: (res) => {
+      if (!res.headers['cache-control']?.includes('private')) throw new Error('Roles catalog should be private cache.');
+      if (res.headers['x-cache-policy'] !== 'private-reference-roles') throw new Error('Unexpected roles cache policy.');
+      if (res.headers['x-memory-cache'] !== 'MISS') throw new Error('First roles request should miss memory cache.');
+    },
+  });
+  await runCase({
+    name: 'Admin lists roles with memory cache hit',
+    method: 'get',
+    route: `${apiPrefix}/roles`,
+    client: admin.agent,
+    expectedStatus: 200,
+    assert: (res) => {
+      if (res.headers['x-memory-cache'] !== 'HIT') throw new Error('Second roles request should hit memory cache.');
+      if (!res.headers['x-memory-cache-ttl']) throw new Error('Memory cache TTL header was not exposed.');
+    },
+  });
   await runCase({ name: 'Admin lists permissions', method: 'get', route: `${apiPrefix}/permissions`, client: admin.agent, expectedStatus: 200 });
 
   await runCase({
@@ -361,7 +399,26 @@ async function main() {
     expectedStatus: 201,
   }), 'Branch create');
 
-  await runCase({ name: 'Admin lists branches', method: 'get', route: `${apiPrefix}/branches`, client: admin.agent, expectedStatus: 200 });
+  await runCase({
+    name: 'Admin lists branches with memory cache miss',
+    method: 'get',
+    route: `${apiPrefix}/branches`,
+    client: admin.agent,
+    expectedStatus: 200,
+    assert: (res) => {
+      if (res.headers['x-memory-cache'] !== 'MISS') throw new Error('First branches request should miss memory cache.');
+    },
+  });
+  await runCase({
+    name: 'Admin lists branches with memory cache hit',
+    method: 'get',
+    route: `${apiPrefix}/branches`,
+    client: admin.agent,
+    expectedStatus: 200,
+    assert: (res) => {
+      if (res.headers['x-memory-cache'] !== 'HIT') throw new Error('Second branches request should hit memory cache.');
+    },
+  });
   await runCase({ name: 'Admin reads branch by id', method: 'get', route: `${apiPrefix}/branches/${branch.id}`, client: admin.agent, expectedStatus: 200 });
   await runCase({
     name: 'Admin updates branch',
@@ -370,6 +427,16 @@ async function main() {
     client: admin.agent,
     body: { city: 'Quito Norte' },
     expectedStatus: 200,
+  });
+  await runCase({
+    name: 'Admin branch list cache is invalidated after update',
+    method: 'get',
+    route: `${apiPrefix}/branches`,
+    client: admin.agent,
+    expectedStatus: 200,
+    assert: (res) => {
+      if (res.headers['x-memory-cache'] !== 'MISS') throw new Error('Branch update did not invalidate list cache.');
+    },
   });
 
   const branchDirector = await loginAs(Roles.BRANCH_DIRECTOR, `branch-director-${nowToken()}@alc.test`, `branch-director-${nowToken()}`, 'Validation Branch Director');
@@ -403,6 +470,18 @@ async function main() {
     assert: (res) => {
       const branchIds = res.body.data.branches.map((item) => item.id);
       if (branchIds.length !== 1 || branchIds[0] !== branch.id) throw new Error(`Unexpected branch scope: ${branchIds.join(',')}`);
+    },
+  });
+  await runCase({
+    name: 'BranchDirector branch summary uses scoped memory cache hit',
+    method: 'get',
+    route: `${apiPrefix}/reports/branches/summary`,
+    client: branchDirector.agent,
+    expectedStatus: 200,
+    assert: (res) => {
+      const branchIds = res.body.data.branches.map((item) => item.id);
+      if (branchIds.length !== 1 || branchIds[0] !== branch.id) throw new Error(`Unexpected branch scope: ${branchIds.join(',')}`);
+      if (res.headers['x-memory-cache'] !== 'HIT') throw new Error('BranchDirector summary should hit its scoped memory cache.');
     },
   });
 
@@ -634,7 +713,26 @@ async function main() {
     expectedStatus: 200,
   });
 
-  await runCase({ name: 'Admin gets branch summary report', method: 'get', route: `${apiPrefix}/reports/branches/summary`, client: admin.agent, expectedStatus: 200 });
+  await runCase({
+    name: 'Admin gets branch summary report with memory cache miss',
+    method: 'get',
+    route: `${apiPrefix}/reports/branches/summary`,
+    client: admin.agent,
+    expectedStatus: 200,
+    assert: (res) => {
+      if (res.headers['x-memory-cache'] !== 'MISS') throw new Error('First admin branch summary should miss memory cache.');
+    },
+  });
+  await runCase({
+    name: 'Admin gets branch summary report with memory cache hit',
+    method: 'get',
+    route: `${apiPrefix}/reports/branches/summary`,
+    client: admin.agent,
+    expectedStatus: 200,
+    assert: (res) => {
+      if (res.headers['x-memory-cache'] !== 'HIT') throw new Error('Second admin branch summary should hit memory cache.');
+    },
+  });
   await runCase({ name: 'Admin gets scholarship candidate report', method: 'get', route: `${apiPrefix}/reports/scholarships/${student.id}/candidate`, client: admin.agent, expectedStatus: 200 });
   await runCase({ name: 'Admin gets level promotion candidate report', method: 'get', route: `${apiPrefix}/reports/level-promotions/${student.id}/candidate`, client: admin.agent, expectedStatus: 200 });
   await runCase({ name: 'Admin gets teacher payment report', method: 'get', route: `${apiPrefix}/reports/teachers/${teacher.id}/payment`, client: admin.agent, expectedStatus: 200 });
@@ -697,7 +795,7 @@ Generated: ${new Date().toISOString()}
 Scope:
 - Local Express application with in-memory repositories.
 - Mock Google ID tokens enabled only for automated validation.
-- Session cookie, JWT Bearer token, RBAC middleware, validation middleware, CRUD flows, attendance flows, reports and private page guard are exercised through HTTP requests.
+- Session cookie, JWT Bearer token, RBAC middleware, validation middleware, cache policies, memory-cache evidence, CRUD flows, attendance flows, reports and private page guard are exercised through HTTP requests.
 
 Summary:
 - Total cases: ${results.length}

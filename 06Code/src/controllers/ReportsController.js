@@ -1,24 +1,38 @@
 const { ApiResponse } = require('../utils/ApiResponse');
+const { actorCacheScope, setMemoryCacheHeaders } = require('../services/CacheService');
 
 class ReportsController {
-  constructor(db, rulesService, accessPolicy = null) {
+  constructor(db, rulesService, accessPolicy = null, cacheService = null) {
     this.db = db;
     this.rulesService = rulesService;
     this.accessPolicy = accessPolicy;
+    this.cacheService = cacheService;
   }
 
   branchSummary = async (req, res) => {
-    const branches = this.accessPolicy
-      ? await this.accessPolicy.filterList(req.sessionUser, 'branches', await this.db.branches.all())
-      : await this.db.branches.all();
-    const students = await this.db.students.all();
+    const loader = async () => {
+      const branches = this.accessPolicy
+        ? await this.accessPolicy.filterList(req.sessionUser, 'branches', await this.db.branches.all())
+        : await this.db.branches.all();
+      const students = await this.db.students.all();
 
-    return ApiResponse.success(res, {
-      branches:branches.map((branch) => ({
-        ...branch,
-        activeStudents:students.filter((student) => student.branchId === branch.id && student.active).length,
-      })),
-    });
+      return {
+        branches:branches.map((branch) => ({
+          ...branch,
+          activeStudents:students.filter((student) => student.branchId === branch.id && student.active).length,
+        })),
+      };
+    };
+
+    if (this.cacheService) {
+      const key = `reports:branches:summary:${actorCacheScope(req.sessionUser)}`;
+      const result = await this.cacheService.remember(key, 30, ['reports', 'branches', 'students'], loader);
+      setMemoryCacheHeaders(res, result, key);
+      return ApiResponse.success(res, result.value);
+    }
+
+    res.set('X-Memory-Cache', 'BYPASS');
+    return ApiResponse.success(res, await loader());
   };
 
   scholarshipCandidate = async (req, res) => {

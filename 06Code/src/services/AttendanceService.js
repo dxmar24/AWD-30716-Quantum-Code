@@ -1,10 +1,11 @@
 const { AppError } = require('../exceptions/AppError');
 
 class AttendanceService {
-  constructor(db, audit, accessPolicy = null) {
+  constructor(db, audit, accessPolicy = null, cacheService = null) {
     this.db = db;
     this.audit = audit;
     this.accessPolicy = accessPolicy;
+    this.cacheService = cacheService;
   }
 
   assertValidWindow(from, to) {
@@ -25,6 +26,7 @@ class AttendanceService {
 
     const record = await this.db.studentAttendance.create(data);
     await this.audit.log(actor.id, 'STUDENT_ATTENDANCE_RECORDED', 'student_attendance_records', record.id, { status:data.status });
+    if (this.cacheService) this.cacheService.invalidateTags(['attendance', 'reports']);
     return record;
   }
 
@@ -40,6 +42,7 @@ class AttendanceService {
 
     const record = await this.db.teacherAttendance.create({ ...data, checkInAt:new Date().toISOString(), checkOutAt:null });
     await this.audit.log(actor.id, 'TEACHER_CHECK_IN', 'teacher_attendance_records', record.id);
+    if (this.cacheService) this.cacheService.invalidateTags(['teacher-attendance', 'reports']);
     return record;
   }
 
@@ -51,6 +54,7 @@ class AttendanceService {
 
     const updated = await this.db.teacherAttendance.update(recordId, { checkOutAt:new Date().toISOString() });
     await this.audit.log(actor.id, 'TEACHER_CHECK_OUT', 'teacher_attendance_records', recordId);
+    if (this.cacheService) this.cacheService.invalidateTags(['teacher-attendance', 'reports']);
     return updated;
   }
 

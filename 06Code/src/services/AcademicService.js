@@ -7,11 +7,12 @@ function publicUser(user) {
 }
 
 class AcademicService {
-  constructor(db, auditService, rulesService, accessPolicy = null) {
+  constructor(db, auditService, rulesService, accessPolicy = null, cacheService = null) {
     this.db = db;
     this.audit = auditService;
     this.rules = rulesService;
     this.accessPolicy = accessPolicy;
+    this.cacheService = cacheService;
   }
 
   async submitEnrollmentRequest(data) {
@@ -20,7 +21,9 @@ class AcademicService {
       const branch = await this.db.branches.findBy('name', request.preferredBranch);
       if (branch) request.branchId = branch.id;
     }
-    return this.db.enrollmentRequests.create(request);
+    const created = await this.db.enrollmentRequests.create(request);
+    if (this.cacheService) this.cacheService.invalidateTags(['enrollment-requests']);
+    return created;
   }
 
   async listEnrollmentRequests(actor) {
@@ -55,6 +58,7 @@ class AcademicService {
 
     const rows = await this.db.userBranchAccess.replaceForUser(userId, uniqueBranchIds);
     await this.audit.log(actor.id, 'USER_BRANCH_ACCESS_UPDATED', 'users', userId, { branchIds:uniqueBranchIds });
+    if (this.cacheService) this.cacheService.invalidateTags(['branches', 'reports', 'user-branch-access']);
     return rows;
   }
 
@@ -70,6 +74,7 @@ class AcademicService {
 
     const justification = await this.db.absenceJustifications.create({ ...data, status:'pending' });
     await this.audit.log(actor.id, 'ABSENCE_JUSTIFICATION_CREATED', 'absence_justifications', justification.id);
+    if (this.cacheService) this.cacheService.invalidateTags(['absence-justifications', 'attendance', 'reports']);
     return justification;
   }
 
@@ -80,6 +85,7 @@ class AcademicService {
 
     const updated = await this.db.absenceJustifications.update(id, { ...data, reviewedBy:actor.id, reviewedAt:new Date().toISOString() });
     await this.audit.log(actor.id, 'ABSENCE_JUSTIFICATION_REVIEWED', 'absence_justifications', id, { status:data.status });
+    if (this.cacheService) this.cacheService.invalidateTags(['absence-justifications', 'attendance', 'reports']);
     return updated;
   }
 
@@ -104,6 +110,7 @@ class AcademicService {
       evaluatedAt:new Date().toISOString(),
     });
     await this.audit.log(actor.id, 'SCHOLARSHIP_EVALUATION_REGISTERED', 'scholarship_evaluations', evaluation.id, { approved });
+    if (this.cacheService) this.cacheService.invalidateTags(['scholarship-evaluations', 'reports']);
     return evaluation;
   }
 
@@ -131,6 +138,7 @@ class AcademicService {
     });
     if (approved) await this.db.students.update(data.studentId, { level:'B2' });
     await this.audit.log(actor.id, 'LEVEL_PROMOTION_EVALUATION_REGISTERED', 'level_promotion_evaluations', evaluation.id, { approved });
+    if (this.cacheService) this.cacheService.invalidateTags(['level-promotion-evaluations', 'students', 'reports']);
     return evaluation;
   }
 }

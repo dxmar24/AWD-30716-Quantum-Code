@@ -12,10 +12,11 @@ const { AccessPolicy } = require('./services/AccessPolicy');
 const { AttendanceService } = require('./services/AttendanceService');
 const { RulesService } = require('./services/RulesService');
 const { AcademicService } = require('./services/AcademicService');
+const { CacheService } = require('./services/CacheService');
 const { buildApi } = require('./routes/api');
 const { errorHandler } = require('./middleware/errorHandler');
 const { sessionResolver } = require('./middleware/sessionResolver');
-const { noStore } = require('./middleware/cacheControl');
+const { noStore, staticAssetHeaders } = require('./middleware/cacheControl');
 const { privatePageGuard } = require('./middleware/privatePageGuard');
 
 function frontendIndexPath(frontendBuildPath) {
@@ -28,12 +29,13 @@ function createApp() {
   const app = express();
   if (env.trustProxy) app.set('trust proxy', 1);
   const db = createDatabaseContext();
+  const cacheService = new CacheService();
   const accessPolicy = new AccessPolicy(db);
   const auditService = new AuditService(db);
   const authService = new AuthService(db);
-  const attendanceService = new AttendanceService(db, auditService, accessPolicy);
+  const attendanceService = new AttendanceService(db, auditService, accessPolicy, cacheService);
   const rulesService = new RulesService(db, attendanceService);
-  const academicService = new AcademicService(db, auditService, rulesService, accessPolicy);
+  const academicService = new AcademicService(db, auditService, rulesService, accessPolicy, cacheService);
   const frontendBuildPath = path.join(__dirname, '..', 'dist', 'frontend');
   const publicPath = path.join(__dirname, '..', 'public');
 
@@ -54,14 +56,15 @@ function createApp() {
   app.use(cookieParser());
   app.use(sessionResolver(authService));
   app.use('/private', noStore, privatePageGuard);
-  app.use(express.static(frontendBuildPath));
-  app.use(express.static(publicPath));
-  app.use('/api/v1', noStore, buildApi({ db, authService, attendanceService, rulesService, academicService, accessPolicy }));
+  app.use(express.static(frontendBuildPath, { setHeaders:staticAssetHeaders }));
+  app.use(express.static(publicPath, { setHeaders:staticAssetHeaders }));
+  app.use('/api/v1', buildApi({ db, authService, attendanceService, rulesService, academicService, accessPolicy, cacheService }));
   app.get(['/login.html', '/login'], (req, res) => res.sendFile(frontendIndexPath(frontendBuildPath)));
   app.get(['/private/dashboard.html', '/private/*'], (req, res) => res.sendFile(frontendIndexPath(frontendBuildPath)));
   app.get('/', (req, res) => res.sendFile(frontendIndexPath(frontendBuildPath)));
   app.use(errorHandler);
   app.locals.db = db;
+  app.locals.cache = cacheService;
   return app;
 }
 

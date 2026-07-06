@@ -32,11 +32,30 @@ app.add_middleware(
 )
 
 
+@app.middleware("http")
+async def cache_control_middleware(request: Request, call_next):
+    response = await call_next(request)
+    if request.url.path == "/api/analytics/v1/health":
+        response.headers["Cache-Control"] = "public, max-age=60, must-revalidate"
+        response.headers["X-Cache-Policy"] = "public-health-short"
+    else:
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, private"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["X-Cache-Policy"] = "sensitive-no-store"
+    return response
+
+
 @app.exception_handler(HTTPException)
 def http_exception_handler(request: Request, exc: HTTPException):
+    headers = {
+        "Cache-Control": "no-store, no-cache, must-revalidate, private",
+        "Pragma": "no-cache",
+        "X-Cache-Policy": "sensitive-no-store",
+    }
     return JSONResponse(
         status_code=exc.status_code,
         content={"success": False, "message": exc.detail, "data": None},
+        headers=headers,
     )
 
 

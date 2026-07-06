@@ -10,6 +10,8 @@ class ApiTest(unittest.TestCase):
         response = TestClient(app).get("/api/analytics/v1/health")
 
         self.assertEqual(response.status_code, 200)
+        self.assertIn("max-age=60", response.headers["cache-control"])
+        self.assertEqual(response.headers["x-cache-policy"], "public-health-short")
         payload = response.json()
         self.assertTrue(payload["success"])
         self.assertEqual(payload["data"]["status"], "healthy")
@@ -18,6 +20,8 @@ class ApiTest(unittest.TestCase):
         response = TestClient(app).get("/api/analytics/v1/students/student-1/attendance-risk")
 
         self.assertEqual(response.status_code, 401)
+        self.assertIn("no-store", response.headers["cache-control"])
+        self.assertEqual(response.headers["x-cache-policy"], "sensitive-no-store")
         payload = response.json()
         self.assertFalse(payload["success"])
         self.assertEqual(payload["message"], "Authentication required")
