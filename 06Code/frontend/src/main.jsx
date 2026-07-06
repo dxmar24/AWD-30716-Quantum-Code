@@ -4,71 +4,71 @@ import { apiRequest, postJson } from './api/client';
 import './styles.css';
 
 const branches = [
-  { name: 'Norte', focus: 'Branch enrollment and attendance control' },
-  { name: 'Matriz', focus: 'General direction and consolidated reports' },
-  { name: 'Sur Guamani', focus: 'Student progress and group tracking' },
-  { name: 'Tumbaco', focus: 'Teacher check-in and workload review' },
-  { name: 'Conocoto', focus: 'Scholarship and promotion evidence' },
+  { name: 'Norte', focus: 'Dance classes close to the north side of the city.' },
+  { name: 'Matriz', focus: 'The central academy for new students and advanced groups.' },
+  { name: 'Sur Guamani', focus: 'Urban, tropical and cultural programs for the south branch.' },
+  { name: 'Tumbaco', focus: 'Group classes for students building technique and confidence.' },
+  { name: 'Conocoto', focus: 'A welcoming branch for Latin rhythm and performance practice.' },
 ];
 
 const branchNames = branches.map((branch) => branch.name);
 
 const metrics = [
-  ['5', 'active branches'],
-  ['B1-B2', 'academic levels'],
-  ['90%', 'scholarship threshold'],
-  ['24/7', 'role-based access'],
+  ['5', 'academy branches'],
+  ['3', 'dance families'],
+  ['B1-B2', 'student levels'],
+  ['12+', 'styles to explore'],
 ];
 
-const academyModules = [
+const dancePrograms = [
   {
-    level: 'Core',
-    reward: 'daily ops',
-    title: 'Attendance Control',
-    description: 'Teachers and directors register student attendance with duplicate protection and audit evidence.',
+    level: 'Tropical',
+    reward: 'partner work',
+    title: 'Salsa',
+    description: 'Build timing, footwork, musicality and social confidence through Latin rhythm classes.',
     visual: 'attendance',
   },
   {
-    level: 'Secure',
-    reward: 'roles',
-    title: 'Private Access',
-    description: 'Google sessions, seeded role testing and scoped permissions for each school role.',
+    level: 'Tropical',
+    reward: 'flow',
+    title: 'Bachata',
+    description: 'Learn body movement, connection and combinations for one of the most loved Latin styles.',
     visual: 'access',
   },
   {
-    level: 'Director',
-    reward: 'reports',
-    title: 'Branch Reports',
-    description: 'Compare branch activity, active students and operational progress from one dashboard.',
+    level: 'Urban',
+    reward: 'energy',
+    title: 'Hip Hop',
+    description: 'Train coordination, grooves, choreographies and stage presence in an energetic class format.',
     visual: 'reports',
   },
   {
-    level: 'Academic',
-    reward: 'rules',
-    title: 'Scholarships',
-    description: 'Evaluate scholarship candidates with attendance thresholds and director approval evidence.',
+    level: 'Urban',
+    reward: 'performance',
+    title: 'Heels',
+    description: 'Develop confidence, lines, balance and expression through performance-focused training.',
     visual: 'scholarship',
   },
   {
-    level: 'Growth',
-    reward: 'levels',
-    title: 'Level Promotion',
-    description: 'Move B1 students toward B2 using consistency, theory, practice and attendance evidence.',
+    level: 'Urban',
+    reward: 'technique',
+    title: 'Afro, House and Dancehall',
+    description: 'Explore movement foundations, rhythm, stamina and freestyle vocabulary across urban programs.',
     visual: 'levels',
   },
   {
-    level: 'Finance',
-    reward: 'hours',
-    title: 'Teacher Hours',
-    description: 'Track check-in, check-out, completed hours and teacher payment calculations.',
+    level: 'Ethnic',
+    reward: 'culture',
+    title: 'Traditional Ecuadorian Dance',
+    description: 'Connect with Ecuadorian cultural expression through group practice and staged routines.',
     visual: 'hours',
   },
 ];
 
 const featureItems = [
-  ['Designed for directors', 'A restrained operational interface for school leadership, branch control and academic decisions.'],
-  ['Evidence ready', 'Tests, Postman, AWS deployment, cache headers and PDFs are connected to the same product experience.'],
-  ['Scoped by role', 'Admin, GeneralDirector, BranchDirector, Teacher and Student flows are separated by access policy.'],
+  ['Choose your rhythm', 'Start with tropical, urban or ethnic programs and grow through B1 and B2 levels.'],
+  ['Train with purpose', 'Each class is designed to improve technique, confidence, musicality and stage presence.'],
+  ['Join a real academy', 'Five branches make it easier to find a location and schedule that fits your routine.'],
 ];
 
 const tiles = ['Student attendance', 'Teacher check-in', 'Scholarships', 'Level promotion', 'Reports', 'Audit logs'];
@@ -77,42 +77,42 @@ function LandingPage() {
   return (
     <>
       <header className="site-hero">
-        <div className="promo-bar">Academic system deployed on AWS with HTTPS, JWT sessions and controlled cache evidence.</div>
+        <div className="promo-bar">Enrollment is open for Salsa, Bachata, Hip Hop, Heels and Ecuadorian dance programs.</div>
         <nav className="topbar" aria-label="Main navigation">
           <a className="brand" href="/">
             <span className="brand-mark">ALC</span>
             <span>American Latin Class</span>
           </a>
           <div className="nav-links">
-            <a href="#modules">Modules</a>
+            <a href="#programs">Programs</a>
             <a href="#branches">Branches</a>
             <a href="#enroll">Enrollment</a>
-            <a className="nav-cta" href="/login.html">Private system</a>
+            <a className="nav-cta" href="/login.html">Staff login</a>
           </div>
         </nav>
 
-        <section className="hero-content" aria-label="American Latin Class academic platform">
-          <a className="pill-link" href="#modules">Academic operations platform</a>
-          <h1>Run every dance academy branch from one polished system</h1>
+        <section className="hero-content" aria-label="American Latin Class dance academy">
+          <a className="pill-link" href="#programs">Urban, Tropical and Ethnic dance academy</a>
+          <h1>American Latin Class</h1>
           <p>
-            A modern control center for attendance, teacher hours, scholarships, level promotion,
-            branch reports and role-based academic workflows.
+            Learn salsa, bachata, urban styles and traditional Ecuadorian dance in a professional
+            academy with five branches, clear levels and a community built around movement.
           </p>
           <div className="hero-actions">
             <a className="primary-link" href="#enroll">Request enrollment -&gt;</a>
-            <a className="secondary-button" href="/login.html">Open private system</a>
+            <a className="secondary-button" href="#programs">Explore programs</a>
           </div>
-          <span className="hero-note">Built for directors who need fast evidence, clear permissions and clean operational data.</span>
+          <span className="hero-note">Classes for new students, returning dancers and performers ready to level up.</span>
         </section>
 
-        <section className="module-strip" aria-label="Highlighted system modules">
-          {academyModules.slice(0, 4).map((module) => <ModuleCard key={module.title} module={module} />)}
+        <section className="module-strip" aria-label="Highlighted dance programs">
+          {dancePrograms.slice(0, 4).map((program) => <ProgramCard key={program.title} program={program} />)}
         </section>
       </header>
 
       <main>
         <MetricsBand />
-        <ModulesSection />
+        <ProgramsSection />
         <FeatureHighlights />
         <BranchesSection />
         <EnrollmentForm />
@@ -217,33 +217,33 @@ function MetricsBand() {
   );
 }
 
-function ModulesSection() {
+function ProgramsSection() {
   return (
-    <section className="content-band" id="modules">
+    <section className="content-band" id="programs">
       <div className="section-heading centered">
-        <p className="eyebrow">System modules</p>
-        <h2>Everything a director needs to operate the school</h2>
-        <p>Each module maps to a real API workflow, role permission and validation evidence.</p>
+        <p className="eyebrow">Dance programs</p>
+        <h2>Choose the style that moves you</h2>
+        <p>American Latin Class offers tropical, urban and ethnic programs for students who want technique, rhythm and confidence.</p>
       </div>
       <div className="project-grid">
-        {academyModules.map((module) => <ModuleCard key={module.title} module={module} />)}
+        {dancePrograms.map((program) => <ProgramCard key={program.title} program={program} />)}
       </div>
     </section>
   );
 }
 
-function ModuleCard({ module }) {
+function ProgramCard({ program }) {
   return (
     <article className="module-card">
-      <PreviewGraphic type={module.visual} />
+      <PreviewGraphic type={program.visual} />
       <div className="card-body">
         <div className="card-meta">
-          <span>{module.level}</span>
-          <span>{module.reward}</span>
+          <span>{program.level}</span>
+          <span>{program.reward}</span>
         </div>
-        <h3>{module.title}</h3>
-        <p>{module.description}</p>
-        <a href="/login.html">Go to module -&gt;</a>
+        <h3>{program.title}</h3>
+        <p>{program.description}</p>
+        <a href="#enroll">Ask about this style -&gt;</a>
       </div>
     </article>
   );
@@ -279,10 +279,10 @@ function BranchesSection() {
     <section className="content-band split-section" id="branches">
       <div className="section-heading">
         <p className="eyebrow">Branches and programs</p>
-        <h2>Five locations, one academic operating rhythm</h2>
+        <h2>Five locations to start dancing closer to you</h2>
         <p>
-          Norte, Matriz, Sur Guamani, Tumbaco and Conocoto share the same workflows for
-          students, teachers, schedules, attendance and director reporting.
+          Norte, Matriz, Sur Guamani, Tumbaco and Conocoto welcome students who want
+          structured training, friendly groups and consistent dance practice.
         </p>
       </div>
       <div className="branch-grid">
@@ -300,11 +300,11 @@ function BranchesSection() {
         </div>
         <div>
           <strong>Tropical</strong>
-          <span>Salsa and Bachata programs with attendance and progression evidence.</span>
+          <span>Salsa and Bachata programs for rhythm, partner work and social dance confidence.</span>
         </div>
         <div>
           <strong>Ethnic</strong>
-          <span>Traditional Ecuadorian dance classes tracked by branch and group.</span>
+          <span>Traditional Ecuadorian dance classes for cultural expression and group performance.</span>
         </div>
       </div>
     </section>
@@ -330,8 +330,8 @@ function EnrollmentForm() {
     <section className="enrollment-band" id="enroll">
       <div className="enrollment-copy">
         <p className="eyebrow">Enrollment request</p>
-        <h2>Start with a clean public request, then manage it privately</h2>
-        <p>Visitors submit the form here. Directors review each request from the protected API workflow.</p>
+        <h2>Tell us where and what you want to dance</h2>
+        <p>Send your information and the academy team will contact you about branches, schedules, levels and available programs.</p>
       </div>
       <form onSubmit={submit} className="enrollment-form">
         <label>Full name<input name="fullName" autoComplete="name" required /></label>
@@ -349,8 +349,8 @@ function SiteFooter() {
   return (
     <footer className="site-footer">
       <strong>American Latin Class</strong>
-      <span>Attendance, roles, reports, analytics and evidence-ready academic operations.</span>
-      <a href="/login.html">Private system -&gt;</a>
+      <span>Dance academy with Urban, Tropical and Ethnic programs across five branches.</span>
+      <a href="/login.html">Staff login -&gt;</a>
     </footer>
   );
 }
