@@ -4,116 +4,129 @@ import { apiRequest, postJson } from './api/client';
 import './styles.css';
 
 const branches = [
-  { name: 'Norte', focus: 'Dance classes close to the north side of the city.' },
-  { name: 'Matriz', focus: 'The central academy for new students and advanced groups.' },
-  { name: 'Sur Guamani', focus: 'Urban, tropical and cultural programs for the south branch.' },
-  { name: 'Tumbaco', focus: 'Group classes for students building technique and confidence.' },
-  { name: 'Conocoto', focus: 'A welcoming branch for Latin rhythm and performance practice.' },
+  { name: 'Norte', focus: 'Clases cerca del norte de la ciudad, con grupos para iniciar o retomar el entrenamiento.' },
+  { name: 'Matriz', focus: 'Sede principal para estudiantes nuevos, niveles activos y grupos de mayor continuidad.' },
+  { name: 'Sur Guamaní', focus: 'Programas tropicales, urbanos y culturales para estudiantes del sur de Quito.' },
+  { name: 'Tumbaco', focus: 'Entrenamientos grupales para mejorar técnica, seguridad y constancia.' },
+  { name: 'Conocoto', focus: 'Espacio cercano para práctica de ritmos latinos, montaje y expresión escénica.' },
 ];
 
 const branchNames = branches.map((branch) => branch.name);
 
 const metrics = [
-  ['5', 'academy branches'],
-  ['3', 'dance families'],
-  ['B1-B2', 'student levels'],
-  ['12+', 'styles to explore'],
+  ['5', 'sedes activas'],
+  ['3', 'líneas de baile'],
+  ['B1 - B2', 'niveles académicos'],
+  ['12+', 'estilos disponibles'],
 ];
 
 const dancePrograms = [
   {
     level: 'Tropical',
-    reward: 'partner work',
     title: 'Salsa',
-    description: 'Build timing, footwork, musicality and social confidence through Latin rhythm classes.',
-    visual: 'attendance',
+    description: 'Ritmo, coordinación, musicalidad, trabajo en pareja y confianza social.',
   },
   {
     level: 'Tropical',
-    reward: 'flow',
     title: 'Bachata',
-    description: 'Learn body movement, connection and combinations for one of the most loved Latin styles.',
-    visual: 'access',
+    description: 'Movimiento corporal, conexión, secuencias y expresión dentro del estilo.',
   },
   {
-    level: 'Urban',
-    reward: 'energy',
+    level: 'Urbano',
     title: 'Hip Hop',
-    description: 'Train coordination, grooves, choreographies and stage presence in an energetic class format.',
-    visual: 'reports',
+    description: 'Grooves, coreografía, presencia escénica y entrenamiento físico.',
   },
   {
-    level: 'Urban',
-    reward: 'performance',
+    level: 'Urbano',
     title: 'Heels',
-    description: 'Develop confidence, lines, balance and expression through performance-focused training.',
-    visual: 'scholarship',
+    description: 'Líneas, balance, seguridad, actitud y puesta en escena.',
   },
   {
-    level: 'Urban',
-    reward: 'technique',
-    title: 'Afro, House and Dancehall',
-    description: 'Explore movement foundations, rhythm, stamina and freestyle vocabulary across urban programs.',
-    visual: 'levels',
+    level: 'Urbano',
+    title: 'Afro, House y Dancehall',
+    description: 'Fundamentos, resistencia, vocabulario de movimiento y freestyle.',
   },
   {
-    level: 'Ethnic',
-    reward: 'culture',
-    title: 'Traditional Ecuadorian Dance',
-    description: 'Connect with Ecuadorian cultural expression through group practice and staged routines.',
-    visual: 'hours',
+    level: 'Étnico',
+    title: 'Danza tradicional ecuatoriana',
+    description: 'Expresión cultural, trabajo grupal, coordinación y montaje escénico.',
   },
 ];
 
-const featureItems = [
-  ['Choose your rhythm', 'Start with tropical, urban or ethnic programs and grow through B1 and B2 levels.'],
-  ['Train with purpose', 'Each class is designed to improve technique, confidence, musicality and stage presence.'],
-  ['Join a real academy', 'Five branches make it easier to find a location and schedule that fits your routine.'],
+const accessItems = [
+  ['Director', 'visión general de sedes, asistencia, reportes y seguimiento académico'],
+  ['Director de sede', 'control de estudiantes, profesores, clases y registros de su sede'],
+  ['Profesor', 'registro de entrada, asistencia de clase y seguimiento de grupos'],
+  ['Estudiante', 'información de asistencia, nivel y solicitudes académicas'],
 ];
 
-const tiles = ['Student attendance', 'Teacher check-in', 'Scholarships', 'Level promotion', 'Reports', 'Audit logs'];
+const roleLabels = {
+  Admin: 'Administrador',
+  GeneralDirector: 'Director',
+  BranchDirector: 'Director de sede',
+  Teacher: 'Profesor',
+  Student: 'Estudiante',
+  Visitor: 'Visitante',
+};
+
+const studentOptions = [
+  {
+    value: '85f4bbe9-5d5f-4126-89b6-ddd9de432885',
+    label: 'Camila Rojas - Salsa B1',
+  },
+];
+
+const teacherOptions = [
+  {
+    value: '01c99342-ad47-4c4e-a094-6cab138d98e5',
+    label: 'Isabella Torres - Profesora de salsa',
+  },
+];
+
+const classSessionOptions = [
+  {
+    value: '76f37581-dbbc-4201-bb13-67fbc86f6d60',
+    label: 'Salsa B1 - Matriz - 18:00',
+  },
+];
 
 function LandingPage() {
   return (
     <>
       <header className="site-hero">
-        <div className="promo-bar">Enrollment is open for Salsa, Bachata, Hip Hop, Heels and Ecuadorian dance programs.</div>
-        <nav className="topbar" aria-label="Main navigation">
+        <div className="promo-bar">Inscripciones abiertas para Salsa, Bachata, Hip Hop, Heels y Danza tradicional ecuatoriana.</div>
+        <nav className="topbar" aria-label="Navegación principal">
           <a className="brand" href="/">
             <span className="brand-mark">ALC</span>
             <span>American Latin Class</span>
           </a>
           <div className="nav-links">
-            <a href="#programs">Programs</a>
-            <a href="#branches">Branches</a>
-            <a href="#enroll">Enrollment</a>
-            <a className="nav-cta" href="/login.html">Staff login</a>
+            <a href="#programs">Programas</a>
+            <a href="#branches">Sedes</a>
+            <a href="#enroll">Inscripción</a>
+            <a className="nav-cta" href="/login.html">Ingresar</a>
           </div>
         </nav>
 
-        <section className="hero-content" aria-label="American Latin Class dance academy">
-          <a className="pill-link" href="#programs">Urban, Tropical and Ethnic dance academy</a>
-          <h1>American Latin Class</h1>
+        <section className="hero-content" aria-label="Academia de baile American Latin Class">
+          <span className="pill-link">Academia de baile urbano, tropical y étnico</span>
+          <h1>Muévete con técnica, ritmo y propósito</h1>
           <p>
-            Learn salsa, bachata, urban styles and traditional Ecuadorian dance in a professional
-            academy with five branches, clear levels and a community built around movement.
+            American Latin Class acompaña a estudiantes, profesores y sedes con una experiencia clara:
+            clases organizadas, niveles definidos y seguimiento académico sin complicaciones.
           </p>
           <div className="hero-actions">
-            <a className="primary-link" href="#enroll">Request enrollment -&gt;</a>
-            <a className="secondary-button" href="#programs">Explore programs</a>
+            <a className="primary-link" href="#enroll">Solicitar inscripción</a>
+            <a className="secondary-button" href="#programs">Ver programas</a>
           </div>
-          <span className="hero-note">Classes for new students, returning dancers and performers ready to level up.</span>
-        </section>
-
-        <section className="module-strip" aria-label="Highlighted dance programs">
-          {dancePrograms.slice(0, 4).map((program) => <ProgramCard key={program.title} program={program} />)}
+          <span className="hero-note">Formación para nuevos estudiantes, bailarines en proceso y grupos de presentación.</span>
         </section>
       </header>
 
       <main>
         <MetricsBand />
         <ProgramsSection />
-        <FeatureHighlights />
+        <AccessSection />
         <BranchesSection />
         <EnrollmentForm />
       </main>
@@ -124,7 +137,7 @@ function LandingPage() {
 
 function LoginPage() {
   const buttonRef = useRef(null);
-  const [status, setStatus] = useState('Loading Google sign-in...');
+  const [status, setStatus] = useState('Cargando ingreso con Google...');
 
   useEffect(() => {
     let mounted = true;
@@ -158,12 +171,12 @@ function LoginPage() {
         window.google.accounts.id.initialize({
           client_id: clientId,
           callback: async (response) => {
-            setStatus('Starting session...');
+            setStatus('Iniciando sesión...');
             try {
               await postJson('/auth/google', { idToken: response.credential });
               window.location.href = '/private/dashboard.html';
-            } catch (error) {
-              setStatus(error.message || 'Google sign-in failed.');
+            } catch {
+              setStatus('No se pudo iniciar sesión con Google. Intenta nuevamente.');
             }
           },
         });
@@ -174,9 +187,9 @@ function LoginPage() {
           type: 'standard',
           width: 280,
         });
-        setStatus(new URLSearchParams(window.location.search).has('session') ? 'Session required.' : '');
-      } catch (error) {
-        setStatus(error.message || 'Google sign-in is not available.');
+        setStatus(new URLSearchParams(window.location.search).has('session') ? 'Tu sesión terminó. Ingresa nuevamente.' : '');
+      } catch {
+        setStatus('El ingreso con Google no está disponible por el momento.');
       }
     }
 
@@ -186,17 +199,17 @@ function LoginPage() {
 
   return (
     <main className="login-page">
-      <nav className="floating-nav" aria-label="Login navigation">
+      <nav className="floating-nav" aria-label="Navegación de ingreso">
         <a className="brand" href="/">
           <span className="brand-mark">ALC</span>
           <span>American Latin Class</span>
         </a>
-        <a className="secondary-button compact" href="/">Back to landing</a>
+        <a className="secondary-button compact" href="/">Volver al inicio</a>
       </nav>
-      <section className="login-panel" aria-label="Private system login">
-        <p className="eyebrow">Private system</p>
-        <h1>Sign in to the academic control center</h1>
-        <p className="login-copy">Access attendance, reports, roles and director workflows with a protected session.</p>
+      <section className="login-panel" aria-label="Ingreso al panel interno">
+        <p className="eyebrow">Panel interno</p>
+        <h1>Ingreso del equipo ALC</h1>
+        <p className="login-copy">Accede al control de asistencia, clases, sedes y reportes académicos.</p>
         <div className="google-button" ref={buttonRef} />
         <p className="form-status" aria-live="polite">{status}</p>
       </section>
@@ -206,7 +219,7 @@ function LoginPage() {
 
 function MetricsBand() {
   return (
-    <section className="metrics-band" aria-label="Academy summary">
+    <section className="metrics-band" aria-label="Resumen de la academia">
       {metrics.map(([value, label]) => (
         <article key={label}>
           <span>{value}</span>
@@ -219,57 +232,45 @@ function MetricsBand() {
 
 function ProgramsSection() {
   return (
-    <section className="content-band" id="programs">
+    <section className="content-band programs-band" id="programs">
       <div className="section-heading centered">
-        <p className="eyebrow">Dance programs</p>
-        <h2>Choose the style that moves you</h2>
-        <p>American Latin Class offers tropical, urban and ethnic programs for students who want technique, rhythm and confidence.</p>
+        <p className="eyebrow">Programas</p>
+        <h2>Elige tu línea de baile</h2>
+        <p>Los programas se presentan de forma simple para que cada estudiante encuentre su estilo, sede y nivel.</p>
       </div>
-      <div className="project-grid">
-        {dancePrograms.map((program) => <ProgramCard key={program.title} program={program} />)}
+      <div className="program-list">
+        {dancePrograms.map((program) => <ProgramRow key={program.title} program={program} />)}
       </div>
     </section>
   );
 }
 
-function ProgramCard({ program }) {
+function ProgramRow({ program }) {
   return (
-    <article className="module-card">
-      <PreviewGraphic type={program.visual} />
-      <div className="card-body">
-        <div className="card-meta">
-          <span>{program.level}</span>
-          <span>{program.reward}</span>
-        </div>
-        <h3>{program.title}</h3>
-        <p>{program.description}</p>
-        <a href="#enroll">Ask about this style -&gt;</a>
-      </div>
+    <article className="program-row">
+      <span>{program.level}</span>
+      <h3>{program.title}</h3>
+      <p>{program.description}</p>
+      <a href="#enroll">Consultar</a>
     </article>
   );
 }
 
-function PreviewGraphic({ type }) {
+function AccessSection() {
   return (
-    <div className={`preview-graphic preview-${type}`} aria-hidden="true">
-      <span />
-      <span />
-      <span />
-      <span />
-    </div>
-  );
-}
-
-function FeatureHighlights() {
-  return (
-    <section className="feature-row" aria-label="Platform highlights">
-      {featureItems.map(([title, copy]) => (
-        <article key={title}>
-          <div className="feature-icon">+</div>
-          <h3>{title}</h3>
-          <p>{copy}</p>
-        </article>
-      ))}
+    <section className="feature-row" aria-label="Acceso por tipo de usuario">
+      <div className="section-heading">
+        <p className="eyebrow">Panel académico</p>
+        <h2>Información visible según cada rol</h2>
+      </div>
+      <div className="access-list">
+        {accessItems.map(([role, copy]) => (
+          <article key={role}>
+            <strong>{role}</strong>
+            <p>{copy}</p>
+          </article>
+        ))}
+      </div>
     </section>
   );
 }
@@ -278,14 +279,14 @@ function BranchesSection() {
   return (
     <section className="content-band split-section" id="branches">
       <div className="section-heading">
-        <p className="eyebrow">Branches and programs</p>
-        <h2>Five locations to start dancing closer to you</h2>
+        <p className="eyebrow">Sedes</p>
+        <h2>Cinco ubicaciones para entrenar más cerca de ti</h2>
         <p>
-          Norte, Matriz, Sur Guamani, Tumbaco and Conocoto welcome students who want
-          structured training, friendly groups and consistent dance practice.
+          Norte, Matriz, Sur Guamaní, Tumbaco y Conocoto reciben estudiantes que buscan
+          entrenamiento constante, grupos organizados y una comunidad activa de baile.
         </p>
       </div>
-      <div className="branch-grid">
+      <div className="branch-list">
         {branches.map((branch) => (
           <article key={branch.name}>
             <span>{branch.name}</span>
@@ -295,16 +296,16 @@ function BranchesSection() {
       </div>
       <div className="program-panel">
         <div>
-          <strong>Urban</strong>
-          <span>Hip hop, House, Locking, Popping, Waacking, Dancehall, Fem and Heels.</span>
+          <strong>Urbano</strong>
+          <span>Hip Hop, House, Locking, Popping, Waacking, Dancehall, Fem y Heels.</span>
         </div>
         <div>
           <strong>Tropical</strong>
-          <span>Salsa and Bachata programs for rhythm, partner work and social dance confidence.</span>
+          <span>Salsa y Bachata para ritmo, trabajo en pareja y confianza social.</span>
         </div>
         <div>
-          <strong>Ethnic</strong>
-          <span>Traditional Ecuadorian dance classes for cultural expression and group performance.</span>
+          <strong>Étnico</strong>
+          <span>Danza tradicional ecuatoriana para expresión cultural y montaje grupal.</span>
         </div>
       </div>
     </section>
@@ -320,25 +321,25 @@ function EnrollmentForm() {
     try {
       await postJson('/enrollment-requests', Object.fromEntries(new FormData(event.currentTarget).entries()));
       event.currentTarget.reset();
-      setStatus('Enrollment request registered.');
+      setStatus('Solicitud registrada. El equipo de la academia se comunicará contigo.');
     } catch {
-      setStatus('The request could not be registered.');
+      setStatus('No se pudo registrar la solicitud. Intenta nuevamente.');
     }
   }
 
   return (
     <section className="enrollment-band" id="enroll">
       <div className="enrollment-copy">
-        <p className="eyebrow">Enrollment request</p>
-        <h2>Tell us where and what you want to dance</h2>
-        <p>Send your information and the academy team will contact you about branches, schedules, levels and available programs.</p>
+        <p className="eyebrow">Inscripción</p>
+        <h2>Cuéntanos qué quieres bailar</h2>
+        <p>Envía tus datos para recibir información sobre sedes, horarios, niveles y programas disponibles.</p>
       </div>
       <form onSubmit={submit} className="enrollment-form">
-        <label>Full name<input name="fullName" autoComplete="name" required /></label>
-        <label>Email<input name="email" type="email" autoComplete="email" required /></label>
-        <label>Preferred branch<select name="preferredBranch">{branchNames.map((branch) => <option key={branch}>{branch}</option>)}</select></label>
-        <label>Style interest<input name="styleInterest" placeholder="Salsa, Hip hop, Bachata" /></label>
-        <button type="submit">Submit request -&gt;</button>
+        <label>Nombre completo<input name="fullName" autoComplete="name" required /></label>
+        <label>Correo electrónico<input name="email" type="email" autoComplete="email" required /></label>
+        <label>Sede de preferencia<select name="preferredBranch">{branchNames.map((branch) => <option key={branch}>{branch}</option>)}</select></label>
+        <label>Estilo de interés<input name="styleInterest" placeholder="Salsa, Hip Hop, Bachata" /></label>
+        <button type="submit">Enviar solicitud</button>
         <p className="form-status" aria-live="polite">{status}</p>
       </form>
     </section>
@@ -349,20 +350,20 @@ function SiteFooter() {
   return (
     <footer className="site-footer">
       <strong>American Latin Class</strong>
-      <span>Dance academy with Urban, Tropical and Ethnic programs across five branches.</span>
-      <a href="/login.html">Staff login -&gt;</a>
+      <span>Academia de baile urbano, tropical y étnico en cinco sedes.</span>
+      <a href="/login.html">Ingresar al panel</a>
     </footer>
   );
 }
 
 function AuthStatus() {
-  const [text, setText] = useState('Loading session...');
+  const [text, setText] = useState('Verificando sesión...');
 
   useEffect(() => {
     apiRequest('/auth/me')
       .then((payload) => {
         const user = payload.data.user;
-        setText(`${user.name} | ${user.email} | ${user.role}`);
+        setText(`${user.name} · ${roleLabels[user.role] || 'Usuario autorizado'}`);
       })
       .catch(() => {
         window.location.href = '/login.html?session=expired';
@@ -379,62 +380,83 @@ function LogoutButton() {
     window.location.href = '/login.html?session=logout';
   }
 
-  return <a href="/login.html" onClick={logout}>Logout</a>;
+  return <a href="/login.html" onClick={logout}>Cerrar sesión</a>;
 }
 
-function WorkflowOutput({ output }) {
-  return <pre>{output ? JSON.stringify(output, null, 2) : 'Run a workflow to see the API response here.'}</pre>;
+function FriendlyOutput({ output }) {
+  if (!output) {
+    return <p className="result-box">Aquí aparecerá la confirmación de la última acción realizada.</p>;
+  }
+
+  const success = output.success !== false;
+  const message = output.message || (success ? 'La acción se completó correctamente.' : 'No se pudo completar la acción.');
+
+  return (
+    <div className={`result-box ${success ? 'success' : 'error'}`} aria-live="polite">
+      <strong>{success ? 'Listo' : 'Revisar'}</strong>
+      <p>{message}</p>
+    </div>
+  );
 }
 
-async function submitWorkflow(event, onOutput, path) {
+async function submitAcademicAction(event, onOutput, path, successMessage) {
   event.preventDefault();
   try {
-    onOutput(await postJson(path, Object.fromEntries(new FormData(event.currentTarget).entries())));
-  } catch (error) {
-    onOutput({ success: false, message: error.message });
+    await postJson(path, Object.fromEntries(new FormData(event.currentTarget).entries()));
+    onOutput({ success: true, message: successMessage });
+  } catch {
+    onOutput({ success: false, message: 'No se pudo completar la acción. Revisa los datos e intenta nuevamente.' });
   }
 }
 
-function AttendanceWorkflow({ onOutput }) {
+function StudentAttendanceForm({ onOutput }) {
   return (
-    <form onSubmit={(event) => submitWorkflow(event, onOutput, '/student-attendance')} className="workflow-panel">
-      <p className="eyebrow">Workflow</p>
-      <h2>Student attendance</h2>
-      <label>Student ID<input name="studentId" defaultValue="85f4bbe9-5d5f-4126-89b6-ddd9de432885" required /></label>
-      <label>Class session ID<input name="classSessionId" defaultValue="76f37581-dbbc-4201-bb13-67fbc86f6d60" required /></label>
-      <label>Status<select name="status"><option value="present">Present</option><option value="absent">Absent</option><option value="justified">Justified</option><option value="late">Late</option></select></label>
-      <button type="submit">Record attendance</button>
+    <form
+      onSubmit={(event) => submitAcademicAction(event, onOutput, '/student-attendance', 'Asistencia registrada correctamente.')}
+      className="academic-panel"
+    >
+      <p className="eyebrow">Asistencia</p>
+      <h2>Registrar estudiante</h2>
+      <label>Estudiante<select name="studentId" required>{studentOptions.map((student) => <option key={student.value} value={student.value}>{student.label}</option>)}</select></label>
+      <label>Clase<select name="classSessionId" required>{classSessionOptions.map((session) => <option key={session.value} value={session.value}>{session.label}</option>)}</select></label>
+      <label>Estado<select name="status"><option value="present">Presente</option><option value="absent">Ausente</option><option value="justified">Justificado</option><option value="late">Atraso</option></select></label>
+      <button type="submit">Guardar asistencia</button>
     </form>
   );
 }
 
-function TeacherCheckInWorkflow({ onOutput }) {
+function TeacherCheckInForm({ onOutput }) {
   return (
-    <form onSubmit={(event) => submitWorkflow(event, onOutput, '/teacher-attendance/check-in')} className="workflow-panel">
-      <p className="eyebrow">Workflow</p>
-      <h2>Teacher check-in</h2>
-      <label>Teacher ID<input name="teacherId" defaultValue="01c99342-ad47-4c4e-a094-6cab138d98e5" required /></label>
-      <label>Class session ID<input name="classSessionId" defaultValue="76f37581-dbbc-4201-bb13-67fbc86f6d60" /></label>
-      <button type="submit">Check in</button>
+    <form
+      onSubmit={(event) => submitAcademicAction(event, onOutput, '/teacher-attendance/check-in', 'Entrada del profesor registrada correctamente.')}
+      className="academic-panel"
+    >
+      <p className="eyebrow">Profesores</p>
+      <h2>Marcar entrada</h2>
+      <label>Profesor<select name="teacherId" required>{teacherOptions.map((teacher) => <option key={teacher.value} value={teacher.value}>{teacher.label}</option>)}</select></label>
+      <label>Clase<select name="classSessionId">{classSessionOptions.map((session) => <option key={session.value} value={session.value}>{session.label}</option>)}</select></label>
+      <button type="submit">Registrar entrada</button>
     </form>
   );
 }
 
 function ReportsPanel({ output, onOutput }) {
   return (
-    <div className="workflow-panel">
-      <p className="eyebrow">Live report</p>
-      <h2>Branch summary</h2>
+    <div className="academic-panel reports-panel">
+      <p className="eyebrow">Reportes</p>
+      <h2>Resumen por sede</h2>
+      <p>Consulta el estado general de las sedes para revisar asistencia y seguimiento académico.</p>
       <button type="button" onClick={async () => {
         try {
-          onOutput(await apiRequest('/reports/branches/summary'));
-        } catch (error) {
-          onOutput({ success: false, message: error.message });
+          await apiRequest('/reports/branches/summary');
+          onOutput({ success: true, message: 'Resumen de sedes actualizado para revisión académica.' });
+        } catch {
+          onOutput({ success: false, message: 'No se pudo cargar el resumen. Intenta nuevamente.' });
         }
       }}>
-        Load report
+        Cargar resumen
       </button>
-      <WorkflowOutput output={output} />
+      <FriendlyOutput output={output} />
     </div>
   );
 }
@@ -444,15 +466,15 @@ function PrivateDashboard() {
 
   return (
     <div className="dashboard-shell">
-      <div className="promo-bar">Private academic system: authenticated API workflows and branch-scoped data.</div>
+      <div className="promo-bar">Panel interno de American Latin Class</div>
       <header className="dashboard-header">
-        <nav className="topbar" aria-label="Dashboard navigation">
+        <nav className="topbar" aria-label="Navegación del panel">
           <a className="brand" href="/">
             <span className="brand-mark">ALC</span>
             <span>American Latin Class</span>
           </a>
           <div className="nav-links">
-            <a href="/">Landing</a>
+            <a href="/">Inicio</a>
             <LogoutButton />
           </div>
         </nav>
@@ -460,28 +482,27 @@ function PrivateDashboard() {
       <main className="dashboard-main">
         <section className="dashboard-hero">
           <div>
-            <p className="eyebrow">Private system</p>
-            <h1>Academic operations</h1>
+            <p className="eyebrow">Gestión académica</p>
+            <h1>Panel académico</h1>
+            <p className="dashboard-copy">Registra asistencia, revisa sedes y mantén el seguimiento de clases en un solo lugar.</p>
             <AuthStatus />
           </div>
           <div className="dashboard-badge">
-            <span>Secured</span>
-            <strong>JWT + RBAC</strong>
+            <span>Sesión activa</span>
+            <strong>Acceso autorizado</strong>
           </div>
         </section>
 
-        <section className="dashboard-grid" aria-label="Private modules">
-          {tiles.map((tile) => (
-            <article className="dashboard-tile" key={tile}>
-              <span>{tile}</span>
-              <p>{tile === 'Reports' ? 'Compare branch performance and consolidated academic metrics.' : 'Manage academic operations with secured API workflows.'}</p>
-            </article>
-          ))}
+        <section className="overview-list" aria-label="Opciones del panel">
+          <article><span>Estudiantes</span><p>Asistencia, estados y seguimiento académico.</p></article>
+          <article><span>Profesores</span><p>Entradas, clases asignadas y horas registradas.</p></article>
+          <article><span>Sedes</span><p>Resumen de actividad por ubicación.</p></article>
+          <article><span>Solicitudes</span><p>Becas, justificaciones y promociones de nivel.</p></article>
         </section>
 
-        <section className="workflow-grid" aria-label="Attendance workflows">
-          <AttendanceWorkflow onOutput={setOutput} />
-          <TeacherCheckInWorkflow onOutput={setOutput} />
+        <section className="attendance-grid" aria-label="Acciones de asistencia">
+          <StudentAttendanceForm onOutput={setOutput} />
+          <TeacherCheckInForm onOutput={setOutput} />
           <ReportsPanel output={output} onOutput={setOutput} />
         </section>
       </main>

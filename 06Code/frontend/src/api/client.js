@@ -5,7 +5,7 @@ export async function apiRequest(path, options = {}) {
     ...options,
   });
   const payload = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(payload?.message || 'API request failed');
+  if (!response.ok) throw new Error(payload?.message || 'No se pudo completar la solicitud.');
   return payload;
 }
 
