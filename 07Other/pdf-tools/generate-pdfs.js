@@ -20,6 +20,7 @@ const markdownSources = [
   '03Documentation/architecture.md',
   '03Documentation/aws-deployment-guide.md',
   '03Documentation/business-rules-api-test-report.md',
+  '03Documentation/cache-management.md',
   '03Documentation/clean-code-solid.md',
   '03Documentation/database.md',
   '03Documentation/oauth-session.md',

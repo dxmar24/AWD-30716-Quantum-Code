@@ -1,6 +1,6 @@
 # PDF Deliverables
 
-Generated: 2026-07-06T03:40:39.826Z
+Generated: 2026-07-06T11:08:32.777Z
 
 This folder contains the academic-professional PDF package for the American Latin Class Attendance System.
 
@@ -26,6 +26,7 @@ node 07Other/pdf-tools/generate-pdfs.js
 | Architecture | `03Documentation/architecture.pdf` | `03Documentation/architecture.md` |
 | Aws Deployment Guide | `03Documentation/aws-deployment-guide.pdf` | `03Documentation/aws-deployment-guide.md` |
 | Business Rules Api Test Report | `03Documentation/business-rules-api-test-report.pdf` | `03Documentation/business-rules-api-test-report.md` |
+| Cache Management | `03Documentation/cache-management.pdf` | `03Documentation/cache-management.md` |
 | Clean Code Solid | `03Documentation/clean-code-solid.pdf` | `03Documentation/clean-code-solid.md` |
 | Database | `03Documentation/database.pdf` | `03Documentation/database.md` |
 | Oauth Session | `03Documentation/oauth-session.pdf` | `03Documentation/oauth-session.md` |
