@@ -8,7 +8,7 @@ from .auth import get_current_user
 from .config import Settings, get_settings
 from .database import Database, get_database
 from .repositories import AnalyticsRepository
-from .services import AnalyticsService, NotFoundError
+from .services import AnalyticsService, ForbiddenError, NotFoundError
 
 
 def envelope(data, message: str = "OK"):
@@ -61,7 +61,9 @@ def student_attendance_risk(
     service: AnalyticsService = Depends(get_service),
 ):
     try:
-        return envelope(service.attendance_risk(student_id, start, end), "Student attendance risk")
+        return envelope(service.attendance_risk(student_id, start, end, current_user), "Student attendance risk")
+    except ForbiddenError as error:
+        raise HTTPException(status_code=403, detail=str(error)) from error
     except NotFoundError as error:
         raise HTTPException(status_code=404, detail=str(error)) from error
 
@@ -75,7 +77,9 @@ def student_scholarship_readiness(
     service: AnalyticsService = Depends(get_service),
 ):
     try:
-        return envelope(service.scholarship_readiness(student_id, start, end), "Student scholarship readiness")
+        return envelope(service.scholarship_readiness(student_id, start, end, current_user), "Student scholarship readiness")
+    except ForbiddenError as error:
+        raise HTTPException(status_code=403, detail=str(error)) from error
     except NotFoundError as error:
         raise HTTPException(status_code=404, detail=str(error)) from error
 
@@ -87,7 +91,9 @@ def branch_performance_summary(
     service: AnalyticsService = Depends(get_service),
 ):
     try:
-        return envelope(service.branch_performance_summary(branch_id), "Branch performance summary")
+        return envelope(service.branch_performance_summary(branch_id, current_user), "Branch performance summary")
+    except ForbiddenError as error:
+        raise HTTPException(status_code=403, detail=str(error)) from error
     except NotFoundError as error:
         raise HTTPException(status_code=404, detail=str(error)) from error
 
@@ -101,6 +107,8 @@ def teacher_workload_summary(
     service: AnalyticsService = Depends(get_service),
 ):
     try:
-        return envelope(service.teacher_workload_summary(teacher_id, start, end), "Teacher workload summary")
+        return envelope(service.teacher_workload_summary(teacher_id, start, end, current_user), "Teacher workload summary")
+    except ForbiddenError as error:
+        raise HTTPException(status_code=403, detail=str(error)) from error
     except NotFoundError as error:
         raise HTTPException(status_code=404, detail=str(error)) from error

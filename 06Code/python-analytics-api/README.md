@@ -11,7 +11,7 @@ The Node.js API owns transactional workflows such as enrollment, attendance, rol
 - Branch performance summaries.
 - Teacher workload and estimated payment.
 
-The service can reuse the same JWT session token issued by the Node Auth API. A user logs in through `POST /api/v1/auth/login` or Google auth, then sends the returned token as `Authorization: Bearer <token>` to the analytics endpoints.
+The service can reuse the same JWT session token issued by the Node Auth API. A user logs in through `POST /api/v1/auth/login` or Google auth, then sends the returned token as `Authorization: Bearer <token>` to the analytics endpoints. Protected analytics also enforce resource scope: students see their own records, teachers see their own workload and taught students, branch directors see assigned branches, and Admin/GeneralDirector see global data.
 
 ## Endpoints
 
@@ -24,10 +24,10 @@ Base prefix:
 | Method | URI | Description |
 | --- | --- | --- |
 | `GET` | `/health` | Public health check. |
-| `GET` | `/students/{student_id}/attendance-risk` | Attendance percentage, risk level and recommendation. |
-| `GET` | `/students/{student_id}/scholarship-readiness` | Scholarship threshold comparison using active scholarship rule. |
-| `GET` | `/branches/{branch_id}/performance-summary` | Student, teacher, session and attendance summary by branch. |
-| `GET` | `/teachers/{teacher_id}/workload-summary` | Completed hours, open check-ins and estimated pay. |
+| `GET` | `/students/{student_id}/attendance-risk` | Scoped attendance percentage, risk level and recommendation. |
+| `GET` | `/students/{student_id}/scholarship-readiness` | Scoped scholarship threshold comparison using active scholarship rule. |
+| `GET` | `/branches/{branch_id}/performance-summary` | Scoped student, teacher, session and attendance summary by branch. |
+| `GET` | `/teachers/{teacher_id}/workload-summary` | Scoped completed hours, open check-ins and estimated pay. |
 
 ## Local Setup
 
@@ -85,4 +85,3 @@ to:
 ```text
 http://<python-analytics-private-ip>:8000/api/analytics/v1/*
 ```
-

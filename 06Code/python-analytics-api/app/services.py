@@ -5,6 +5,10 @@ class NotFoundError(Exception):
     pass
 
 
+class ForbiddenError(Exception):
+    pass
+
+
 def _number(value, default=0):
     if value is None:
         return default
@@ -23,10 +27,70 @@ class AnalyticsService:
     def __init__(self, repository):
         self.repository = repository
 
-    def attendance_risk(self, student_id: str, start=None, end=None):
+    def _is_global(self, user) -> bool:
+        return user and user.get("role") in {"Admin", "GeneralDirector"}
+
+    def _user_branch_ids(self, user) -> set[str]:
+        if not user:
+            return set()
+        if self._is_global(user):
+            return {"*"}
+        if user.get("role") == "BranchDirector":
+            return {str(branch_id) for branch_id in self.repository.get_user_branch_ids(user["id"])}
+        if user.get("role") == "Teacher":
+            teacher = self.repository.get_teacher_by_user(user["id"])
+            return {str(teacher["branch_id"])} if teacher and teacher.get("branch_id") else set()
+        if user.get("role") == "Student":
+            student = self.repository.get_student_by_user(user["id"])
+            return {str(student["branch_id"])} if student and student.get("branch_id") else set()
+        return set()
+
+    def _can_access_branch(self, user, branch_id) -> bool:
+        if self._is_global(user):
+            return True
+        return str(branch_id) in self._user_branch_ids(user)
+
+    def _assert_student_access(self, user, student):
+        if self._is_global(user):
+            return
+        role = user.get("role") if user else None
+        if role == "BranchDirector" and self._can_access_branch(user, student.get("branch_id")):
+            return
+        if role == "Student":
+            own_student = self.repository.get_student_by_user(user["id"])
+            if own_student and str(own_student["id"]) == str(student["id"]):
+                return
+        if role == "Teacher":
+            teacher = self.repository.get_teacher_by_user(user["id"])
+            if teacher and self.repository.teacher_has_student(str(teacher["id"]), str(student["id"])):
+                return
+        raise ForbiddenError("Insufficient permissions")
+
+    def _assert_branch_access(self, user, branch):
+        if self._is_global(user):
+            return
+        if user and user.get("role") == "BranchDirector" and self._can_access_branch(user, branch.get("id")):
+            return
+        raise ForbiddenError("Insufficient permissions")
+
+    def _assert_teacher_access(self, user, teacher):
+        if self._is_global(user):
+            return
+        role = user.get("role") if user else None
+        if role == "BranchDirector" and self._can_access_branch(user, teacher.get("branch_id")):
+            return
+        if role == "Teacher":
+            own_teacher = self.repository.get_teacher_by_user(user["id"])
+            if own_teacher and str(own_teacher["id"]) == str(teacher["id"]):
+                return
+        raise ForbiddenError("Insufficient permissions")
+
+    def attendance_risk(self, student_id: str, start=None, end=None, current_user=None):
         student = self.repository.get_student(student_id)
         if not student:
             raise NotFoundError("Student not found")
+        if current_user:
+            self._assert_student_access(current_user, student)
 
         metrics = self.repository.get_student_attendance_metrics(student_id, start, end) or {}
         total = int(metrics.get("total_records") or 0)
@@ -50,8 +114,8 @@ class AnalyticsService:
             "recommendation": self._attendance_recommendation(attendance_rate, total),
         }
 
-    def scholarship_readiness(self, student_id: str, start=None, end=None):
-        student_risk = self.attendance_risk(student_id, start, end)
+    def scholarship_readiness(self, student_id: str, start=None, end=None, current_user=None):
+        student_risk = self.attendance_risk(student_id, start, end, current_user)
         rule = self.repository.get_active_scholarship_rule() or {}
         threshold = float(_number(rule.get("min_attendance_percent"), 90))
         period_months = int(rule.get("period_months") or 2)
@@ -73,10 +137,12 @@ class AnalyticsService:
             ),
         }
 
-    def branch_performance_summary(self, branch_id: str):
+    def branch_performance_summary(self, branch_id: str, current_user=None):
         branch = self.repository.get_branch(branch_id)
         if not branch:
             raise NotFoundError("Branch not found")
+        if current_user:
+            self._assert_branch_access(current_user, branch)
         metrics = self.repository.get_branch_metrics(branch_id) or {}
         total_attendance = int(metrics.get("attendance_records_total") or 0)
         positive_attendance = int(metrics.get("attendance_records_positive") or 0)
@@ -98,10 +164,12 @@ class AnalyticsService:
             "performanceLevel": self._branch_performance_level(attendance_rate, total_attendance),
         }
 
-    def teacher_workload_summary(self, teacher_id: str, start=None, end=None):
+    def teacher_workload_summary(self, teacher_id: str, start=None, end=None, current_user=None):
         teacher = self.repository.get_teacher(teacher_id)
         if not teacher:
             raise NotFoundError("Teacher not found")
+        if current_user:
+            self._assert_teacher_access(current_user, teacher)
         metrics = self.repository.get_teacher_workload_metrics(teacher_id, start, end) or {}
         hourly_rate = float(_number(teacher.get("hourly_rate"), 0))
         hours = round(float(metrics.get("completed_hours") or 0), 2)

@@ -23,6 +23,55 @@ class AnalyticsRepository:
             (student_id,),
         )
 
+    def get_student_by_user(self, user_id: str):
+        return self._one(
+            """
+            SELECT id, branch_id
+            FROM students
+            WHERE user_id = %s
+            LIMIT 1
+            """,
+            (user_id,),
+        )
+
+    def get_teacher_by_user(self, user_id: str):
+        return self._one(
+            """
+            SELECT id, branch_id
+            FROM teachers
+            WHERE user_id = %s
+            LIMIT 1
+            """,
+            (user_id,),
+        )
+
+    def get_user_branch_ids(self, user_id: str):
+        with self.connection.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT branch_id
+                FROM user_branch_access
+                WHERE user_id = %s
+                """,
+                (user_id,),
+            )
+            return [row["branch_id"] for row in cursor.fetchall()]
+
+    def teacher_has_student(self, teacher_id: str, student_id: str):
+        row = self._one(
+            """
+            SELECT 1
+            FROM student_attendance_records sar
+            JOIN class_sessions cs ON cs.id = sar.class_session_id
+            JOIN class_groups cg ON cg.id = cs.class_group_id
+            WHERE sar.student_id = %s
+              AND cg.teacher_id = %s
+            LIMIT 1
+            """,
+            (student_id, teacher_id),
+        )
+        return bool(row)
+
     def get_student_attendance_metrics(self, student_id: str, start: datetime | None = None, end: datetime | None = None):
         params: list[Any] = [student_id]
         date_filter = ""

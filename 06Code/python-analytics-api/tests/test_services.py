@@ -1,6 +1,6 @@
 import unittest
 
-from app.services import AnalyticsService, NotFoundError
+from app.services import AnalyticsService, ForbiddenError, NotFoundError
 
 
 class FakeRepository:
@@ -15,6 +15,22 @@ class FakeRepository:
             "branch_id": "branch-1",
             "branch_name": "Santo Domingo Central",
         }
+
+    def get_student_by_user(self, user_id):
+        if user_id == "student-user-1":
+            return {"id": "student-1", "branch_id": "branch-1"}
+        return None
+
+    def get_teacher_by_user(self, user_id):
+        if user_id == "teacher-user-1":
+            return {"id": "teacher-1", "branch_id": "branch-1"}
+        return None
+
+    def get_user_branch_ids(self, user_id):
+        return ["branch-1"] if user_id == "branch-director-1" else []
+
+    def teacher_has_student(self, teacher_id, student_id):
+        return teacher_id == "teacher-1" and student_id == "student-1"
 
     def get_student_attendance_metrics(self, student_id, start=None, end=None):
         return {
@@ -98,6 +114,21 @@ class AnalyticsServiceTest(unittest.TestCase):
     def test_missing_student_raises_not_found(self):
         with self.assertRaises(NotFoundError):
             self.service.attendance_risk("missing")
+
+    def test_student_cannot_read_another_student_risk(self):
+        with self.assertRaises(ForbiddenError):
+            self.service.attendance_risk(
+                "student-2",
+                current_user={"id": "student-user-1", "email": "s1@example.com", "role": "Student"},
+            )
+
+    def test_branch_director_can_read_assigned_branch_summary(self):
+        result = self.service.branch_performance_summary(
+            "branch-1",
+            current_user={"id": "branch-director-1", "email": "director@example.com", "role": "BranchDirector"},
+        )
+
+        self.assertEqual(result["branchId"], "branch-1")
 
 
 if __name__ == "__main__":
