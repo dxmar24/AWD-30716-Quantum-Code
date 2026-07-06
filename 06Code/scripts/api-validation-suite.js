@@ -372,6 +372,58 @@ async function main() {
     expectedStatus: 200,
   });
 
+  const branchDirector = await loginAs(Roles.BRANCH_DIRECTOR, `branch-director-${nowToken()}@alc.test`, `branch-director-${nowToken()}`, 'Validation Branch Director');
+
+  await runCase({
+    name: 'Admin assigns branch access to BranchDirector',
+    method: 'patch',
+    route: `${apiPrefix}/users/${branchDirector.user.id}/branch-access`,
+    client: admin.agent,
+    body: { branchIds:[branch.id] },
+    expectedStatus: 200,
+  });
+
+  await runCase({
+    name: 'Admin reads BranchDirector branch access',
+    method: 'get',
+    route: `${apiPrefix}/users/${branchDirector.user.id}/branch-access`,
+    client: admin.agent,
+    expectedStatus: 200,
+    assert: (res) => {
+      if (!res.body.data.some((row) => row.branchId === branch.id)) throw new Error('Assigned branch access was not returned.');
+    },
+  });
+
+  await runCase({
+    name: 'BranchDirector sees only assigned branch summary',
+    method: 'get',
+    route: `${apiPrefix}/reports/branches/summary`,
+    client: branchDirector.agent,
+    expectedStatus: 200,
+    assert: (res) => {
+      const branchIds = res.body.data.branches.map((item) => item.id);
+      if (branchIds.length !== 1 || branchIds[0] !== branch.id) throw new Error(`Unexpected branch scope: ${branchIds.join(',')}`);
+    },
+  });
+
+  await runCase({
+    name: 'BranchDirector creates student in assigned branch',
+    method: 'post',
+    route: `${apiPrefix}/students`,
+    client: branchDirector.agent,
+    body: { branchId:branch.id, fullName:`Scoped Validation Student ${timestamp}`, level:'B1', active:true },
+    expectedStatus: 201,
+  });
+
+  await runCase({
+    name: 'BranchDirector cannot create student in unassigned branch',
+    method: 'post',
+    route: `${apiPrefix}/students`,
+    client: branchDirector.agent,
+    body: { branchId:seed.branchId, fullName:`Unscoped Validation Student ${timestamp}`, level:'B1', active:true },
+    expectedStatus: 403,
+  });
+
   const student = requireSuccess(await runCase({
     name: 'Admin creates student',
     method: 'post',

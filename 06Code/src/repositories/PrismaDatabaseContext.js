@@ -1,10 +1,11 @@
 const { PrismaClient } = require('@prisma/client');
-const { PrismaRepository, PrismaUserRepository } = require('./PrismaRepository');
+const { PrismaRepository, PrismaUserRepository, PrismaUserBranchAccessRepository } = require('./PrismaRepository');
 
 class PrismaDatabaseContext {
   constructor() {
     this.prisma = new PrismaClient();
     this.users = new PrismaUserRepository(this.prisma);
+    this.userBranchAccess = new PrismaUserBranchAccessRepository(this.prisma);
     this.roles = new PrismaRepository(this.prisma.role);
     this.permissions = new PrismaRepository(this.prisma.permission);
     this.branches = new PrismaRepository(this.prisma.branch);

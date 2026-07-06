@@ -17,6 +17,7 @@ model Branch {
   teachers           Teacher[]
   classGroups        ClassGroup[]
   enrollmentRequests EnrollmentRequest[]
+  userBranchAccess   UserBranchAccess[]
 
   @@map("branches")
 }
@@ -54,6 +55,7 @@ model User {
   googleSub             String?                    @unique @map("google_sub") @db.VarChar(160)
   email                 String                     @unique @db.VarChar(160)
   name                  String                     @db.VarChar(160)
+  passwordHash          String?                    @map("password_hash")
   roleId                String?                    @map("role_id") @db.Uuid
   active                Boolean                    @default(true)
   createdAt             DateTime                   @default(now()) @map("created_at") @db.Timestamptz
@@ -65,8 +67,22 @@ model User {
   scholarshipEvaluations ScholarshipEvaluation[]
   levelPromotionEvaluations LevelPromotionEvaluation[]
   auditLogs             AuditLog[]
+  branchAccess          UserBranchAccess[]
 
   @@map("users")
+}
+
+model UserBranchAccess {
+  id        String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  branchId  String   @map("branch_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  user      User     @relation(fields: [userId], references: [id])
+  branch    Branch   @relation(fields: [branchId], references: [id])
+
+  @@unique([userId, branchId])
+  @@index([branchId])
+  @@map("user_branch_access")
 }
 
 model Student {

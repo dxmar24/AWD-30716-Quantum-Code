@@ -8,6 +8,7 @@ const { env } = require('./config/env');
 const { createDatabaseContext } = require('./repositories/createDatabaseContext');
 const { AuthService } = require('./services/AuthService');
 const { AuditService } = require('./services/AuditService');
+const { AccessPolicy } = require('./services/AccessPolicy');
 const { AttendanceService } = require('./services/AttendanceService');
 const { RulesService } = require('./services/RulesService');
 const { AcademicService } = require('./services/AcademicService');
@@ -27,11 +28,12 @@ function createApp() {
   const app = express();
   if (env.trustProxy) app.set('trust proxy', 1);
   const db = createDatabaseContext();
+  const accessPolicy = new AccessPolicy(db);
   const auditService = new AuditService(db);
   const authService = new AuthService(db);
-  const attendanceService = new AttendanceService(db, auditService);
+  const attendanceService = new AttendanceService(db, auditService, accessPolicy);
   const rulesService = new RulesService(db, attendanceService);
-  const academicService = new AcademicService(db, auditService, rulesService);
+  const academicService = new AcademicService(db, auditService, rulesService, accessPolicy);
   const frontendBuildPath = path.join(__dirname, '..', 'dist', 'frontend');
   const publicPath = path.join(__dirname, '..', 'public');
 
@@ -54,7 +56,7 @@ function createApp() {
   app.use('/private', noStore, privatePageGuard);
   app.use(express.static(frontendBuildPath));
   app.use(express.static(publicPath));
-  app.use('/api/v1', noStore, buildApi({ db, authService, attendanceService, rulesService, academicService }));
+  app.use('/api/v1', noStore, buildApi({ db, authService, attendanceService, rulesService, academicService, accessPolicy }));
   app.get(['/login.html', '/login'], (req, res) => res.sendFile(frontendIndexPath(frontendBuildPath)));
   app.get(['/private/dashboard.html', '/private/*'], (req, res) => res.sendFile(frontendIndexPath(frontendBuildPath)));
   app.get('/', (req, res) => res.sendFile(frontendIndexPath(frontendBuildPath)));

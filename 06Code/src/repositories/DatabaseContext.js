@@ -14,12 +14,22 @@ const categoryIds = {
 
 class DatabaseContext {
   constructor() {
-    this.users = new InMemoryRepository([{ id:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', email:'admin@alc.edu', name:'Admin User', role:Roles.ADMIN, googleSub:'test-admin', active:true }]);
+    this.users = new InMemoryRepository([
+      { id:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', email:'admin@alc.edu', name:'Admin User', role:Roles.ADMIN, googleSub:'test-admin', active:true },
+      { id:'abababab-abab-4aba-8bab-abababababab', email:'student@alc.edu', name:'Demo Student User', role:Roles.STUDENT, googleSub:'test-student', active:true },
+      { id:'acacacac-acac-4aca-8cac-acacacacacac', email:'teacher@alc.edu', name:'Demo Teacher User', role:Roles.TEACHER, googleSub:'test-teacher', active:true },
+    ]);
     this.roles = new InMemoryRepository([{ name:Roles.VISITOR },{ name:Roles.STUDENT },{ name:Roles.TEACHER },{ name:Roles.BRANCH_DIRECTOR },{ name:Roles.GENERAL_DIRECTOR },{ name:Roles.ADMIN }]);
     this.permissions = new InMemoryRepository([]);
     this.branches = new InMemoryRepository([{ id:branchIds.norte, name:'Norte', city:'Quito', active:true },{ id:branchIds.matriz, name:'Matriz', city:'Quito', active:true },{ name:'Sur Guamani', city:'Quito', active:true },{ name:'Tumbaco', city:'Quito', active:true },{ name:'Conocoto', city:'Quito', active:true }]);
-    this.students = new InMemoryRepository([{ id:'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', userId:null, branchId:branchIds.norte, level:'B1', fullName:'Demo Student', active:true }]);
-    this.teachers = new InMemoryRepository([{ id:'cccccccc-cccc-4ccc-8ccc-cccccccccccc', userId:null, branchId:branchIds.norte, fullName:'Demo Teacher', active:true, hourlyRate:12.5 }]);
+    this.userBranchAccess = new InMemoryRepository([]);
+    this.userBranchAccess.listByUser = (userId) => this.userBranchAccess.rows.filter((row) => row.userId === userId);
+    this.userBranchAccess.replaceForUser = (userId, branchIdsToAssign) => {
+      this.userBranchAccess.deleteWhere((row) => row.userId === userId);
+      return branchIdsToAssign.map((branchId) => this.userBranchAccess.create({ userId, branchId }));
+    };
+    this.students = new InMemoryRepository([{ id:'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', userId:'abababab-abab-4aba-8bab-abababababab', branchId:branchIds.norte, level:'B1', fullName:'Demo Student', active:true }]);
+    this.teachers = new InMemoryRepository([{ id:'cccccccc-cccc-4ccc-8ccc-cccccccccccc', userId:'acacacac-acac-4aca-8cac-acacacacacac', branchId:branchIds.norte, fullName:'Demo Teacher', active:true, hourlyRate:12.5 }]);
     this.danceCategories = new InMemoryRepository([{ id:categoryIds.urban, name:'Urban' },{ id:categoryIds.tropical, name:'Tropical' },{ id:categoryIds.ethnic, name:'Ethnic' }]);
     this.danceStyles = new InMemoryRepository([{ categoryId:categoryIds.urban, name:'Hip hop' },{ categoryId:categoryIds.urban, name:'Afro' },{ categoryId:categoryIds.urban, name:'House' },{ categoryId:categoryIds.urban, name:'Locking' },{ categoryId:categoryIds.urban, name:'Popping' },{ categoryId:categoryIds.urban, name:'Waacking' },{ categoryId:categoryIds.urban, name:'Dancehall' },{ categoryId:categoryIds.urban, name:'Fem' },{ categoryId:categoryIds.urban, name:'Heels' },{ categoryId:categoryIds.tropical, name:'Salsa' },{ categoryId:categoryIds.tropical, name:'Bachata' },{ categoryId:categoryIds.ethnic, name:'Traditional Ecuadorian dances' }]);
     this.teacherStyles = new InMemoryRepository([]);

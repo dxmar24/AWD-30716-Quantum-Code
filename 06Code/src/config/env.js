@@ -16,4 +16,31 @@ const env = {
   authRateLimitMax: Number(process.env.AUTH_RATE_LIMIT_MAX || 20),
   trustProxy: process.env.TRUST_PROXY === 'true' || ['production', 'staging'].includes(process.env.NODE_ENV),
 };
+
+function validateRuntimeEnv(config) {
+  const isDeployed = ['production', 'staging'].includes(config.nodeEnv);
+  if (!isDeployed) return;
+
+  if (!config.sessionSecret || config.sessionSecret === 'development_secret_change_me' || config.sessionSecret.length < 32) {
+    throw new Error('SESSION_SECRET must be configured with at least 32 characters in production/staging.');
+  }
+  if (!config.databaseUrl || config.databaseDriver === 'memory') {
+    throw new Error('DATABASE_URL and a persistent DB_DRIVER are required in production/staging.');
+  }
+  if (!config.googleClientId || config.googleClientId === 'test-google-client-id') {
+    throw new Error('GOOGLE_CLIENT_ID must be configured in production/staging.');
+  }
+  if (config.allowMockGoogleTokens) {
+    throw new Error('ALLOW_MOCK_GOOGLE_TOKENS must be false in production/staging.');
+  }
+  if (config.postmanLoginEnabled) {
+    const password = String(config.postmanLoginPassword || '');
+    if (!config.postmanLoginEmail || password.length < 12 || password === 'change_this_postman_demo_password' || password === 'AmericanLatin2026!') {
+      throw new Error('POSTMAN_LOGIN_* must use non-placeholder credentials when enabled in production/staging.');
+    }
+  }
+}
+
+validateRuntimeEnv(env);
+
 module.exports = { env };

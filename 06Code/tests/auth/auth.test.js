@@ -1,6 +1,8 @@
 const request = require('supertest');
 const jwt = require('jsonwebtoken');
 const { createApp } = require('../../src/app');
+const { Roles } = require('../../src/models/constants');
+const { hashPassword } = require('../../src/utils/passwordHasher');
 
 describe('auth/session', () => {
   test('auth config exposes the Google client id without requiring a session', async () => {
@@ -48,6 +50,39 @@ describe('auth/session', () => {
     await request(app).get('/api/v1/auth/me').set('Authorization', `Bearer ${sessionToken}`).expect(200);
     await request(app).post('/api/v1/auth/logout').set('Authorization', `Bearer ${sessionToken}`).expect(200);
     await request(app).get('/api/v1/auth/me').set('Authorization', `Bearer ${sessionToken}`).expect(401);
+  });
+
+  test('seeded password hash login supports role-specific users', async () => {
+    const app = createApp();
+    app.locals.db.users.create({
+      email:'branchdirector@alc.edu',
+      name:'ALC Branch Director',
+      role:Roles.BRANCH_DIRECTOR,
+      active:true,
+      passwordHash:hashPassword('branchdirectorALC2026*'),
+    });
+
+    await request(app)
+      .post('/api/v1/auth/login')
+      .send({ email:'branchdirector@alc.edu', password:'wrong-password' })
+      .expect(401);
+
+    const login = await request(app)
+      .post('/api/v1/auth/login')
+      .send({ email:'branchdirector@alc.edu', password:'branchdirectorALC2026*' })
+      .expect(200);
+
+    const sessionToken = login.body.data.sessionToken;
+    expect(login.body.data.user.role).toBe(Roles.BRANCH_DIRECTOR);
+    expect(login.body.data.user.passwordHash).toBeUndefined();
+
+    const me = await request(app)
+      .get('/api/v1/auth/me')
+      .set('Authorization', `Bearer ${sessionToken}`)
+      .expect(200);
+
+    expect(me.body.data.user.role).toBe(Roles.BRANCH_DIRECTOR);
+    expect(me.body.data.user.passwordHash).toBeUndefined();
   });
 
   test('invalid Google token is rejected', async () => {

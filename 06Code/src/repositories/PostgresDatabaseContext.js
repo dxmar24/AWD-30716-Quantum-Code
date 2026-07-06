@@ -1,9 +1,10 @@
-const { PostgresRepository, PostgresUserRepository, createPool } = require('./PostgresRepository');
+const { PostgresRepository, PostgresUserRepository, PostgresUserBranchAccessRepository, createPool } = require('./PostgresRepository');
 
 class PostgresDatabaseContext {
   constructor(databaseUrl) {
     this.pool = createPool(databaseUrl);
     this.users = new PostgresUserRepository(this.pool);
+    this.userBranchAccess = new PostgresUserBranchAccessRepository(this.pool);
     this.roles = new PostgresRepository(this.pool, 'roles');
     this.permissions = new PostgresRepository(this.pool, 'permissions');
     this.branches = new PostgresRepository(this.pool, 'branches');

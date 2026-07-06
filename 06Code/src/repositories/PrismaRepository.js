@@ -1,3 +1,6 @@
+const { Prisma } = require('@prisma/client');
+const { AppError } = require('../exceptions/AppError');
+
 function normalizeValue(value) {
   if (value && typeof value === 'object' && typeof value.toNumber === 'function') return value.toNumber();
   return value;
@@ -6,6 +9,14 @@ function normalizeValue(value) {
 function normalizeRow(row) {
   if (!row) return null;
   return Object.fromEntries(Object.entries(row).map(([key, value]) => [key, normalizeValue(value)]));
+}
+
+function mapPrismaError(error, entityName = 'record') {
+  if (!(error instanceof Prisma.PrismaClientKnownRequestError)) throw error;
+  if (error.code === 'P2002') throw new AppError(`${entityName} already exists`, 409, { target:error.meta?.target || null });
+  if (error.code === 'P2003') throw new AppError('Related record not found', 422, { field:error.meta?.field_name || null });
+  if (error.code === 'P2025') return null;
+  throw error;
 }
 
 class PrismaRepository {
@@ -27,11 +38,19 @@ class PrismaRepository {
   }
 
   async create(data) {
-    return normalizeRow(await this.model.create({ data }));
+    try {
+      return normalizeRow(await this.model.create({ data }));
+    } catch (error) {
+      return mapPrismaError(error);
+    }
   }
 
   async update(id, data) {
-    return normalizeRow(await this.model.update({ where:{ id }, data }));
+    try {
+      return normalizeRow(await this.model.update({ where:{ id }, data }));
+    } catch (error) {
+      return mapPrismaError(error);
+    }
   }
 }
 
@@ -73,17 +92,28 @@ class PrismaUserRepository extends PrismaRepository {
     return this.toUser(await this.prisma.user.findFirst({ where:{ [field]:value }, include:{ role:true } }));
   }
 
+  async findAuthByEmail(email) {
+    const row = await this.prisma.user.findFirst({ where:{ email }, include:{ role:true } });
+    const user = this.toUser(row);
+    return user ? { ...user, passwordHash:row.passwordHash } : null;
+  }
+
   async create(data) {
-    return this.toUser(await this.prisma.user.create({
-      data:{
-        googleSub:data.googleSub || null,
-        email:data.email,
-        name:data.name,
-        active:data.active ?? true,
-        role:{ connect:{ id:await this.roleId(data.role) } },
-      },
-      include:{ role:true },
-    }));
+    try {
+      return this.toUser(await this.prisma.user.create({
+        data:{
+          googleSub:data.googleSub || null,
+          email:data.email,
+          name:data.name,
+          passwordHash:data.passwordHash || null,
+          active:data.active ?? true,
+          role:{ connect:{ id:await this.roleId(data.role) } },
+        },
+        include:{ role:true },
+      }));
+    } catch (error) {
+      return mapPrismaError(error, 'User');
+    }
   }
 
   async update(id, data) {
@@ -91,8 +121,37 @@ class PrismaUserRepository extends PrismaRepository {
     if (data.role) {
       updateData.role = { connect:{ id:await this.roleId(data.role) } };
     }
-    return this.toUser(await this.prisma.user.update({ where:{ id }, data:updateData, include:{ role:true } }));
+    try {
+      return this.toUser(await this.prisma.user.update({ where:{ id }, data:updateData, include:{ role:true } }));
+    } catch (error) {
+      return mapPrismaError(error, 'User');
+    }
   }
 }
 
-module.exports = { PrismaRepository, PrismaUserRepository };
+class PrismaUserBranchAccessRepository extends PrismaRepository {
+  constructor(prisma) {
+    super(prisma.userBranchAccess);
+    this.prisma = prisma;
+  }
+
+  async listByUser(userId) {
+    const rows = await this.prisma.userBranchAccess.findMany({ where:{ userId } });
+    return rows.map(normalizeRow);
+  }
+
+  async replaceForUser(userId, branchIds) {
+    try {
+      await this.prisma.userBranchAccess.deleteMany({ where:{ userId } });
+      if (!branchIds.length) return [];
+      const rows = await Promise.all(branchIds.map((branchId) => (
+        this.prisma.userBranchAccess.create({ data:{ userId, branchId } })
+      )));
+      return rows.map(normalizeRow);
+    } catch (error) {
+      return mapPrismaError(error, 'Branch access');
+    }
+  }
+}
+
+module.exports = { PrismaRepository, PrismaUserRepository, PrismaUserBranchAccessRepository, mapPrismaError };

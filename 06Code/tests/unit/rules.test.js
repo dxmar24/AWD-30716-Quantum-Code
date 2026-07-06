@@ -42,3 +42,24 @@ test('teacher payment uses checked out worked hours', async () => {
   db.teacherAttendance.create({ teacherId, checkInAt:'2026-06-01T10:00:00.000Z', checkOutAt:'2026-06-01T12:00:00.000Z' });
   await expect(rules.teacherPayment(teacherId)).resolves.toMatchObject({ hours:2, amount:25 });
 });
+
+test('attendance rate uses class session date instead of entry creation date', async () => {
+  const { db, rules } = buildRules();
+  const studentId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+  const historicalSession = db.classSessions.create({
+    classGroupId:'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+    startsAt:'2026-05-01T18:00:00.000Z',
+    endsAt:'2026-05-01T20:00:00.000Z',
+    status:'completed',
+  });
+
+  db.studentAttendance.create({
+    studentId,
+    classSessionId:historicalSession.id,
+    status:'present',
+    createdAt:'2026-07-01T10:00:00.000Z',
+  });
+
+  const candidate = await rules.scholarshipCandidate(studentId, '2026-06-01T00:00:00.000Z', '2026-08-01T00:00:00.000Z');
+  expect(candidate).toMatchObject({ attendanceRate:0, candidate:false });
+});

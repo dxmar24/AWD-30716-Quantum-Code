@@ -87,3 +87,68 @@ test('scholarship and promotion evaluations require candidate rules plus evaluat
 
   expect(app.locals.db.students.findById(studentId).level).toBe('B2');
 });
+
+test('branch director manages only assigned branch resources', async () => {
+  const app = createApp();
+  const directorToken = jwt.sign({
+    sub:'branch-director-scope',
+    email:'branch-director@alc.edu',
+    name:'Branch Director',
+    aud:'test-google-client-id',
+  }, 'x');
+  const loginResponse = await request(app).post('/api/v1/auth/google').send({ idToken:directorToken }).expect(200);
+  const director = loginResponse.body.data.user;
+  const ownBranchId = '11111111-1111-4111-8111-111111111111';
+  const otherBranchId = '22222222-2222-4222-8222-222222222222';
+
+  app.locals.db.users.update(director.id, { role:'BranchDirector' });
+  app.locals.db.userBranchAccess.replaceForUser(director.id, [ownBranchId]);
+
+  await request(app)
+    .post('/api/v1/students')
+    .set('Cookie', loginResponse.headers['set-cookie'][0])
+    .send({ branchId:ownBranchId, fullName:'Scoped Student', level:'B1', active:true })
+    .expect(201);
+
+  await request(app)
+    .post('/api/v1/students')
+    .set('Cookie', loginResponse.headers['set-cookie'][0])
+    .send({ branchId:otherBranchId, fullName:'Other Branch Student', level:'B1', active:true })
+    .expect(403);
+
+  const summary = await request(app)
+    .get('/api/v1/reports/branches/summary')
+    .set('Cookie', loginResponse.headers['set-cookie'][0])
+    .expect(200);
+
+  expect(summary.body.data.branches.map((branch) => branch.id)).toEqual([ownBranchId]);
+});
+
+test('teacher cannot check in using another teacher profile', async () => {
+  const app = createApp();
+  const teacherToken = jwt.sign({
+    sub:'test-teacher',
+    email:'teacher@alc.edu',
+    name:'Demo Teacher User',
+    aud:'test-google-client-id',
+  }, 'x');
+  const loginResponse = await request(app).post('/api/v1/auth/google').send({ idToken:teacherToken }).expect(200);
+  const otherTeacher = app.locals.db.teachers.create({
+    branchId:'11111111-1111-4111-8111-111111111111',
+    fullName:'Other Teacher',
+    active:true,
+    hourlyRate:12.5,
+  });
+
+  await request(app)
+    .post('/api/v1/teacher-attendance/check-in')
+    .set('Cookie', loginResponse.headers['set-cookie'][0])
+    .send({ teacherId:'cccccccc-cccc-4ccc-8ccc-cccccccccccc', classSessionId:'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee' })
+    .expect(201);
+
+  await request(app)
+    .post('/api/v1/teacher-attendance/check-in')
+    .set('Cookie', loginResponse.headers['set-cookie'][0])
+    .send({ teacherId:otherTeacher.id })
+    .expect(403);
+});

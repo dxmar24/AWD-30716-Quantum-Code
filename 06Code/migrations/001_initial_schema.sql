@@ -3,7 +3,8 @@ CREATE TABLE branches (id UUID PRIMARY KEY DEFAULT uuid_generate_v4(), name VARC
 CREATE TABLE roles (id UUID PRIMARY KEY DEFAULT uuid_generate_v4(), name VARCHAR(40) UNIQUE NOT NULL);
 CREATE TABLE permissions (id UUID PRIMARY KEY DEFAULT uuid_generate_v4(), code VARCHAR(80) UNIQUE NOT NULL, description TEXT);
 CREATE TABLE role_permissions (role_id UUID REFERENCES roles(id), permission_id UUID REFERENCES permissions(id), PRIMARY KEY(role_id, permission_id));
-CREATE TABLE users (id UUID PRIMARY KEY DEFAULT uuid_generate_v4(), google_sub VARCHAR(160) UNIQUE, email VARCHAR(160) UNIQUE NOT NULL, name VARCHAR(160) NOT NULL, role_id UUID REFERENCES roles(id), active BOOLEAN DEFAULT TRUE, created_at TIMESTAMPTZ DEFAULT now());
+CREATE TABLE users (id UUID PRIMARY KEY DEFAULT uuid_generate_v4(), google_sub VARCHAR(160) UNIQUE, email VARCHAR(160) UNIQUE NOT NULL, name VARCHAR(160) NOT NULL, password_hash TEXT, role_id UUID REFERENCES roles(id), active BOOLEAN DEFAULT TRUE, created_at TIMESTAMPTZ DEFAULT now());
+CREATE TABLE user_branch_access (id UUID PRIMARY KEY DEFAULT uuid_generate_v4(), user_id UUID NOT NULL REFERENCES users(id), branch_id UUID NOT NULL REFERENCES branches(id), created_at TIMESTAMPTZ DEFAULT now(), UNIQUE(user_id, branch_id));
 CREATE TABLE students (id UUID PRIMARY KEY DEFAULT uuid_generate_v4(), user_id UUID REFERENCES users(id), branch_id UUID NOT NULL REFERENCES branches(id), full_name VARCHAR(160) NOT NULL, level VARCHAR(2) CHECK(level IN ('B1','B2')), active BOOLEAN DEFAULT TRUE);
 CREATE TABLE teachers (id UUID PRIMARY KEY DEFAULT uuid_generate_v4(), user_id UUID REFERENCES users(id), branch_id UUID REFERENCES branches(id), full_name VARCHAR(160) NOT NULL, hourly_rate NUMERIC(10,2) NOT NULL DEFAULT 12.50, active BOOLEAN DEFAULT TRUE);
 CREATE TABLE dance_categories (id UUID PRIMARY KEY DEFAULT uuid_generate_v4(), name VARCHAR(80) UNIQUE NOT NULL);
@@ -21,6 +22,7 @@ CREATE TABLE enrollment_requests (id UUID PRIMARY KEY DEFAULT uuid_generate_v4()
 CREATE TABLE sessions (id UUID PRIMARY KEY DEFAULT uuid_generate_v4(), user_id UUID REFERENCES users(id), token_hash TEXT NOT NULL, expires_at TIMESTAMPTZ NOT NULL, revoked BOOLEAN DEFAULT FALSE);
 CREATE TABLE audit_logs (id UUID PRIMARY KEY DEFAULT uuid_generate_v4(), actor_user_id UUID REFERENCES users(id), action VARCHAR(120) NOT NULL, entity VARCHAR(120) NOT NULL, entity_id UUID, metadata JSONB DEFAULT '{}'::jsonb, created_at TIMESTAMPTZ DEFAULT now());
 CREATE INDEX idx_students_branch ON students(branch_id);
+CREATE INDEX idx_user_branch_access_branch ON user_branch_access(branch_id);
 CREATE INDEX idx_student_attendance_student ON student_attendance_records(student_id);
 CREATE INDEX idx_teacher_attendance_teacher ON teacher_attendance_records(teacher_id);
 CREATE INDEX idx_sessions_token_hash ON sessions(token_hash);

@@ -1,7 +1,7 @@
 const express = require('express');
 const rateLimit = require('express-rate-limit');
 const { env } = require('../config/env');
-const { z, attendanceRecord, teacherCheck, roleUpdate, enrollmentRequest, absenceJustification, absenceReview, scholarshipEvaluation, levelPromotionEvaluation, branch, student, teacher, danceCategory, danceStyle, classGroup, classSession } = require('../validators/commonValidators');
+const { z, attendanceRecord, teacherCheck, roleUpdate, branchAccessUpdate, enrollmentRequest, absenceJustification, absenceReview, scholarshipEvaluation, levelPromotionEvaluation, branch, student, teacher, danceCategory, danceStyle, classGroup, classSession } = require('../validators/commonValidators');
 const { validate } = require('../middleware/validate');
 const { requireAuth, allowRoles } = require('../middleware/auth');
 const { Roles } = require('../models/constants');
@@ -15,9 +15,10 @@ const writeRoles = [Roles.ADMIN, Roles.GENERAL_DIRECTOR, Roles.BRANCH_DIRECTOR];
 const directorRoles = [Roles.ADMIN, Roles.GENERAL_DIRECTOR, Roles.BRANCH_DIRECTOR];
 const teacherAttendanceRoles = [Roles.ADMIN, Roles.GENERAL_DIRECTOR, Roles.BRANCH_DIRECTOR, Roles.TEACHER];
 const wrap = (handler) => (req, res, next) => Promise.resolve(handler(req, res, next)).catch(next);
+const publicUsers = (users) => users.map(({ passwordHash, ...user }) => user);
 
-function registerCrud(router, name, repository, schema) {
-  const controller = new CrudController(repository, name);
+function registerCrud(router, name, repository, schema, accessPolicy) {
+  const controller = new CrudController(repository, name, accessPolicy);
   router.get(`/${name}`, requireAuth, wrap(controller.index));
   router.get(`/${name}/:id`, requireAuth, wrap(controller.show));
   router.post(`/${name}`, allowRoles(...writeRoles), validate(schema), wrap(controller.create));
@@ -28,7 +29,7 @@ function buildApi(deps) {
   const router = express.Router();
   const auth = new AuthController(deps.authService);
   const attendance = new AttendanceController(deps.attendanceService);
-  const reports = new ReportsController(deps.db, deps.rulesService);
+  const reports = new ReportsController(deps.db, deps.rulesService, deps.accessPolicy);
   const academic = new AcademicController(deps.academicService, deps.db);
   const authLimiter = rateLimit({ windowMs: 15*60*1000, max: env.authRateLimitMax });
 
@@ -41,18 +42,20 @@ function buildApi(deps) {
   router.post('/enrollment-requests', validate(enrollmentRequest), wrap(academic.submitEnrollment));
   router.get('/enrollment-requests', allowRoles(...directorRoles), wrap(academic.listEnrollmentRequests));
 
-  router.get('/users', allowRoles(Roles.ADMIN, Roles.GENERAL_DIRECTOR), wrap(async (req, res) => res.json({ success:true, message:'Users list', data:await deps.db.users.all() })));
+  router.get('/users', allowRoles(Roles.ADMIN, Roles.GENERAL_DIRECTOR), wrap(async (req, res) => res.json({ success:true, message:'Users list', data:publicUsers(await deps.db.users.all()) })));
   router.patch('/users/:id/role', allowRoles(Roles.ADMIN), validate(roleUpdate), wrap(academic.updateUserRole));
+  router.get('/users/:id/branch-access', allowRoles(Roles.ADMIN, Roles.GENERAL_DIRECTOR), wrap(academic.listUserBranchAccess));
+  router.patch('/users/:id/branch-access', allowRoles(Roles.ADMIN), validate(branchAccessUpdate), wrap(academic.updateUserBranchAccess));
   router.get('/roles', requireAuth, wrap(async (req, res) => res.json({ success:true, message:'Roles list', data:await deps.db.roles.all() })));
   router.get('/permissions', allowRoles(Roles.ADMIN, Roles.GENERAL_DIRECTOR), wrap(async (req, res) => res.json({ success:true, message:'Permissions list', data:await deps.db.permissions.all() })));
 
-  registerCrud(router, 'branches', deps.db.branches, branch);
-  registerCrud(router, 'students', deps.db.students, student);
-  registerCrud(router, 'teachers', deps.db.teachers, teacher);
-  registerCrud(router, 'dance-categories', deps.db.danceCategories, danceCategory);
-  registerCrud(router, 'dance-styles', deps.db.danceStyles, danceStyle);
-  registerCrud(router, 'class-groups', deps.db.classGroups, classGroup);
-  registerCrud(router, 'class-sessions', deps.db.classSessions, classSession);
+  registerCrud(router, 'branches', deps.db.branches, branch, deps.accessPolicy);
+  registerCrud(router, 'students', deps.db.students, student, deps.accessPolicy);
+  registerCrud(router, 'teachers', deps.db.teachers, teacher, deps.accessPolicy);
+  registerCrud(router, 'dance-categories', deps.db.danceCategories, danceCategory, deps.accessPolicy);
+  registerCrud(router, 'dance-styles', deps.db.danceStyles, danceStyle, deps.accessPolicy);
+  registerCrud(router, 'class-groups', deps.db.classGroups, classGroup, deps.accessPolicy);
+  registerCrud(router, 'class-sessions', deps.db.classSessions, classSession, deps.accessPolicy);
 
   router.post('/student-attendance', allowRoles(...teacherAttendanceRoles), validate(attendanceRecord), wrap(attendance.recordStudent));
   router.post('/teacher-attendance/check-in', allowRoles(...teacherAttendanceRoles), validate(teacherCheck), wrap(attendance.teacherCheckIn));
@@ -62,7 +65,7 @@ function buildApi(deps) {
   router.post('/absence-justifications', allowRoles(Roles.ADMIN, Roles.GENERAL_DIRECTOR, Roles.BRANCH_DIRECTOR, Roles.TEACHER, Roles.STUDENT), validate(absenceJustification), wrap(academic.createAbsenceJustification));
   router.patch('/absence-justifications/:id/review', allowRoles(...directorRoles), validate(absenceReview), wrap(academic.reviewAbsenceJustification));
 
-  router.get('/reports/branches/summary', allowRoles(Roles.ADMIN, Roles.GENERAL_DIRECTOR), wrap(reports.branchSummary));
+  router.get('/reports/branches/summary', allowRoles(...directorRoles), wrap(reports.branchSummary));
   router.get('/reports/scholarships/:studentId/candidate', allowRoles(...directorRoles), wrap(reports.scholarshipCandidate));
   router.get('/reports/level-promotions/:studentId/candidate', allowRoles(...directorRoles), wrap(reports.promotionCandidate));
   router.get('/reports/teachers/:teacherId/payment', allowRoles(...directorRoles), wrap(reports.teacherPayment));
