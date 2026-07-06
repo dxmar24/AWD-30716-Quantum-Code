@@ -30,7 +30,14 @@ The Python API does not create users or sessions. Instead, it validates the exis
 4. Python analytics requests send `Authorization: Bearer {{session_token}}`.
 5. The Python API validates the JWT signature with the same `SESSION_SECRET`.
 6. The Python API hashes the token and verifies that the session exists in PostgreSQL, is not revoked and has not expired.
-7. After `POST /api/v1/auth/logout`, the same token is rejected by both Node and Python APIs.
+7. The requested student, branch or teacher resource is checked against the user's role and scope.
+8. After `POST /api/v1/auth/logout`, the same token is rejected by both Node and Python APIs.
+
+Scope rules:
+- `Admin` and `GeneralDirector` can read all analytics.
+- `BranchDirector` can read analytics only for branches assigned through `user_branch_access`.
+- `Teacher` can read their own workload and student analytics only for students connected to their taught sessions.
+- `Student` can read only their own student analytics.
 
 This proves backend-only authentication and session revocation in Postman without requiring the frontend.
 
@@ -39,10 +46,10 @@ This proves backend-only authentication and session revocation in Postman withou
 | Method | URI | Auth | What It Does |
 | --- | --- | --- | --- |
 | `GET` | `/api/analytics/v1/health` | Public | Confirms the Python API is running. |
-| `GET` | `/api/analytics/v1/students/{student_id}/attendance-risk` | Bearer JWT | Calculates attendance percentage, risk level and recommendation for one student. |
-| `GET` | `/api/analytics/v1/students/{student_id}/scholarship-readiness` | Bearer JWT | Compares student attendance against the active scholarship rule. |
-| `GET` | `/api/analytics/v1/branches/{branch_id}/performance-summary` | Bearer JWT | Summarizes students, teachers, sessions, attendance and pending enrollments for one branch. |
-| `GET` | `/api/analytics/v1/teachers/{teacher_id}/workload-summary` | Bearer JWT | Calculates teacher check-ins, completed hours and estimated pay. |
+| `GET` | `/api/analytics/v1/students/{student_id}/attendance-risk` | Scoped Bearer JWT | Calculates attendance percentage, risk level and recommendation for one authorized student. |
+| `GET` | `/api/analytics/v1/students/{student_id}/scholarship-readiness` | Scoped Bearer JWT | Compares authorized student attendance against the active scholarship rule. |
+| `GET` | `/api/analytics/v1/branches/{branch_id}/performance-summary` | Scoped Bearer JWT | Summarizes an authorized branch. |
+| `GET` | `/api/analytics/v1/teachers/{teacher_id}/workload-summary` | Scoped Bearer JWT | Calculates authorized teacher check-ins, completed hours and estimated pay. |
 
 Optional date filters for student and teacher analytics:
 
@@ -91,7 +98,7 @@ Recommended order:
 2. Run `Auth & Session / Current Session - No Token`; expected result: `401`.
 3. Run `Auth & Session / Password Login - Demo`; expected result: `200` and `session_token` saved automatically.
 4. Run `Python Analytics API / Student Attendance Risk - No Token`; expected result: `401`.
-5. Run the remaining Python Analytics API requests with inherited Bearer Token authorization.
+5. Run the remaining Python Analytics API requests with inherited Bearer Token authorization. Requests outside the user's resource scope must return `403`.
 6. Run `Session Teardown / Logout`.
 7. Run a Python analytics protected request again with the old token; expected result: `401`.
 

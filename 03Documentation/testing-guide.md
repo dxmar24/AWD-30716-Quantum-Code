@@ -17,7 +17,7 @@ npm run postman:evidence:local
 ```
 
 Current automated coverage:
-- Auth/session: Google login, Postman email/password login, logout, invalid Google token, expired session, private page redirect/no-store and valid private dashboard access.
+- Auth/session: Google login, Postman email/password login, seeded password-hash role login, logout, invalid Google token, expired session, private page redirect/no-store and valid private dashboard access.
 - JWT/Postman session: `/auth/login` returns `sessionToken`, Bearer token can call `/auth/me`, logout revokes the backend session, and the same token returns `401`.
 - RBAC: invalid role cannot access consolidated reports.
 - Rules: scholarship threshold, promotion candidate rule, teacher payment calculation.
@@ -26,12 +26,12 @@ Current automated coverage:
 Expected result:
 ```text
 Test Suites: 4 passed, 4 total
-Tests:       16 passed, 16 total
+Tests:       20 passed, 20 total
 ```
 
 Current API validation result:
 ```text
-API validation completed: 102/102 passed.
+API validation completed: 108/108 passed.
 ```
 
 Current Postman/Newman evidence:

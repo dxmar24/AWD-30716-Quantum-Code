@@ -12,7 +12,7 @@ Manual order:
 2. Run `Auth & Session / Auth Config`.
 3. Run `Auth & Session / Current Session - No Token`; it must return `401 Authentication required`.
 4. Run `Auth & Session / Password Login - Invalid Credentials`; it must return `401`.
-5. Run `Auth & Session / Password Login - Demo`. Postman sends `login_email` and `login_password`, then stores `data.sessionToken` in `session_token`.
+5. Set `login_password` locally in Postman, then run `Auth & Session / Password Login - Demo`. Postman sends `login_email` and `login_password`, then stores `data.sessionToken` in `session_token`.
 6. Open any protected request, choose Authorization type `Bearer Token`, and use `{{session_token}}`. The collection already does this automatically at collection level.
 7. Run `Auth & Session / Current Session - Bearer Token`; it must return `200` and the logged-in user.
 8. Run the remaining folders in order: Public Enrollment, Identity And RBAC, Catalog CRUD, Attendance And Absences, Reports And Evaluations.
@@ -27,7 +27,8 @@ Python Analytics API order:
 
 Notes:
 - Do not commit real Google ID tokens, database passwords or session cookies.
-- `login_email` and `login_password` are academic Postman verification credentials for the configured demo user.
+- `login_email` and `login_password` are academic Postman verification credentials for the configured demo user; the shared environment leaves `login_password` blank on purpose.
+- After running `npm run db:seed:role-test`, you can switch `login_email` to `generaldirector@alc.edu`, `branchdirector@alc.edu`, `teacher@alc.edu` or `student@alc.edu` and use the matching temporary local password for role-scope checks.
 - `google_id_token` is intentionally blank in the environment file.
 - `session_token` is intentionally blank in the environment file and is filled by `Password Login - Demo`.
 - The collection uses `{{base_url}}` for API calls and `{{site_url}}` for private page checks.

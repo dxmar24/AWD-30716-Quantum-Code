@@ -4,9 +4,9 @@
 | ID | Requirement | Priority | Acceptance Criteria |
 |---|---|---:|---|
 | FR-01 | Public landing page shows academy information, branches, styles, levels, contact/enrollment request. | High | Visitor can open `/`, read branches/styles/levels and submit an enrollment request. |
-| FR-02 | Google OAuth registration/login with internal roles. | High | Backend verifies Google ID token in production, links `google_sub`, creates app session and never trusts Google for app roles. |
+| FR-02 | Google OAuth registration/login with internal roles plus controlled manual role login. | High | Backend verifies Google ID token in production, links `google_sub`, creates app session, supports hashed role-test passwords for manual verification and never trusts Google for app roles. |
 | FR-03 | Secure session management. | High | Session cookie is HttpOnly/SameSite, logout revokes server session, expired sessions return 401, private pages redirect after logout/back button. |
-| FR-04 | Role-based authorization. | High | Student/Teacher/BranchDirector/GeneralDirector/Admin access is enforced by middleware and tested. |
+| FR-04 | Role-based and resource-scoped authorization. | High | Student/Teacher/BranchDirector/GeneralDirector/Admin access is enforced by middleware and resource-scope policy; BranchDirector access is limited to assigned branches. |
 | FR-05 | Branch, student, teacher, class group and class session management. | High | Directors/Admin can create/update core academic data; authenticated users can list/read. |
 | FR-06 | Dance category/style management. | Medium | Urban, Tropical and Ethnic styles are seeded and manageable through API. |
 | FR-07 | Student attendance. | High | Teacher/director records one attendance status per student and class session. Duplicates are rejected. |
@@ -23,14 +23,15 @@
 |---|---|---|
 | NFR-01 | REST API versioned with `/api/v1`. | `06Code/src/routes/api.js` |
 | NFR-02 | Clean Code, MVC, services and repositories. | Controllers delegate to services; persistence is isolated by repository classes. |
-| NFR-03 | PostgreSQL normalized schema and seeders. | `06Code/migrations/001_initial_schema.sql`, `06Code/seeders/001_seed.sql` |
-| NFR-04 | No secrets in repository. | `.env.example` only contains placeholders. |
+| NFR-03 | PostgreSQL normalized schema and seeders. | `06Code/migrations/001_initial_schema.sql`, `06Code/seeders/001_seed.sql`, `06Code/scripts/seed-role-test-data.js` |
+| NFR-04 | No production secrets in repository. | `.env.example` contains placeholders plus clearly temporary local seed defaults that must be rotated/removed before production. |
 | NFR-05 | Restricted CORS. | `CORS_ORIGINS` env configuration. |
 | NFR-06 | Auth rate limiting. | `express-rate-limit` on `/auth/google`. |
 | NFR-07 | Consistent JSON responses. | `ApiResponse` success/error envelope. |
 | NFR-08 | Centralized validation. | Zod validators under `src/validators`. |
 | NFR-09 | Consistent error handling. | `AppError` and `errorHandler` middleware. |
 | NFR-10 | AWS deployment preparation. | EC2/RDS/ALB guide and PlantUML deployment diagram. |
+| NFR-11 | Production-safe configuration. | Production/staging fails fast on default secrets, missing database URL or enabled mock Google tokens. |
 
 ## User Stories
 | ID | Story |
@@ -41,7 +42,7 @@
 | US-04 | As a BranchDirector, I want to manage students, teachers, classes and absence justifications for my branch. |
 | US-05 | As a BranchDirector, I want to review scholarship and promotion candidates before registering evaluations. |
 | US-06 | As a GeneralDirector, I want consolidated branch reports and audit logs. |
-| US-07 | As an Admin, I want to assign internal roles and seed permissions without depending on Google profile data. |
+| US-07 | As an Admin, I want to assign internal roles, branch access and role-test users without depending on Google profile data. |
 
 ## Role/Permission Matrix
 | Feature | Visitor | Student | Teacher | BranchDirector | GeneralDirector | Admin |
@@ -60,6 +61,8 @@
 | Consolidated reports |  |  |  |  | X | X |
 | Audit logs |  |  |  |  | X | X |
 | Assign roles |  |  |  |  |  | X |
+| Assign branch access |  |  |  |  |  | X |
+| Use temporary seeded role login |  | X | X | X | X | X |
 
 ## Business Rules
 - BR-01: Scholarship candidate requires at least 90% attendance in a two-month period.
@@ -70,8 +73,11 @@
 - BR-06: A student can have only one attendance record per class session.
 - BR-07: A teacher can have only one open check-in at a time.
 - BR-08: Roles are owned by the application and are not inferred from Google claims.
-- BR-09: Private pages and APIs must use `Cache-Control: no-store`.
-- BR-10: Administrative and academic state-changing actions must be audited.
+- BR-09: BranchDirector permissions require explicit branch assignment and must not expose other branches.
+- BR-10: Student and Teacher users can only access their own academic/profile records and teaching context.
+- BR-11: Private pages and APIs must use `Cache-Control: no-store`.
+- BR-12: Administrative and academic state-changing actions must be audited.
+- BR-13: Manual role-test credentials must be stored as password hashes and remain disabled unless `POSTMAN_LOGIN_ENABLED=true`.
 
 ## Prioritized Backlog
 1. Auth/session, RBAC, no-store private pages and tests.
@@ -89,7 +95,7 @@
 | Requirement | Endpoints |
 |---|---|
 | FR-01 | `GET /`, `POST /api/v1/enrollment-requests` |
-| FR-02 | `POST /api/v1/auth/google`, `GET /api/v1/users`, `PATCH /api/v1/users/{id}/role` |
+| FR-02 | `POST /api/v1/auth/google`, `POST /api/v1/auth/login`, `GET /api/v1/users`, `PATCH /api/v1/users/{id}/role` |
 | FR-03 | `GET /api/v1/auth/me`, `POST /api/v1/auth/logout`, `/private/dashboard.html` |
 | FR-04 | All protected endpoints through `requireAuth`/`allowRoles` |
 | FR-05 | `/api/v1/branches`, `/api/v1/students`, `/api/v1/teachers`, `/api/v1/class-groups`, `/api/v1/class-sessions` |

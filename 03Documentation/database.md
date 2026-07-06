@@ -9,7 +9,8 @@ The SQL schema and Prisma schema are kept aligned for the academic model, includ
 |---|---|
 | `branches` | Academy branches: Norte, Matriz, Sur Guamani, Tumbaco, Conocoto. |
 | `roles`, `permissions`, `role_permissions` | Internal role/permission catalog controlled by the app. |
-| `users` | Google-linked application users with internal role reference. |
+| `users` | Google-linked application users with internal role reference and optional `password_hash` for controlled manual verification users. |
+| `user_branch_access` | Explicit branch assignments for branch-scoped directors and reporting access. |
 | `students` | Student academic profile, branch and level B1/B2. |
 | `teachers` | Teacher profile, branch and hourly rate. |
 | `dance_categories`, `dance_styles`, `teacher_styles` | Dance catalog and teacher-style assignments. |
@@ -25,7 +26,9 @@ The SQL schema and Prisma schema are kept aligned for the academic model, includ
 
 ## Normalization Notes
 - User identity is separated from student/teacher academic profiles.
+- Manual role-test credentials are stored as one-way password hashes; public API responses never include `password_hash`.
 - Roles and permissions are normalized instead of hardcoding permissions in user rows.
+- Branch-scoped authorization is normalized through `user_branch_access` so a BranchDirector can be assigned to one or more branches without changing the user identity model.
 - Dance categories and styles avoid repeated text inside class groups.
 - Attendance records reference class sessions and students/teachers.
 - Scholarship and level promotion approvals store evaluation evidence separately from candidate calculation.
@@ -36,6 +39,7 @@ The SQL schema and Prisma schema are kept aligned for the academic model, includ
 - Attendance status is constrained to `present`, `absent`, `justified`, `late`.
 - Scholarship percentage is constrained to `25`, `50`, `75`, `100`.
 - Session tokens are stored as hashes.
+- Temporary role-test passwords should be rotated or removed before production use.
 
 ## ORM Runtime Selection
 - `NODE_ENV=test` uses in-memory repositories for fast automated tests.
@@ -45,6 +49,10 @@ The SQL schema and Prisma schema are kept aligned for the academic model, includ
 ## Prisma Commands
 ```bash
 cd 06Code
+npm run db:local:up
 npm run db:generate
 npm run db:push
+npm run db:seed:role-test
 ```
+
+The local Docker database uses `postgres://alc_user:change_me@localhost:5432/american_latin_class`, matching `06Code/.env.example`. Use stronger credentials outside local development.

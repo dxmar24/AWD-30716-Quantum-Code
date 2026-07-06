@@ -27,7 +27,7 @@ Google documentation reference: https://support.google.com/cloud/answer/15549257
 
 ## Session Strategy
 - The application issues its own signed JWT session token after Google verification.
-- `POST /api/v1/auth/login` is available for academic Postman verification with configured email/password credentials and an existing internal user.
+- `POST /api/v1/auth/login` is available for academic Postman/manual verification with configured email/password credentials or a seeded user `password_hash`.
 - `POST /api/v1/auth/google` returns the token as `data.sessionToken` with `data.tokenType = "Bearer"` for Postman/API verification.
 - `POST /api/v1/auth/login` returns the same response shape and session behavior as Google login.
 - The same token is also sent in cookie `alc_session` for browser/private page usage.
@@ -36,6 +36,18 @@ Google documentation reference: https://support.google.com/cloud/answer/15549257
 - Session expiration defaults to `SESSION_TTL_MINUTES=120`.
 - Authenticated API requests can use either cookie `alc_session` or `Authorization: Bearer <sessionToken>`.
 - Logout revokes the server-side session hash and clears the cookie; the same Bearer token must return `401` after logout.
+
+## Manual Role-Test Login
+Run `npm run db:seed:role-test` after the database schema is applied to create temporary users for Admin, GeneralDirector, BranchDirector, Teacher and Student. The seed stores only one-way password hashes in `users.password_hash`.
+
+Default local credentials:
+- `admin@alc.edu` / `adminALC2026*`
+- `generaldirector@alc.edu` / `generaldirectorALC2026*`
+- `branchdirector@alc.edu` / `branchdirectorALC2026*`
+- `teacher@alc.edu` / `teacherALC2026*`
+- `student@alc.edu` / `studentALC2026*`
+
+Override defaults with `SEED_*_PASSWORD` variables before running the seed. Keep `POSTMAN_LOGIN_ENABLED=false` outside controlled verification windows.
 
 ## Postman Session Verification
 1. Run `Auth & Session / Current Session - No Token`; it must return `401`.
@@ -66,4 +78,9 @@ Google documentation reference: https://support.google.com/cloud/answer/15549257
 - `POSTMAN_LOGIN_ENABLED`
 - `POSTMAN_LOGIN_EMAIL`
 - `POSTMAN_LOGIN_PASSWORD`
+- `SEED_ADMIN_PASSWORD`
+- `SEED_GENERAL_DIRECTOR_PASSWORD`
+- `SEED_BRANCH_DIRECTOR_PASSWORD`
+- `SEED_TEACHER_PASSWORD`
+- `SEED_STUDENT_PASSWORD`
 - `CORS_ORIGINS`

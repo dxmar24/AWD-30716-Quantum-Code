@@ -356,7 +356,7 @@ Methods to test:
 
 ### R-16 Reports, Teacher Payment And Audit
 
-What it does: consolidated reports are restricted, completed teacher attendance records generate payment totals, and state-changing actions are audited.
+What it does: branch reports are scoped, consolidated/global reports remain restricted, completed teacher attendance records generate payment totals, and state-changing actions are audited.
 
 URIs:
 - `GET /api/v1/reports/branches/summary`
@@ -364,8 +364,9 @@ URIs:
 - `GET /api/v1/audit-logs`
 
 Methods to test:
-- `GET` branch summary as GeneralDirector/Admin -> expect `200`.
-- `GET` branch summary as Student/Teacher/BranchDirector -> expect `403` for consolidated report access.
+- `GET` branch summary as BranchDirector -> expect `200` with only assigned branches.
+- `GET` branch summary as GeneralDirector/Admin -> expect `200` with consolidated branch visibility.
+- `GET` branch summary as Student/Teacher -> expect `403`.
 - `GET` teacher payment with closed check-ins -> expect hours, hourly rate and amount.
 - `GET` teacher payment with only open check-ins -> expect open records not counted.
 - `GET` audit logs as GeneralDirector/Admin -> expect `200`.

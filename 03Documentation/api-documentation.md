@@ -22,7 +22,7 @@ Common status codes: `200`, `201`, `400`, `401`, `403`, `404`, `409`, `422`, `50
 | Method | URI | Description | Required Role | Params/Query | Body | Success | Business/Validation | Errors |
 |---|---|---|---|---|---|---|---|---|
 | GET | `/auth/config` | Public auth client configuration for the React login page. | Visitor | None | None | `200` Google client id | Does not expose secrets; client id is public OAuth metadata. | `500` |
-| POST | `/auth/login` | Postman/backend verification login with configured email and password. | Visitor | None | `{ "email": "admin@alc.edu", "password": "secret" }` | `200` user, JWT `sessionToken`, Bearer token type and HttpOnly cookie | Uses configured demo credentials and an existing internal user. Rate limited. Intended for academic Postman verification. | `401`, `403`, `422` |
+| POST | `/auth/login` | Postman/backend verification login with configured email and password or a seeded user password hash. | Visitor | None | `{ "email": "admin@alc.edu", "password": "secret" }` | `200` user, JWT `sessionToken`, Bearer token type and HttpOnly cookie | Uses an existing internal user. Seeded role-test users authenticate with `users.password_hash`; the legacy configured Postman credential remains supported. Rate limited. Intended for academic/manual verification. | `401`, `403`, `422` |
 | POST | `/auth/google` | Login/register with Google ID token. | Visitor | None | `{ "idToken": "jwt" }` | `200` user, JWT `sessionToken`, Bearer token type and HttpOnly cookie | Token must be valid Google ID token in production; internal role is app-owned. Rate limited. | `401`, `422` |
 | GET | `/auth/me` | Current session user. | Authenticated | None | None | `200` user | Session must exist, not revoked and not expired. | `401` |
 | POST | `/auth/logout` | Revoke session and clear cookie. | Any | None | None | `200` | Revokes server session/token hash. | `200` even without active session |
@@ -30,24 +30,26 @@ Common status codes: `200`, `201`, `400`, `401`, `403`, `404`, `409`, `422`, `50
 | GET | `/enrollment-requests` | List public requests. | BranchDirector, GeneralDirector, Admin | None | None | `200` list | Restricted to directors/admin. | `401`, `403` |
 | GET | `/users` | List users. | GeneralDirector, Admin | None | None | `200` list | Internal roles only. | `401`, `403` |
 | PATCH | `/users/{id}/role` | Assign internal role. | Admin | Path `id` | `{ "role": "Teacher" }` | `200` user | Role must be Student, Teacher, BranchDirector, GeneralDirector or Admin. Audited. | `401`, `403`, `404`, `422` |
+| GET | `/users/{id}/branch-access` | List branch access assigned to a user. | GeneralDirector, Admin | Path `id` | None | `200` list | Used to scope BranchDirector permissions to specific branches. | `401`, `403`, `404` |
+| PATCH | `/users/{id}/branch-access` | Replace branch access assigned to a user. | Admin | Path `id` | `{ "branchIds": ["uuid"] }` | `200` list | Branch IDs must exist. Audited. | `401`, `403`, `404`, `422` |
 | GET | `/roles` | List roles. | Authenticated | None | None | `200` list | Roles seeded by app. | `401` |
 | GET | `/permissions` | List permissions. | GeneralDirector, Admin | None | None | `200` list | Permission catalog seeded. | `401`, `403` |
 | GET | `/branches` | List branches. | Authenticated | None | None | `200` list | Five academy branches seeded. | `401` |
-| POST | `/branches` | Create branch. | BranchDirector, GeneralDirector, Admin | None | name, city, active | `201` branch | Validates name length. | `401`, `403`, `422` |
-| PATCH | `/branches/{id}` | Update branch. | BranchDirector, GeneralDirector, Admin | Path `id` | partial branch | `200` branch | Auditable academic data change. | `401`, `403`, `404`, `422` |
-| GET/POST/PATCH | `/students` | List/create/update students. | Read: authenticated. Write: directors/admin | Path `id` on item routes | userId, branchId, fullName, level, active | `200`/`201` | Level must be `B1` or `B2`. | `401`, `403`, `404`, `422` |
-| GET/POST/PATCH | `/teachers` | List/create/update teachers. | Read: authenticated. Write: directors/admin | Path `id` | userId, branchId, fullName, hourlyRate, active | `200`/`201` | Hourly rate cannot be negative. | `401`, `403`, `404`, `422` |
-| GET/POST/PATCH | `/dance-categories` | Manage dance categories. | Read: authenticated. Write: directors/admin | Path `id` | name | `200`/`201` | Urban, Tropical, Ethnic seeded. | `401`, `403`, `404`, `422` |
-| GET/POST/PATCH | `/dance-styles` | Manage dance styles. | Read: authenticated. Write: directors/admin | Path `id` | categoryId, name | `200`/`201` | Style belongs to a category. | `401`, `403`, `404`, `422` |
-| GET/POST/PATCH | `/class-groups` | Manage class groups. | Read: authenticated. Write: directors/admin | Path `id` | branchId, styleId, teacherId, name, level, active | `200`/`201` | Group ties branch/style/teacher/level. | `401`, `403`, `404`, `422` |
-| GET/POST/PATCH | `/class-sessions` | Manage scheduled sessions. | Read: authenticated. Write: directors/admin | Path `id` | classGroupId, startsAt, endsAt, status | `200`/`201` | Datetimes must be ISO strings. | `401`, `403`, `404`, `422` |
+| POST | `/branches` | Create branch. | GeneralDirector, Admin | None | name, city, active | `201` branch | Validates name length. BranchDirector cannot create global branch records. | `401`, `403`, `422` |
+| PATCH | `/branches/{id}` | Update branch. | GeneralDirector, Admin | Path `id` | partial branch | `200` branch | Auditable global academic data change. | `401`, `403`, `404`, `422` |
+| GET/POST/PATCH | `/students` | List/create/update students. | Read: scoped authenticated. Write: scoped directors/admin | Path `id` on item routes | userId, branchId, fullName, level, active | `200`/`201` | BranchDirector is limited to assigned branches; Student sees only own profile. | `401`, `403`, `404`, `422` |
+| GET/POST/PATCH | `/teachers` | List/create/update teachers. | Read: scoped authenticated. Write: scoped directors/admin | Path `id` | userId, branchId, fullName, hourlyRate, active | `200`/`201` | BranchDirector is limited to assigned branches; Teacher sees only own profile. | `401`, `403`, `404`, `422` |
+| GET/POST/PATCH | `/dance-categories` | Manage dance categories. | Read: authenticated. Write: GeneralDirector/Admin | Path `id` | name | `200`/`201` | Global catalog data is not branch-scoped. | `401`, `403`, `404`, `422` |
+| GET/POST/PATCH | `/dance-styles` | Manage dance styles. | Read: authenticated. Write: GeneralDirector/Admin | Path `id` | categoryId, name | `200`/`201` | Global catalog data is not branch-scoped. | `401`, `403`, `404`, `422` |
+| GET/POST/PATCH | `/class-groups` | Manage class groups. | Read: scoped authenticated. Write: scoped directors/admin | Path `id` | branchId, styleId, teacherId, name, level, active | `200`/`201` | BranchDirector is limited to assigned branches; Teacher sees own groups. | `401`, `403`, `404`, `422` |
+| GET/POST/PATCH | `/class-sessions` | Manage scheduled sessions. | Read: scoped authenticated. Write: scoped directors/admin | Path `id` | classGroupId, startsAt, endsAt, status | `200`/`201` | Access is inherited from the class group branch/teacher. | `401`, `403`, `404`, `422` |
 | POST | `/student-attendance` | Record student attendance. | Teacher, BranchDirector, GeneralDirector, Admin | None | studentId, classSessionId, status, notes | `201` record | One record per student/session. Status: present, absent, justified, late. Audited. | `401`, `403`, `404`, `409`, `422` |
 | POST | `/teacher-attendance/check-in` | Teacher check-in. | Teacher, BranchDirector, GeneralDirector, Admin | None | teacherId, optional classSessionId | `201` record | One open check-in per teacher. Audited. | `401`, `403`, `404`, `409`, `422` |
 | PATCH | `/teacher-attendance/{id}/check-out` | Teacher check-out. | Teacher, BranchDirector, GeneralDirector, Admin | Path `id` | None | `200` record | Cannot check out twice. Audited. | `401`, `403`, `404`, `409` |
 | GET | `/absence-justifications` | List absence justifications. | BranchDirector, GeneralDirector, Admin | None | None | `200` list | Directors review requests. | `401`, `403` |
 | POST | `/absence-justifications` | Submit absence justification. | Student, Teacher, directors/admin | None | attendanceRecordId, reason, evidenceUrl | `201` record | Attendance record must exist. | `401`, `403`, `404`, `422` |
 | PATCH | `/absence-justifications/{id}/review` | Approve/reject justification. | BranchDirector, GeneralDirector, Admin | Path `id` | status, reviewNotes | `200` record | Status must be approved/rejected. Audited. | `401`, `403`, `404`, `422` |
-| GET | `/reports/branches/summary` | Branch summary report. | GeneralDirector, Admin | None | None | `200` report | Consolidated branch visibility. | `401`, `403` |
+| GET | `/reports/branches/summary` | Branch summary report. | BranchDirector, GeneralDirector, Admin | None | None | `200` report | BranchDirector receives only assigned branches; GeneralDirector/Admin receive consolidated visibility. | `401`, `403` |
 | GET | `/reports/scholarships/{studentId}/candidate?from=&to=` | Scholarship candidate check. | BranchDirector, GeneralDirector, Admin | Path studentId, optional ISO dates | None | `200` candidate | Candidate if attendance >=90% in two-month period. | `401`, `403` |
 | POST | `/scholarship-evaluations` | Register scholarship evaluation. | BranchDirector, GeneralDirector, Admin | None | studentId, percentage, theoryScore, practiceScore, approved, optional from/to | `201` evaluation | Does not auto-approve; approval requires candidate and scores >=70. Audited. | `401`, `403`, `422` |
 | GET | `/scholarship-evaluations` | List scholarship evaluations. | BranchDirector, GeneralDirector, Admin | None | None | `200` list | Director review evidence. | `401`, `403` |
@@ -59,15 +61,15 @@ Common status codes: `200`, `201`, `400`, `401`, `403`, `404`, `409`, `422`, `50
 
 ## Python Analytics API Reference
 
-The Python Analytics API is implemented with FastAPI under `06Code/python-analytics-api`. It reuses the JWT session token issued by the Node Auth API, so Postman can test it with the same `{{session_token}}`.
+The Python Analytics API is implemented with FastAPI under `06Code/python-analytics-api`. It reuses the JWT session token issued by the Node Auth API and enforces the same resource-scope policy for students, teachers and assigned branches.
 
 | Method | URI | Description | Required Role | Params/Query | Body | Success | Business/Validation | Errors |
 |---|---|---|---|---|---|---|---|---|
 | GET | `/api/analytics/v1/health` | Python API health check. | Visitor | None | None | `200` service status | Confirms FastAPI service is alive. | `500` |
-| GET | `/api/analytics/v1/students/{student_id}/attendance-risk` | Student attendance risk analytics. | Authenticated | Path `student_id`; optional `from`, `to` ISO datetimes | None | `200` attendance rate, risk level, recommendation | Reads attendance records and class sessions. Risk is high below 75%, medium below 90%, low at 90% or above. | `401`, `404` |
-| GET | `/api/analytics/v1/students/{student_id}/scholarship-readiness` | Scholarship readiness analytics. | Authenticated | Path `student_id`; optional `from`, `to` ISO datetimes | None | `200` attendance threshold comparison | Uses the active scholarship rule and computes missing percentage points. | `401`, `404` |
-| GET | `/api/analytics/v1/branches/{branch_id}/performance-summary` | Branch performance analytics. | Authenticated | Path `branch_id` | None | `200` branch totals, attendance rate, performance level | Aggregates students, teachers, groups, sessions, attendance and pending enrollments. | `401`, `404` |
-| GET | `/api/analytics/v1/teachers/{teacher_id}/workload-summary` | Teacher workload analytics. | Authenticated | Path `teacher_id`; optional `from`, `to` ISO datetimes | None | `200` check-ins, completed hours, estimated pay | Uses checked-out teacher attendance records and teacher hourly rate. | `401`, `404` |
+| GET | `/api/analytics/v1/students/{student_id}/attendance-risk` | Student attendance risk analytics. | Scoped authenticated | Path `student_id`; optional `from`, `to` ISO datetimes | None | `200` attendance rate, risk level, recommendation | Student sees own data; Teacher sees students from taught sessions; BranchDirector sees assigned branches. | `401`, `403`, `404` |
+| GET | `/api/analytics/v1/students/{student_id}/scholarship-readiness` | Scholarship readiness analytics. | Scoped authenticated | Path `student_id`; optional `from`, `to` ISO datetimes | None | `200` attendance threshold comparison | Uses the active scholarship rule and resource-scope authorization. | `401`, `403`, `404` |
+| GET | `/api/analytics/v1/branches/{branch_id}/performance-summary` | Branch performance analytics. | BranchDirector, GeneralDirector, Admin | Path `branch_id` | None | `200` branch totals, attendance rate, performance level | BranchDirector must be assigned to the requested branch. | `401`, `403`, `404` |
+| GET | `/api/analytics/v1/teachers/{teacher_id}/workload-summary` | Teacher workload analytics. | Scoped authenticated | Path `teacher_id`; optional `from`, `to` ISO datetimes | None | `200` check-ins, completed hours, estimated pay | Teacher sees own workload; BranchDirector sees assigned branch teachers. | `401`, `403`, `404` |
 
 ## Validation Evidence
 - Automated API validation command: `cd 06Code && npm run test:api:validation`
@@ -77,12 +79,21 @@ The Python Analytics API is implemented with FastAPI under `06Code/python-analyt
 
 The automated validation covers auth config, Postman email/password login, malformed Google token rejection, Google session creation with mock test tokens, JWT Bearer access, session revocation, revoked token rejection, anonymous/private redirects, RBAC failures, public enrollment validation, CRUD flows, attendance duplication rules, teacher check-in/check-out, absence review, reports, scholarship evaluations, promotion evaluations and audit log visibility.
 
+## Role Test Seed
+Run this after applying the database schema when you need manual role/permission testing:
+```bash
+cd 06Code
+npm run db:seed:role-test
+```
+
+The seed creates/update temporary login users for Admin, GeneralDirector, BranchDirector, Teacher and Student. Default local passwords are `adminALC2026*`, `generaldirectorALC2026*`, `branchdirectorALC2026*`, `teacherALC2026*` and `studentALC2026*`; override them with `SEED_*_PASSWORD` environment variables before running the seed. The BranchDirector user is assigned only to `ALC Santo Domingo Norte`, leaving `ALC Santo Domingo Central` available for negative permission tests.
+
 ## JSON Examples
 Postman password login:
 ```json
 {
   "email": "verification-admin-real-20260624154645@alc.test",
-  "password": "AmericanLatin2026!"
+  "password": "{{login_password}}"
 }
 ```
 
