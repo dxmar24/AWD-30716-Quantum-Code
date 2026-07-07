@@ -2,8 +2,12 @@
 
 ## Authentication And Authorization
 - Google identity is verified server-side in production.
-- The email/password endpoint `/auth/login` is for controlled academic Postman/manual verification and must be explicitly enabled with `POSTMAN_LOGIN_ENABLED=true`.
-- Seeded manual users authenticate through `users.password_hash`; password hashes are never returned by `/auth/me`, `/users` or login responses.
+- The email/password endpoint `/auth/login` is the normal private login for existing academy users.
+- Google Sign-In never creates private users; it only links to an active internal account with the same verified email.
+- Unverified Google emails, inactive academy accounts and linked Google accounts whose email no longer matches the academy email are rejected.
+- Seeded and director-created users authenticate through `users.password_hash`; password hashes are never returned by `/auth/me`, `/users` or login responses.
+- New users can be marked with `must_change_password`; protected academic endpoints reject them with `PASSWORD_CHANGE_REQUIRED` until `/auth/change-password` succeeds.
+- Account creation validates optional branch assignments before writing the user record to avoid partial user setup.
 - The role-test seed creates temporary credentials only for verification. Rotate or delete them before production use.
 - Application roles are internal and are not derived from Google profile data.
 - Protected endpoints use `requireAuth` or `allowRoles`.
@@ -18,6 +22,7 @@
 - Only token hashes are stored server-side.
 - Logout revokes the server-side session.
 - Private pages and APIs send no-store cache headers.
+- Password changes store a new one-way hash and update `password_changed_at`.
 
 ## Cache Privacy
 - Sensitive session, user, attendance, evaluation and protected analytics responses use `Cache-Control: no-store, no-cache, must-revalidate, private`.

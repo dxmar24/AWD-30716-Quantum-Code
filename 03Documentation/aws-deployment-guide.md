@@ -36,7 +36,7 @@ The current academic executable is one Express codebase. For AWS, run the same c
 - `SESSION_TTL_MINUTES`
 - `GOOGLE_CLIENT_ID`
 - `ALLOW_MOCK_GOOGLE_TOKENS=false`
-- `POSTMAN_LOGIN_ENABLED=true` only when the academic Postman password-login proof is required.
+- `POSTMAN_LOGIN_ENABLED=true` only when the legacy configured Postman password-login fallback is required; normal user password login uses `users.password_hash`.
 - `POSTMAN_LOGIN_EMAIL=verification-admin-real-20260624154645@alc.test`
 - `POSTMAN_LOGIN_PASSWORD=<academic-demo-password>`
 - `SEED_*_PASSWORD` only when running the temporary role-test seed; rotate or remove the seeded credentials before a real production handoff.
@@ -58,17 +58,18 @@ Branch directors must be assigned to one or more branches through `/api/v1/users
 
 ## Deployment Steps
 1. Create RDS PostgreSQL and run `migrations/001_initial_schema.sql`.
-2. Run `seeders/001_seed.sql`.
-3. For manual role testing, run `npm run db:seed:role-test` after setting temporary `SEED_*_PASSWORD` values.
-4. For local rehearsal before AWS, use `cd 06Code && npm run db:local:up`, set `DATABASE_URL=postgres://alc_user:change_me@localhost:5432/american_latin_class`, then run `npm run db:push && npm run db:seed:role-test`.
-5. Install Node.js LTS on EC2 instances.
-6. Copy project or deploy from repository.
-7. Run `npm ci --omit=dev` on production instances.
-8. Start each Node process with its assigned port.
-9. On the Python Analytics API EC2 instance, install Python, create a virtual environment, install `06Code/python-analytics-api/requirements.txt` and start Uvicorn on port `8000`.
-10. Configure Nginx reverse proxy or ALB target groups.
-11. Enable HTTPS and configure HSTS at ALB/Nginx.
-12. Verify `/api/v1/auth/me`, `/api/v1/branches`, reports, `/api/analytics/v1/health`, cache headers and private page redirects.
+2. Existing deployments must also run `migrations/002_account_login_policy.sql`.
+3. Run `seeders/001_seed.sql`.
+4. For manual role testing, run `npm run db:seed:role-test` after setting temporary `SEED_*_PASSWORD` values.
+5. For local rehearsal before AWS, use `cd 06Code && npm run db:local:up`, set `DATABASE_URL=postgres://alc_user:change_me@localhost:5432/american_latin_class`, then run `npm run db:push && npm run db:seed:role-test`.
+6. Install Node.js LTS on EC2 instances.
+7. Copy project or deploy from repository.
+8. Run `npm ci --omit=dev` on production instances.
+9. Start each Node process with its assigned port.
+10. On the Python Analytics API EC2 instance, install Python, create a virtual environment, install `06Code/python-analytics-api/requirements.txt` and start Uvicorn on port `8000`.
+11. Configure Nginx reverse proxy or ALB target groups.
+12. Enable HTTPS and configure HSTS at ALB/Nginx.
+13. Verify `/api/v1/auth/me`, `/api/v1/branches`, reports, `/api/analytics/v1/health`, cache headers and private page redirects.
 
 ## HTTPS Recommendation
 Use ACM certificates on ALB. Redirect all HTTP traffic to HTTPS. Keep cookies Secure in production.

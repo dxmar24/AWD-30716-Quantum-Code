@@ -99,7 +99,7 @@ Historical note: `BRDEMO-20260624132922` previously inserted 61 business-rule de
 | BR-10 | Student and Teacher users can only access their own academic/profile records and teaching context. |
 | BR-11 | Private pages and APIs must use `Cache-Control: no-store`. |
 | BR-12 | Administrative and academic state-changing actions must be audited. |
-| BR-13 | Manual role-test credentials must be stored as password hashes and remain disabled unless `POSTMAN_LOGIN_ENABLED=true`. |
+| BR-13 | Manual role-test credentials must be stored as password hashes, use normal email/password login and require rotation before production use. |
 | BR-14 | Cacheable non-sensitive responses must declare an explicit TTL, expose cache evidence headers and invalidate affected memory-cache tags after state-changing academic actions. |
 
 ## API-Verifiable Rule Matrix
@@ -121,7 +121,7 @@ Methods to test:
 
 ### R-02 Authentication Login
 
-What it does: the backend exposes the Google client ID, validates Google ID tokens for browser login, supports a configured Postman email/password verification login, and issues an application session cookie plus JWT session token.
+What it does: the backend exposes the Google client ID, validates Google ID tokens for browser login, supports academy email/password login, and issues an application session cookie plus JWT session token.
 
 URIs:
 - `GET /api/v1/auth/config`
@@ -130,9 +130,10 @@ URIs:
 
 Methods to test:
 - `GET` config -> expect `200` and the configured Google client ID.
-- `POST /auth/login` with valid configured email/password -> expect `200`, `sessionToken`, `tokenType=Bearer` and `alc_session` cookie.
+- `POST /auth/login` with a valid academy user email/password -> expect `200`, `sessionToken`, `tokenType=Bearer` and `alc_session` cookie.
 - `POST /auth/login` with invalid credentials -> expect `401`.
-- `POST` valid Google ID token -> expect `200` and `alc_session` cookie.
+- `POST` valid Google ID token for a registered academy email -> expect `200` and `alc_session` cookie.
+- `POST` valid Google ID token for an unregistered email -> expect `401`.
 - `POST` malformed/invalid token -> expect `401`.
 - `POST` with token audience mismatch -> expect `401`.
 
@@ -149,8 +150,8 @@ URIs:
 - `GET /api/v1/permissions`
 
 Methods to test:
-- `POST /auth/login` as configured Admin verification user -> expect Admin-owned API access for Postman proof.
-- `POST` first Google login -> expect new user role `Student`.
+- `POST /auth/login` as an Admin user -> expect Admin-owned API access.
+- `POST` Google login for an unregistered email -> expect no user creation and `401`.
 - `PATCH` role as Admin -> expect `200`.
 - `PATCH` role as non-Admin -> expect `403`.
 - `PATCH` invalid role -> expect `422`.

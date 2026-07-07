@@ -16,8 +16,8 @@ Python Analytics API base prefix: `/api/analytics/v1`
 ## Resource Areas
 | Area | URI Pattern |
 |---|---|
-| Auth/session | `/auth/config`, `/auth/login`, `/auth/google`, `/auth/me`, `/auth/logout` |
-| Users/roles | `/users`, `/users/{id}/role`, `/roles`, `/permissions` |
+| Auth/session | `/auth/config`, `/auth/login`, `/auth/google`, `/auth/me`, `/auth/change-password`, `/auth/logout` |
+| Users/roles | `/users`, `/users/{id}/role`, `/users/{id}/branch-access`, `/roles`, `/permissions` |
 | Academic catalog | `/branches`, `/dance-categories`, `/dance-styles` |
 | People | `/students`, `/teachers` |
 | Scheduling | `/class-groups`, `/class-sessions` |

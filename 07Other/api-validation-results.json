@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-06T11:02:30.550Z",
+  "generatedAt": "2026-07-07T22:13:07.166Z",
   "results": [
     {
       "name": "Auth config exposes Google client id and public cache policy",
@@ -9,7 +9,7 @@
       "actualStatus": 200,
       "passed": true,
       "message": "Auth configuration",
-      "durationMs": 49
+      "durationMs": 23
     },
     {
       "name": "Malformed Google token is rejected",
@@ -19,7 +19,37 @@
       "actualStatus": 401,
       "passed": true,
       "message": "Invalid Google ID token",
-      "durationMs": 38
+      "durationMs": 19
+    },
+    {
+      "name": "Unregistered Google email is rejected",
+      "method": "POST",
+      "route": "/api/v1/auth/google",
+      "expectedStatus": "401",
+      "actualStatus": 401,
+      "passed": true,
+      "message": "Google account is not registered in the academy",
+      "durationMs": 9
+    },
+    {
+      "name": "Unverified Google email is rejected",
+      "method": "POST",
+      "route": "/api/v1/auth/google",
+      "expectedStatus": "401",
+      "actualStatus": 401,
+      "passed": true,
+      "message": "Google email is not verified",
+      "durationMs": 10
+    },
+    {
+      "name": "Linked Google account with different email is rejected",
+      "method": "POST",
+      "route": "/api/v1/auth/google",
+      "expectedStatus": "409",
+      "actualStatus": 409,
+      "passed": true,
+      "message": "Google email does not match the academy account",
+      "durationMs": 10
     },
     {
       "name": "Postman password login rejects invalid credentials",
@@ -29,7 +59,7 @@
       "actualStatus": 401,
       "passed": true,
       "message": "Invalid email or password",
-      "durationMs": 18
+      "durationMs": 39
     },
     {
       "name": "Logout without an active session is harmless",
@@ -39,7 +69,7 @@
       "actualStatus": 200,
       "passed": true,
       "message": "Logout successful",
-      "durationMs": 11
+      "durationMs": 6
     },
     {
       "name": "Private dashboard redirects anonymous users to login",
@@ -49,7 +79,7 @@
       "actualStatus": 302,
       "passed": true,
       "message": "/login.html?session=expired",
-      "durationMs": 12
+      "durationMs": 7
     },
     {
       "name": "Login page is served publicly",
@@ -59,7 +89,7 @@
       "actualStatus": 200,
       "passed": true,
       "message": "OK",
-      "durationMs": 14
+      "durationMs": 10
     },
     {
       "name": "Anonymous request blocked: GET /api/v1/auth/me",
@@ -69,7 +99,7 @@
       "actualStatus": 401,
       "passed": true,
       "message": "Authentication required",
-      "durationMs": 12
+      "durationMs": 7
     },
     {
       "name": "Anonymous request blocked: GET /api/v1/enrollment-requests",
@@ -79,7 +109,7 @@
       "actualStatus": 401,
       "passed": true,
       "message": "Authentication required",
-      "durationMs": 12
+      "durationMs": 6
     },
     {
       "name": "Anonymous request blocked: GET /api/v1/users",
@@ -89,7 +119,7 @@
       "actualStatus": 401,
       "passed": true,
       "message": "Authentication required",
-      "durationMs": 13
+      "durationMs": 7
     },
     {
       "name": "Anonymous request blocked: PATCH /api/v1/users/d8c025f6-bcd0-4f25-a6b1-1486338678e7/role",
@@ -99,7 +129,7 @@
       "actualStatus": 401,
       "passed": true,
       "message": "Authentication required",
-      "durationMs": 11
+      "durationMs": 7
     },
     {
       "name": "Anonymous request blocked: GET /api/v1/roles",
@@ -109,7 +139,7 @@
       "actualStatus": 401,
       "passed": true,
       "message": "Authentication required",
-      "durationMs": 10
+      "durationMs": 6
     },
     {
       "name": "Anonymous request blocked: GET /api/v1/permissions",
@@ -119,7 +149,7 @@
       "actualStatus": 401,
       "passed": true,
       "message": "Authentication required",
-      "durationMs": 11
+      "durationMs": 6
     },
     {
       "name": "Anonymous request blocked: GET /api/v1/branches",
@@ -129,7 +159,7 @@
       "actualStatus": 401,
       "passed": true,
       "message": "Authentication required",
-      "durationMs": 10
+      "durationMs": 7
     },
     {
       "name": "Anonymous request blocked: GET /api/v1/branches/0c8675f1-9c30-430a-8b2c-c4dd1ec88b09",
@@ -139,7 +169,7 @@
       "actualStatus": 401,
       "passed": true,
       "message": "Authentication required",
-      "durationMs": 10
+      "durationMs": 7
     },
     {
       "name": "Anonymous request blocked: POST /api/v1/branches",
@@ -149,7 +179,7 @@
       "actualStatus": 401,
       "passed": true,
       "message": "Authentication required",
-      "durationMs": 13
+      "durationMs": 8
     },
     {
       "name": "Anonymous request blocked: GET /api/v1/students",
@@ -159,7 +189,7 @@
       "actualStatus": 401,
       "passed": true,
       "message": "Authentication required",
-      "durationMs": 10
+      "durationMs": 6
     },
     {
       "name": "Anonymous request blocked: POST /api/v1/students",
@@ -169,7 +199,7 @@
       "actualStatus": 401,
       "passed": true,
       "message": "Authentication required",
-      "durationMs": 12
+      "durationMs": 8
     },
     {
       "name": "Anonymous request blocked: GET /api/v1/teachers",
@@ -179,7 +209,7 @@
       "actualStatus": 401,
       "passed": true,
       "message": "Authentication required",
-      "durationMs": 10
+      "durationMs": 7
     },
     {
       "name": "Anonymous request blocked: POST /api/v1/teachers",
@@ -189,7 +219,7 @@
       "actualStatus": 401,
       "passed": true,
       "message": "Authentication required",
-      "durationMs": 13
+      "durationMs": 7
     },
     {
       "name": "Anonymous request blocked: GET /api/v1/dance-categories",
@@ -199,7 +229,7 @@
       "actualStatus": 401,
       "passed": true,
       "message": "Authentication required",
-      "durationMs": 11
+      "durationMs": 6
     },
     {
       "name": "Anonymous request blocked: POST /api/v1/dance-categories",
@@ -209,7 +239,7 @@
       "actualStatus": 401,
       "passed": true,
       "message": "Authentication required",
-      "durationMs": 14
+      "durationMs": 8
     },
     {
       "name": "Anonymous request blocked: GET /api/v1/dance-styles",
@@ -219,7 +249,7 @@
       "actualStatus": 401,
       "passed": true,
       "message": "Authentication required",
-      "durationMs": 10
+      "durationMs": 6
     },
     {
       "name": "Anonymous request blocked: GET /api/v1/class-groups",
@@ -229,7 +259,7 @@
       "actualStatus": 401,
       "passed": true,
       "message": "Authentication required",
-      "durationMs": 9
+      "durationMs": 7
     },
     {
       "name": "Anonymous request blocked: GET /api/v1/class-sessions",
@@ -239,7 +269,7 @@
       "actualStatus": 401,
       "passed": true,
       "message": "Authentication required",
-      "durationMs": 11
+      "durationMs": 7
     },
     {
       "name": "Anonymous request blocked: POST /api/v1/student-attendance",
@@ -249,7 +279,7 @@
       "actualStatus": 401,
       "passed": true,
       "message": "Authentication required",
-      "durationMs": 15
+      "durationMs": 8
     },
     {
       "name": "Anonymous request blocked: POST /api/v1/teacher-attendance/check-in",
@@ -259,7 +289,7 @@
       "actualStatus": 401,
       "passed": true,
       "message": "Authentication required",
-      "durationMs": 13
+      "durationMs": 7
     },
     {
       "name": "Anonymous request blocked: PATCH /api/v1/teacher-attendance/01c99342-ad47-4c4e-a094-6cab138d98e5/check-out",
@@ -269,7 +299,7 @@
       "actualStatus": 401,
       "passed": true,
       "message": "Authentication required",
-      "durationMs": 9
+      "durationMs": 7
     },
     {
       "name": "Anonymous request blocked: GET /api/v1/absence-justifications",
@@ -279,7 +309,7 @@
       "actualStatus": 401,
       "passed": true,
       "message": "Authentication required",
-      "durationMs": 12
+      "durationMs": 6
     },
     {
       "name": "Anonymous request blocked: GET /api/v1/reports/branches/summary",
@@ -289,7 +319,7 @@
       "actualStatus": 401,
       "passed": true,
       "message": "Authentication required",
-      "durationMs": 10
+      "durationMs": 6
     },
     {
       "name": "Anonymous request blocked: GET /api/v1/reports/scholarships/85f4bbe9-5d5f-4126-89b6-ddd9de432885/candidate",
@@ -299,7 +329,7 @@
       "actualStatus": 401,
       "passed": true,
       "message": "Authentication required",
-      "durationMs": 12
+      "durationMs": 6
     },
     {
       "name": "Anonymous request blocked: GET /api/v1/reports/level-promotions/85f4bbe9-5d5f-4126-89b6-ddd9de432885/candidate",
@@ -309,7 +339,7 @@
       "actualStatus": 401,
       "passed": true,
       "message": "Authentication required",
-      "durationMs": 11
+      "durationMs": 7
     },
     {
       "name": "Anonymous request blocked: GET /api/v1/reports/teachers/01c99342-ad47-4c4e-a094-6cab138d98e5/payment",
@@ -319,7 +349,7 @@
       "actualStatus": 401,
       "passed": true,
       "message": "Authentication required",
-      "durationMs": 11
+      "durationMs": 7
     },
     {
       "name": "Anonymous request blocked: GET /api/v1/scholarship-evaluations",
@@ -329,7 +359,7 @@
       "actualStatus": 401,
       "passed": true,
       "message": "Authentication required",
-      "durationMs": 11
+      "durationMs": 7
     },
     {
       "name": "Anonymous request blocked: GET /api/v1/level-promotion-evaluations",
@@ -339,7 +369,7 @@
       "actualStatus": 401,
       "passed": true,
       "message": "Authentication required",
-      "durationMs": 10
+      "durationMs": 7
     },
     {
       "name": "Anonymous request blocked: GET /api/v1/audit-logs",
@@ -349,7 +379,7 @@
       "actualStatus": 401,
       "passed": true,
       "message": "Authentication required",
-      "durationMs": 9
+      "durationMs": 6
     },
     {
       "name": "Anonymous session response is no-store",
@@ -359,7 +389,7 @@
       "actualStatus": 401,
       "passed": true,
       "message": "Authentication required",
-      "durationMs": 10
+      "durationMs": 7
     },
     {
       "name": "Enrollment validation rejects invalid email",
@@ -369,7 +399,7 @@
       "actualStatus": 422,
       "passed": true,
       "message": "Validation failed",
-      "durationMs": 15
+      "durationMs": 8
     },
     {
       "name": "Public enrollment request is accepted",
@@ -379,7 +409,7 @@
       "actualStatus": 201,
       "passed": true,
       "message": "Enrollment request received",
-      "durationMs": 14
+      "durationMs": 9
     },
     {
       "name": "Postman password login returns JWT session token",
@@ -389,7 +419,7 @@
       "actualStatus": 200,
       "passed": true,
       "message": "Login successful",
-      "durationMs": 18
+      "durationMs": 41
     },
     {
       "name": "Postman bearer token can read current session",
@@ -399,7 +429,7 @@
       "actualStatus": 200,
       "passed": true,
       "message": "OK",
-      "durationMs": 10
+      "durationMs": 7
     },
     {
       "name": "Postman logout revokes bearer token",
@@ -409,7 +439,7 @@
       "actualStatus": 200,
       "passed": true,
       "message": "Logout successful",
-      "durationMs": 11
+      "durationMs": 6
     },
     {
       "name": "Postman revoked bearer token is rejected",
@@ -419,17 +449,17 @@
       "actualStatus": 401,
       "passed": true,
       "message": "Authentication required",
-      "durationMs": 10
+      "durationMs": 7
     },
     {
-      "name": "Google login creates session for Student",
+      "name": "Google login opens existing session for Student",
       "method": "POST",
       "route": "/api/v1/auth/google",
       "expectedStatus": "200",
       "actualStatus": 200,
       "passed": true,
       "message": "Login successful",
-      "durationMs": 16
+      "durationMs": 10
     },
     {
       "name": "Student role cannot access consolidated branch report",
@@ -439,7 +469,7 @@
       "actualStatus": 403,
       "passed": true,
       "message": "Insufficient permissions",
-      "durationMs": 12
+      "durationMs": 8
     },
     {
       "name": "Authenticated user can read current session",
@@ -449,7 +479,7 @@
       "actualStatus": 200,
       "passed": true,
       "message": "OK",
-      "durationMs": 9
+      "durationMs": 7
     },
     {
       "name": "Bearer session token can read current session",
@@ -459,7 +489,7 @@
       "actualStatus": 200,
       "passed": true,
       "message": "OK",
-      "durationMs": 11
+      "durationMs": 6
     },
     {
       "name": "Logout revokes student session",
@@ -469,7 +499,7 @@
       "actualStatus": 200,
       "passed": true,
       "message": "Logout successful",
-      "durationMs": 10
+      "durationMs": 6
     },
     {
       "name": "Revoked session cannot access /auth/me",
@@ -479,7 +509,7 @@
       "actualStatus": 401,
       "passed": true,
       "message": "Authentication required",
-      "durationMs": 11
+      "durationMs": 6
     },
     {
       "name": "Revoked bearer token cannot access /auth/me",
@@ -489,17 +519,17 @@
       "actualStatus": 401,
       "passed": true,
       "message": "Authentication required",
-      "durationMs": 13
+      "durationMs": 7
     },
     {
-      "name": "Google login creates session for Admin",
+      "name": "Google login opens existing session for Admin",
       "method": "POST",
       "route": "/api/v1/auth/google",
       "expectedStatus": "200",
       "actualStatus": 200,
       "passed": true,
       "message": "Login successful",
-      "durationMs": 16
+      "durationMs": 8
     },
     {
       "name": "Admin lists enrollment requests",
@@ -509,7 +539,7 @@
       "actualStatus": 200,
       "passed": true,
       "message": "Enrollment requests",
-      "durationMs": 12
+      "durationMs": 8
     },
     {
       "name": "Admin lists users",
@@ -519,7 +549,57 @@
       "actualStatus": 200,
       "passed": true,
       "message": "Users list",
-      "durationMs": 13
+      "durationMs": 9
+    },
+    {
+      "name": "Admin creates academy account with a temporary password",
+      "method": "POST",
+      "route": "/api/v1/users",
+      "expectedStatus": "201",
+      "actualStatus": 201,
+      "passed": true,
+      "message": "User created",
+      "durationMs": 38
+    },
+    {
+      "name": "Temporary password login requires first password change",
+      "method": "POST",
+      "route": "/api/v1/auth/login",
+      "expectedStatus": "200",
+      "actualStatus": 200,
+      "passed": true,
+      "message": "Login successful",
+      "durationMs": 40
+    },
+    {
+      "name": "Temporary-password session is blocked from academic catalogs",
+      "method": "GET",
+      "route": "/api/v1/roles",
+      "expectedStatus": "403",
+      "actualStatus": 403,
+      "passed": true,
+      "message": "Password change required",
+      "durationMs": 6
+    },
+    {
+      "name": "Temporary-password user changes password",
+      "method": "POST",
+      "route": "/api/v1/auth/change-password",
+      "expectedStatus": "200",
+      "actualStatus": 200,
+      "passed": true,
+      "message": "Password changed",
+      "durationMs": 100
+    },
+    {
+      "name": "Password-changed session can read academic branch catalog",
+      "method": "GET",
+      "route": "/api/v1/branches",
+      "expectedStatus": "200",
+      "actualStatus": 200,
+      "passed": true,
+      "message": "branches list",
+      "durationMs": 8
     },
     {
       "name": "Admin lists roles with private memory cache miss",
@@ -529,7 +609,7 @@
       "actualStatus": 200,
       "passed": true,
       "message": "Roles list",
-      "durationMs": 13
+      "durationMs": 8
     },
     {
       "name": "Admin lists roles with memory cache hit",
@@ -539,7 +619,7 @@
       "actualStatus": 200,
       "passed": true,
       "message": "Roles list",
-      "durationMs": 12
+      "durationMs": 7
     },
     {
       "name": "Admin lists permissions",
@@ -549,17 +629,17 @@
       "actualStatus": 200,
       "passed": true,
       "message": "Permissions list",
-      "durationMs": 12
+      "durationMs": 8
     },
     {
       "name": "Admin updates a user role",
       "method": "PATCH",
-      "route": "/api/v1/users/ae25a087-097a-4b36-9086-0ead8c2ea57a/role",
+      "route": "/api/v1/users/8d0b0ca5-3083-4dc1-a102-e589ecf8623c/role",
       "expectedStatus": "200",
       "actualStatus": 200,
       "passed": true,
       "message": "User role updated",
-      "durationMs": 15
+      "durationMs": 7
     },
     {
       "name": "Admin creates branch",
@@ -569,7 +649,7 @@
       "actualStatus": 201,
       "passed": true,
       "message": "branches created",
-      "durationMs": 15
+      "durationMs": 9
     },
     {
       "name": "Admin lists branches with memory cache miss",
@@ -579,7 +659,7 @@
       "actualStatus": 200,
       "passed": true,
       "message": "branches list",
-      "durationMs": 12
+      "durationMs": 6
     },
     {
       "name": "Admin lists branches with memory cache hit",
@@ -589,27 +669,27 @@
       "actualStatus": 200,
       "passed": true,
       "message": "branches list",
-      "durationMs": 11
+      "durationMs": 7
     },
     {
       "name": "Admin reads branch by id",
       "method": "GET",
-      "route": "/api/v1/branches/fbab011e-d6e2-413b-9481-8ab9da6be77f",
+      "route": "/api/v1/branches/da60333a-29e5-4f78-9eae-52cadcba80ac",
       "expectedStatus": "200",
       "actualStatus": 200,
       "passed": true,
       "message": "OK",
-      "durationMs": 13
+      "durationMs": 8
     },
     {
       "name": "Admin updates branch",
       "method": "PATCH",
-      "route": "/api/v1/branches/fbab011e-d6e2-413b-9481-8ab9da6be77f",
+      "route": "/api/v1/branches/da60333a-29e5-4f78-9eae-52cadcba80ac",
       "expectedStatus": "200",
       "actualStatus": 200,
       "passed": true,
       "message": "branches updated",
-      "durationMs": 13
+      "durationMs": 7
     },
     {
       "name": "Admin branch list cache is invalidated after update",
@@ -619,37 +699,37 @@
       "actualStatus": 200,
       "passed": true,
       "message": "branches list",
-      "durationMs": 11
+      "durationMs": 8
     },
     {
-      "name": "Google login creates session for BranchDirector",
+      "name": "Google login opens existing session for BranchDirector",
       "method": "POST",
       "route": "/api/v1/auth/google",
       "expectedStatus": "200",
       "actualStatus": 200,
       "passed": true,
       "message": "Login successful",
-      "durationMs": 14
+      "durationMs": 8
     },
     {
       "name": "Admin assigns branch access to BranchDirector",
       "method": "PATCH",
-      "route": "/api/v1/users/6b6f2cf1-b84c-4f12-9080-3f14e21285a5/branch-access",
+      "route": "/api/v1/users/67d2d9a0-8dab-432a-9db7-2f4122169a6d/branch-access",
       "expectedStatus": "200",
       "actualStatus": 200,
       "passed": true,
       "message": "User branch access updated",
-      "durationMs": 10
+      "durationMs": 8
     },
     {
       "name": "Admin reads BranchDirector branch access",
       "method": "GET",
-      "route": "/api/v1/users/6b6f2cf1-b84c-4f12-9080-3f14e21285a5/branch-access",
+      "route": "/api/v1/users/67d2d9a0-8dab-432a-9db7-2f4122169a6d/branch-access",
       "expectedStatus": "200",
       "actualStatus": 200,
       "passed": true,
       "message": "User branch access",
-      "durationMs": 11
+      "durationMs": 8
     },
     {
       "name": "BranchDirector sees only assigned branch summary",
@@ -659,7 +739,7 @@
       "actualStatus": 200,
       "passed": true,
       "message": "OK",
-      "durationMs": 13
+      "durationMs": 8
     },
     {
       "name": "BranchDirector branch summary uses scoped memory cache hit",
@@ -669,7 +749,7 @@
       "actualStatus": 200,
       "passed": true,
       "message": "OK",
-      "durationMs": 15
+      "durationMs": 8
     },
     {
       "name": "BranchDirector creates student in assigned branch",
@@ -679,7 +759,7 @@
       "actualStatus": 201,
       "passed": true,
       "message": "students created",
-      "durationMs": 15
+      "durationMs": 9
     },
     {
       "name": "BranchDirector cannot create student in unassigned branch",
@@ -689,7 +769,7 @@
       "actualStatus": 403,
       "passed": true,
       "message": "Insufficient permissions",
-      "durationMs": 14
+      "durationMs": 9
     },
     {
       "name": "Admin creates student",
@@ -699,7 +779,7 @@
       "actualStatus": 201,
       "passed": true,
       "message": "students created",
-      "durationMs": 13
+      "durationMs": 7
     },
     {
       "name": "Admin lists students",
@@ -709,27 +789,27 @@
       "actualStatus": 200,
       "passed": true,
       "message": "students list",
-      "durationMs": 11
+      "durationMs": 9
     },
     {
       "name": "Admin reads student by id",
       "method": "GET",
-      "route": "/api/v1/students/40ced10b-d37c-4f1b-ad53-493f80891d44",
+      "route": "/api/v1/students/a4edfb8c-22eb-4a24-8439-fd96577dd9a3",
       "expectedStatus": "200",
       "actualStatus": 200,
       "passed": true,
       "message": "OK",
-      "durationMs": 13
+      "durationMs": 7
     },
     {
       "name": "Admin updates student",
       "method": "PATCH",
-      "route": "/api/v1/students/40ced10b-d37c-4f1b-ad53-493f80891d44",
+      "route": "/api/v1/students/a4edfb8c-22eb-4a24-8439-fd96577dd9a3",
       "expectedStatus": "200",
       "actualStatus": 200,
       "passed": true,
       "message": "students updated",
-      "durationMs": 12
+      "durationMs": 7
     },
     {
       "name": "Admin creates teacher",
@@ -739,7 +819,7 @@
       "actualStatus": 201,
       "passed": true,
       "message": "teachers created",
-      "durationMs": 12
+      "durationMs": 8
     },
     {
       "name": "Admin lists teachers",
@@ -749,27 +829,27 @@
       "actualStatus": 200,
       "passed": true,
       "message": "teachers list",
-      "durationMs": 9
+      "durationMs": 7
     },
     {
       "name": "Admin reads teacher by id",
       "method": "GET",
-      "route": "/api/v1/teachers/a854377c-8e89-4a66-b7c5-6d74c5c08665",
+      "route": "/api/v1/teachers/9d1485c3-3bd6-45f2-acf2-81daa8d9e287",
       "expectedStatus": "200",
       "actualStatus": 200,
       "passed": true,
       "message": "OK",
-      "durationMs": 11
+      "durationMs": 6
     },
     {
       "name": "Admin updates teacher",
       "method": "PATCH",
-      "route": "/api/v1/teachers/a854377c-8e89-4a66-b7c5-6d74c5c08665",
+      "route": "/api/v1/teachers/9d1485c3-3bd6-45f2-acf2-81daa8d9e287",
       "expectedStatus": "200",
       "actualStatus": 200,
       "passed": true,
       "message": "teachers updated",
-      "durationMs": 10
+      "durationMs": 6
     },
     {
       "name": "Admin creates dance category",
@@ -779,7 +859,7 @@
       "actualStatus": 201,
       "passed": true,
       "message": "dance-categories created",
-      "durationMs": 14
+      "durationMs": 9
     },
     {
       "name": "Admin lists dance categories",
@@ -789,27 +869,27 @@
       "actualStatus": 200,
       "passed": true,
       "message": "dance-categories list",
-      "durationMs": 12
+      "durationMs": 6
     },
     {
       "name": "Admin reads dance category by id",
       "method": "GET",
-      "route": "/api/v1/dance-categories/56762879-5ddd-444d-8498-0302c461879c",
+      "route": "/api/v1/dance-categories/73a651c8-5753-4f0b-ba46-27cce335a68e",
       "expectedStatus": "200",
       "actualStatus": 200,
       "passed": true,
       "message": "OK",
-      "durationMs": 10
+      "durationMs": 7
     },
     {
       "name": "Admin updates dance category",
       "method": "PATCH",
-      "route": "/api/v1/dance-categories/56762879-5ddd-444d-8498-0302c461879c",
+      "route": "/api/v1/dance-categories/73a651c8-5753-4f0b-ba46-27cce335a68e",
       "expectedStatus": "200",
       "actualStatus": 200,
       "passed": true,
       "message": "dance-categories updated",
-      "durationMs": 10
+      "durationMs": 6
     },
     {
       "name": "Admin creates dance style",
@@ -819,7 +899,7 @@
       "actualStatus": 201,
       "passed": true,
       "message": "dance-styles created",
-      "durationMs": 12
+      "durationMs": 7
     },
     {
       "name": "Admin lists dance styles",
@@ -829,27 +909,27 @@
       "actualStatus": 200,
       "passed": true,
       "message": "dance-styles list",
-      "durationMs": 13
+      "durationMs": 7
     },
     {
       "name": "Admin reads dance style by id",
       "method": "GET",
-      "route": "/api/v1/dance-styles/f870e85c-cfd3-41c9-81de-a15b424b55a3",
+      "route": "/api/v1/dance-styles/07ac072f-7a81-4e18-8298-683479ac644a",
       "expectedStatus": "200",
       "actualStatus": 200,
       "passed": true,
       "message": "OK",
-      "durationMs": 10
+      "durationMs": 7
     },
     {
       "name": "Admin updates dance style",
       "method": "PATCH",
-      "route": "/api/v1/dance-styles/f870e85c-cfd3-41c9-81de-a15b424b55a3",
+      "route": "/api/v1/dance-styles/07ac072f-7a81-4e18-8298-683479ac644a",
       "expectedStatus": "200",
       "actualStatus": 200,
       "passed": true,
       "message": "dance-styles updated",
-      "durationMs": 11
+      "durationMs": 7
     },
     {
       "name": "Admin creates class group",
@@ -859,7 +939,7 @@
       "actualStatus": 201,
       "passed": true,
       "message": "class-groups created",
-      "durationMs": 13
+      "durationMs": 8
     },
     {
       "name": "Admin lists class groups",
@@ -869,22 +949,22 @@
       "actualStatus": 200,
       "passed": true,
       "message": "class-groups list",
-      "durationMs": 11
+      "durationMs": 7
     },
     {
       "name": "Admin reads class group by id",
       "method": "GET",
-      "route": "/api/v1/class-groups/15c96ffa-9258-44ca-a73d-4f2059fa6eb8",
+      "route": "/api/v1/class-groups/401cac1d-5aa1-4c76-b255-a3e488a5a692",
       "expectedStatus": "200",
       "actualStatus": 200,
       "passed": true,
       "message": "OK",
-      "durationMs": 11
+      "durationMs": 6
     },
     {
       "name": "Admin updates class group",
       "method": "PATCH",
-      "route": "/api/v1/class-groups/15c96ffa-9258-44ca-a73d-4f2059fa6eb8",
+      "route": "/api/v1/class-groups/401cac1d-5aa1-4c76-b255-a3e488a5a692",
       "expectedStatus": "200",
       "actualStatus": 200,
       "passed": true,
@@ -899,7 +979,7 @@
       "actualStatus": 201,
       "passed": true,
       "message": "class-sessions created",
-      "durationMs": 16
+      "durationMs": 11
     },
     {
       "name": "Admin creates absence validation class session",
@@ -909,7 +989,7 @@
       "actualStatus": 201,
       "passed": true,
       "message": "class-sessions created",
-      "durationMs": 13
+      "durationMs": 8
     },
     {
       "name": "Admin lists class sessions",
@@ -919,27 +999,27 @@
       "actualStatus": 200,
       "passed": true,
       "message": "class-sessions list",
-      "durationMs": 11
+      "durationMs": 6
     },
     {
       "name": "Admin reads class session by id",
       "method": "GET",
-      "route": "/api/v1/class-sessions/7df1e549-b31d-44c3-8ef5-f3abf285b7d9",
+      "route": "/api/v1/class-sessions/30f9df66-2ef6-4146-831c-b25dc507baa9",
       "expectedStatus": "200",
       "actualStatus": 200,
       "passed": true,
       "message": "OK",
-      "durationMs": 13
+      "durationMs": 7
     },
     {
       "name": "Admin updates class session",
       "method": "PATCH",
-      "route": "/api/v1/class-sessions/7df1e549-b31d-44c3-8ef5-f3abf285b7d9",
+      "route": "/api/v1/class-sessions/30f9df66-2ef6-4146-831c-b25dc507baa9",
       "expectedStatus": "200",
       "actualStatus": 200,
       "passed": true,
       "message": "class-sessions updated",
-      "durationMs": 11
+      "durationMs": 8
     },
     {
       "name": "Admin records student attendance",
@@ -949,7 +1029,7 @@
       "actualStatus": 201,
       "passed": true,
       "message": "Attendance recorded",
-      "durationMs": 12
+      "durationMs": 10
     },
     {
       "name": "Duplicate student attendance is rejected",
@@ -959,7 +1039,7 @@
       "actualStatus": 409,
       "passed": true,
       "message": "Attendance already recorded for this student and session",
-      "durationMs": 14
+      "durationMs": 11
     },
     {
       "name": "Admin records absent student attendance",
@@ -969,7 +1049,7 @@
       "actualStatus": 201,
       "passed": true,
       "message": "Attendance recorded",
-      "durationMs": 12
+      "durationMs": 9
     },
     {
       "name": "Admin checks in teacher",
@@ -979,7 +1059,7 @@
       "actualStatus": 201,
       "passed": true,
       "message": "Teacher checked in",
-      "durationMs": 11
+      "durationMs": 9
     },
     {
       "name": "Duplicate open teacher check-in is rejected",
@@ -989,27 +1069,27 @@
       "actualStatus": 409,
       "passed": true,
       "message": "Teacher already has an open check-in",
-      "durationMs": 13
+      "durationMs": 8
     },
     {
       "name": "Admin checks out teacher",
       "method": "PATCH",
-      "route": "/api/v1/teacher-attendance/1033abbb-507a-4949-963e-6665f7c5ec98/check-out",
+      "route": "/api/v1/teacher-attendance/0f5791e5-407b-4a08-ad83-968e67de57b3/check-out",
       "expectedStatus": "200",
       "actualStatus": 200,
       "passed": true,
       "message": "Teacher checked out",
-      "durationMs": 12
+      "durationMs": 7
     },
     {
       "name": "Duplicate teacher checkout is rejected",
       "method": "PATCH",
-      "route": "/api/v1/teacher-attendance/1033abbb-507a-4949-963e-6665f7c5ec98/check-out",
+      "route": "/api/v1/teacher-attendance/0f5791e5-407b-4a08-ad83-968e67de57b3/check-out",
       "expectedStatus": "409",
       "actualStatus": 409,
       "passed": true,
       "message": "Teacher attendance record already checked out",
-      "durationMs": 10
+      "durationMs": 7
     },
     {
       "name": "Admin creates absence justification",
@@ -1019,7 +1099,7 @@
       "actualStatus": 201,
       "passed": true,
       "message": "Absence justification created",
-      "durationMs": 15
+      "durationMs": 8
     },
     {
       "name": "Admin lists absence justifications",
@@ -1029,17 +1109,17 @@
       "actualStatus": 200,
       "passed": true,
       "message": "Absence justifications",
-      "durationMs": 11
+      "durationMs": 9
     },
     {
       "name": "Admin reviews absence justification",
       "method": "PATCH",
-      "route": "/api/v1/absence-justifications/3f1cdbb2-68b7-4359-b3b1-e2b4a6eced84/review",
+      "route": "/api/v1/absence-justifications/61adc2cf-a781-441d-82ab-5fa061104985/review",
       "expectedStatus": "200",
       "actualStatus": 200,
       "passed": true,
       "message": "Absence justification reviewed",
-      "durationMs": 12
+      "durationMs": 8
     },
     {
       "name": "Admin gets branch summary report with memory cache miss",
@@ -1049,7 +1129,7 @@
       "actualStatus": 200,
       "passed": true,
       "message": "OK",
-      "durationMs": 10
+      "durationMs": 7
     },
     {
       "name": "Admin gets branch summary report with memory cache hit",
@@ -1059,37 +1139,37 @@
       "actualStatus": 200,
       "passed": true,
       "message": "OK",
-      "durationMs": 11
+      "durationMs": 8
     },
     {
       "name": "Admin gets scholarship candidate report",
       "method": "GET",
-      "route": "/api/v1/reports/scholarships/40ced10b-d37c-4f1b-ad53-493f80891d44/candidate",
+      "route": "/api/v1/reports/scholarships/a4edfb8c-22eb-4a24-8439-fd96577dd9a3/candidate",
       "expectedStatus": "200",
       "actualStatus": 200,
       "passed": true,
       "message": "OK",
-      "durationMs": 13
+      "durationMs": 8
     },
     {
       "name": "Admin gets level promotion candidate report",
       "method": "GET",
-      "route": "/api/v1/reports/level-promotions/40ced10b-d37c-4f1b-ad53-493f80891d44/candidate",
+      "route": "/api/v1/reports/level-promotions/a4edfb8c-22eb-4a24-8439-fd96577dd9a3/candidate",
       "expectedStatus": "200",
       "actualStatus": 200,
       "passed": true,
       "message": "OK",
-      "durationMs": 12
+      "durationMs": 7
     },
     {
       "name": "Admin gets teacher payment report",
       "method": "GET",
-      "route": "/api/v1/reports/teachers/a854377c-8e89-4a66-b7c5-6d74c5c08665/payment",
+      "route": "/api/v1/reports/teachers/9d1485c3-3bd6-45f2-acf2-81daa8d9e287/payment",
       "expectedStatus": "200",
       "actualStatus": 200,
       "passed": true,
       "message": "OK",
-      "durationMs": 11
+      "durationMs": 7
     },
     {
       "name": "Admin lists scholarship evaluations",
@@ -1099,7 +1179,7 @@
       "actualStatus": 200,
       "passed": true,
       "message": "Scholarship evaluations",
-      "durationMs": 12
+      "durationMs": 7
     },
     {
       "name": "Admin creates scholarship evaluation",
@@ -1109,7 +1189,7 @@
       "actualStatus": 201,
       "passed": true,
       "message": "Scholarship evaluation registered",
-      "durationMs": 16
+      "durationMs": 8
     },
     {
       "name": "Admin lists level promotion evaluations",
@@ -1119,7 +1199,7 @@
       "actualStatus": 200,
       "passed": true,
       "message": "Level promotion evaluations",
-      "durationMs": 12
+      "durationMs": 7
     },
     {
       "name": "Admin creates level promotion evaluation",
@@ -1129,7 +1209,7 @@
       "actualStatus": 201,
       "passed": true,
       "message": "Level promotion evaluation registered",
-      "durationMs": 14
+      "durationMs": 7
     },
     {
       "name": "Admin lists audit logs",
@@ -1139,7 +1219,7 @@
       "actualStatus": 200,
       "passed": true,
       "message": "Audit logs",
-      "durationMs": 12
+      "durationMs": 7
     }
   ]
 }

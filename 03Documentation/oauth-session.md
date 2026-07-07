@@ -6,10 +6,11 @@
 3. Browser obtains a Google ID token through Google Identity Services.
 4. Browser sends the ID token to `POST /api/v1/auth/google`.
 5. Backend verifies the ID token with Google in production using `google-auth-library`.
-6. Backend validates `sub`, `email` and configured audience `GOOGLE_CLIENT_ID`.
-7. Backend links `google_sub` to an internal user record.
-8. If the user is new, the default internal role is `Student`.
-9. Internal roles are assigned only through the application, mainly `PATCH /api/v1/users/{id}/role`.
+6. Backend validates `sub`, `email`, verified email status and configured audience `GOOGLE_CLIENT_ID`.
+7. Backend links `google_sub` only to an existing active internal user with the same verified email.
+8. If the email is not already registered by the academy, Google login is rejected.
+9. If an already linked Google subject now presents a different email, login is rejected to protect the academy-owned account identity.
+10. Internal roles are assigned only through the application, mainly `POST /api/v1/users` and `PATCH /api/v1/users/{id}/role`.
 
 ## Google Console Origin Rules
 Google OAuth browser origins must use an allowed web origin. For deployed environments, use an HTTPS origin with a public domain name. Do not use a raw public IP such as `http://18.217.255.109`; Google rejects raw IP origins because they do not end in a public top-level domain. Localhost origins such as `http://localhost:5500` and `http://127.0.0.1:5500` are acceptable for local development.
@@ -26,8 +27,8 @@ Google documentation reference: https://support.google.com/cloud/answer/15549257
 `ALLOW_MOCK_GOOGLE_TOKENS=true` or `NODE_ENV=test` allows signed mock JWT payloads for automated tests. Production must keep mock tokens disabled.
 
 ## Session Strategy
-- The application issues its own signed JWT session token after Google verification.
-- `POST /api/v1/auth/login` is available for academic Postman/manual verification with configured email/password credentials or a seeded user `password_hash`.
+- The application issues its own signed JWT session token after email/password or Google verification.
+- `POST /api/v1/auth/login` is the normal email/password login for existing academy users with `users.password_hash`.
 - `POST /api/v1/auth/google` returns the token as `data.sessionToken` with `data.tokenType = "Bearer"` for Postman/API verification.
 - `POST /api/v1/auth/login` returns the same response shape and session behavior as Google login.
 - The same token is also sent in cookie `alc_session` for browser/private page usage.
@@ -36,6 +37,16 @@ Google documentation reference: https://support.google.com/cloud/answer/15549257
 - Session expiration defaults to `SESSION_TTL_MINUTES=120`.
 - Authenticated API requests can use either cookie `alc_session` or `Authorization: Bearer <sessionToken>`.
 - Logout revokes the server-side session hash and clears the cookie; the same Bearer token must return `401` after logout.
+- New academy accounts default to `must_change_password=true`; protected academic endpoints return `403 PASSWORD_CHANGE_REQUIRED` until `/auth/change-password` succeeds.
+
+## Account Lifecycle
+1. Admin or GeneralDirector creates the user with `POST /api/v1/users`.
+2. The private React dashboard exposes the same "Create academy account" flow for Admin and GeneralDirector users.
+3. The email is the username for password login.
+4. The backend stores only `password_hash`.
+5. The director gives the user a temporary password.
+6. The user signs in and must change the temporary password.
+7. Google Sign-In can then be used as an alternate login when the Google email matches the academy account.
 
 ## Manual Role-Test Login
 Run `npm run db:seed:role-test` after the database schema is applied to create temporary users for Admin, GeneralDirector, BranchDirector, Teacher and Student. The seed stores only one-way password hashes in `users.password_hash`.
@@ -47,7 +58,7 @@ Default local credentials:
 - `teacher@alc.edu` / `teacherALC2026*`
 - `student@alc.edu` / `studentALC2026*`
 
-Override defaults with `SEED_*_PASSWORD` variables before running the seed. Keep `POSTMAN_LOGIN_ENABLED=false` outside controlled verification windows.
+Override defaults with `SEED_*_PASSWORD` variables before running the seed. The legacy `POSTMAN_LOGIN_ENABLED` fallback should stay disabled outside controlled verification windows; seeded user password hashes work through the normal email/password login.
 
 ## Postman Session Verification
 1. Run `Auth & Session / Current Session - No Token`; it must return `401`.
@@ -65,8 +76,10 @@ Override defaults with `SEED_*_PASSWORD` variables before running the seed. Keep
 - Expired API sessions return `401`.
 
 ## Frontend Private Entry
-- Public landing button `Private system` points to `/login.html`.
-- Successful Google login redirects to `/private/dashboard.html`.
+- Public landing access points to `/login.html`.
+- Successful email/password or Google login redirects to `/private/dashboard.html`.
+- First-login users see the mandatory password-change screen before the academic dashboard.
+- Admin and GeneralDirector users can create academy accounts from the private dashboard and see the one-time temporary password.
 - Logout revokes the server-side session and redirects to `/login.html?session=logout`.
 - The Content Security Policy allows the Google Identity Services script/frame while keeping application resources self-hosted.
 

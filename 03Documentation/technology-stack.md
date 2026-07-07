@@ -21,11 +21,13 @@ Implemented frontend components:
 - `LoginPage`
 - `EnrollmentForm`
 - `PrivateDashboard`
-- `AttendanceWorkflow`
-- `TeacherCheckInWorkflow`
+- `AccountCreationPanel`
+- `PasswordChangeRequired`
+- `StudentAttendanceForm`
+- `TeacherCheckInForm`
 - `ReportsPanel`
 - API client module using `fetch` with credentials.
-- Google Identity Services integration through the React login page.
+- Email/password and Google Identity Services integration through the React login page.
 
 ## ORM
 Selected ORM: **Prisma ORM**.
@@ -79,9 +81,9 @@ Current implementation status:
 The frontend migration is now implemented under `06Code/frontend` with React components for the public landing page and private dashboard workflows. Vite builds the browser application into `06Code/dist/frontend` using `npm run frontend:build`.
 
 Implemented components:
-- `LandingPage`, `EnrollmentForm`, `BranchSummary`, and `StylesLevels` for the public enrollment experience.
-- `LoginPage` for Google Sign-In.
-- `PrivateDashboard`, `AttendanceWorkflow`, `TeacherCheckInWorkflow`, `ReportsPanel`, `AuthStatus`, and `LogoutButton` for authenticated operations.
+- `LandingPage`, `EnrollmentForm`, `ProgramsSection`, `AccessSection`, and `BranchesSection` for the public enrollment experience.
+- `LoginPage` for email/password and Google Sign-In.
+- `PrivateDashboard`, `AccountCreationPanel`, `PasswordChangeRequired`, `StudentAttendanceForm`, `TeacherCheckInForm`, `ReportsPanel`, `AuthStatus`, and `LogoutButton` for authenticated operations.
 
 Deployment note:
 - Express serves `06Code/dist/frontend` first. The private dashboard route is handled by the React app, and legacy `/public/private` files are not used.

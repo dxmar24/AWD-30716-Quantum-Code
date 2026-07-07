@@ -17,7 +17,7 @@ npm run postman:evidence:local
 ```
 
 Current automated coverage:
-- Auth/session: Google login, Postman email/password login, seeded password-hash role login, logout, invalid Google token, expired session, private page redirect/no-store and valid private dashboard access.
+- Auth/session: registered Google login, unregistered Google rejection, unverified Google email rejection, Google email linking, linked-email mismatch rejection, inactive account rejection, email/password login, seeded password-hash role login, temporary password change enforcement, director-created account login, invalid branch assignment rejection, logout, invalid Google token, expired session, private page redirect/no-store and valid private dashboard access.
 - JWT/Postman session: `/auth/login` returns `sessionToken`, Bearer token can call `/auth/me`, logout revokes the backend session, and the same token returns `401`.
 - Cache management: public auth config cache headers, no-store session responses, private catalog memory-cache `MISS/HIT`, branch-list invalidation after writes and scoped branch report cache.
 - RBAC: invalid role cannot access consolidated reports.
@@ -28,12 +28,12 @@ Current automated coverage:
 Expected result:
 ```text
 Test Suites: 5 passed, 5 total
-Tests:       24 passed, 24 total
+Tests:       32 passed, 32 total
 ```
 
 Current API validation result:
 ```text
-API validation completed: 114/114 passed.
+API validation completed: 122/122 passed.
 ```
 
 Current Python analytics test result:

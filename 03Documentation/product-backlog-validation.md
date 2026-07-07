@@ -39,7 +39,7 @@ The objective is to demonstrate that the backlog was not only listed as planning
 | Field | Validation |
 | --- | --- |
 | Related stories / requirements | US-02, US-07, FR-02, FR-03, FR-04 |
-| Acceptance criteria | Google/Auth login creates a secure app session; JWT Bearer access works in Postman; logout revokes the session; protected routes reject anonymous or revoked tokens. |
+| Acceptance criteria | Existing academy users can open a secure app session with email/password or linked Google Sign-In; JWT Bearer access works in Postman; logout revokes the session; protected routes reject anonymous or revoked tokens. |
 | Endpoint evidence | `POST /api/v1/auth/login`, `POST /api/v1/auth/google`, `GET /api/v1/auth/me`, `POST /api/v1/auth/logout` |
 | Documentation evidence | `03Documentation/oauth-session.md`, `03Documentation/postman-token-auth-proof.md` |
 | Status | Completed / Validated |

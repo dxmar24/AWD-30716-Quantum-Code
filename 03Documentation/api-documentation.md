@@ -40,13 +40,15 @@ Detailed cache evidence is documented in `03Documentation/cache-management.md`.
 | Method | URI | Description | Required Role | Params/Query | Body | Success | Business/Validation | Errors |
 |---|---|---|---|---|---|---|---|---|
 | GET | `/auth/config` | Public auth client configuration for the React login page. | Visitor | None | None | `200` Google client id | Does not expose secrets; client id is public OAuth metadata. Uses `Cache-Control: public, max-age=3600`. | `500` |
-| POST | `/auth/login` | Postman/backend verification login with configured email and password or a seeded user password hash. | Visitor | None | `{ "email": "admin@alc.edu", "password": "secret" }` | `200` user, JWT `sessionToken`, Bearer token type and HttpOnly cookie | Uses an existing internal user. Seeded role-test users authenticate with `users.password_hash`; the legacy configured Postman credential remains supported. Rate limited. Intended for academic/manual verification. | `401`, `403`, `422` |
-| POST | `/auth/google` | Login/register with Google ID token. | Visitor | None | `{ "idToken": "jwt" }` | `200` user, JWT `sessionToken`, Bearer token type and HttpOnly cookie | Token must be valid Google ID token in production; internal role is app-owned. Rate limited. | `401`, `422` |
+| POST | `/auth/login` | Email/password login for existing academy users. | Visitor | None | `{ "email": "admin@alc.edu", "password": "secret" }` | `200` user, JWT `sessionToken`, Bearer token type and HttpOnly cookie | Uses `users.password_hash`. The response includes `user.mustChangePassword`; temporary-password users must change password before protected academic flows. Legacy configured Postman credential remains supported only when enabled. Rate limited. | `401`, `422` |
+| POST | `/auth/google` | Google login for existing academy users. | Visitor | None | `{ "idToken": "jwt" }` | `200` user, JWT `sessionToken`, Bearer token type and HttpOnly cookie | Token must be valid in production. Google never creates new users; it links only to an active internal account with the same verified email. Unverified Google emails, inactive accounts and linked email mismatches are rejected. | `401`, `409`, `422` |
 | GET | `/auth/me` | Current session user. | Authenticated | None | None | `200` user | Session must exist, not revoked and not expired. | `401` |
+| POST | `/auth/change-password` | Change the signed-in user's password. | Authenticated | None | `{ "currentPassword": "temporary", "newPassword": "newSecret123" }` | `200` user | Required when `mustChangePassword=true`; clears the flag and stores `password_changed_at`. | `401`, `422` |
 | POST | `/auth/logout` | Revoke session and clear cookie. | Any | None | None | `200` | Revokes server session/token hash. | `200` even without active session |
 | POST | `/enrollment-requests` | Public enrollment request. | Visitor | None | fullName, email, optional phone/preferredBranch/styleInterest/message | `201` request | Email format and name length validated. | `422` |
 | GET | `/enrollment-requests` | List public requests. | BranchDirector, GeneralDirector, Admin | None | None | `200` list | Restricted to directors/admin. | `401`, `403` |
 | GET | `/users` | List users. | GeneralDirector, Admin | None | None | `200` list | Internal roles only. | `401`, `403` |
+| POST | `/users` | Create an academy user with a temporary password. | GeneralDirector, Admin | None | email, name, role, optional temporaryPassword, active, mustChangePassword, branchIds | `201` user plus one-time temporary password | Stores only a password hash. New users default to `mustChangePassword=true`. Optional branch IDs are validated before user creation and then assigned. Audited. | `401`, `403`, `404`, `409`, `422` |
 | PATCH | `/users/{id}/role` | Assign internal role. | Admin | Path `id` | `{ "role": "Teacher" }` | `200` user | Role must be Student, Teacher, BranchDirector, GeneralDirector or Admin. Audited. | `401`, `403`, `404`, `422` |
 | GET | `/users/{id}/branch-access` | List branch access assigned to a user. | GeneralDirector, Admin | Path `id` | None | `200` list | Used to scope BranchDirector permissions to specific branches. | `401`, `403`, `404` |
 | PATCH | `/users/{id}/branch-access` | Replace branch access assigned to a user. | Admin | Path `id` | `{ "branchIds": ["uuid"] }` | `200` list | Branch IDs must exist. Audited. | `401`, `403`, `404`, `422` |
@@ -95,7 +97,7 @@ The Python Analytics API is implemented with FastAPI under `06Code/python-analyt
 - Latest JSON result evidence: `07Other/api-validation-results.json`
 - Manual Postman verification assets: `postman/American-Latin-Class-API.postman_collection.json`, `postman/American-Latin-Class-Analytics-API.postman_collection.json` and `postman/American-Latin-Class.postman_environment.json`
 
-The automated validation covers auth config, Postman email/password login, malformed Google token rejection, Google session creation with mock test tokens, JWT Bearer access, session revocation, revoked token rejection, anonymous/private redirects, RBAC failures, public enrollment validation, CRUD flows, attendance duplication rules, teacher check-in/check-out, absence review, reports, scholarship evaluations, promotion evaluations and audit log visibility.
+The automated validation covers auth config, email/password login, mandatory first password change, director-created accounts, malformed Google token rejection, registered Google session creation, unregistered Google rejection, unverified Google email rejection, linked Google email mismatch rejection, JWT Bearer access, session revocation, revoked token rejection, anonymous/private redirects, RBAC failures, public enrollment validation, CRUD flows, attendance duplication rules, teacher check-in/check-out, absence review, reports, scholarship evaluations, promotion evaluations and audit log visibility.
 
 ## Role Test Seed
 Run this after applying the database schema when you need manual role/permission testing:
@@ -104,10 +106,10 @@ cd 06Code
 npm run db:seed:role-test
 ```
 
-The seed creates/update temporary login users for Admin, GeneralDirector, BranchDirector, Teacher and Student. Default local passwords are `adminALC2026*`, `generaldirectorALC2026*`, `branchdirectorALC2026*`, `teacherALC2026*` and `studentALC2026*`; override them with `SEED_*_PASSWORD` environment variables before running the seed. The BranchDirector user is assigned only to `ALC Santo Domingo Norte`, leaving `ALC Santo Domingo Central` available for negative permission tests.
+The seed creates or updates temporary login users for Admin, GeneralDirector, BranchDirector, Teacher and Student. Default local passwords are `adminALC2026*`, `generaldirectorALC2026*`, `branchdirectorALC2026*`, `teacherALC2026*` and `studentALC2026*`; override them with `SEED_*_PASSWORD` environment variables before running the seed. The BranchDirector user is assigned only to `ALC Santo Domingo Norte`, leaving `ALC Santo Domingo Central` available for negative permission tests.
 
 ## JSON Examples
-Postman password login:
+Email/password login:
 ```json
 {
   "email": "verification-admin-real-20260624154645@alc.test",
@@ -119,6 +121,24 @@ Google login:
 ```json
 {
   "idToken": "eyJhbGciOi..."
+}
+```
+
+Create academy account:
+```json
+{
+  "email": "student@alc.edu",
+  "name": "Student Name",
+  "role": "Student",
+  "temporaryPassword": "studentALC2026*"
+}
+```
+
+Change temporary password:
+```json
+{
+  "currentPassword": "studentALC2026*",
+  "newPassword": "studentALC2027*"
 }
 ```
 
@@ -135,7 +155,8 @@ Login response:
       "id": "d8c025f6-bcd0-4f25-a6b1-1486338678e7",
       "email": "student@example.com",
       "name": "Student Example",
-      "role": "Student"
+      "role": "Student",
+      "mustChangePassword": true
     }
   }
 }
