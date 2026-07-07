@@ -8,6 +8,7 @@ class AcademicController {
 
   submitEnrollment = async (req, res) => ApiResponse.success(res, await this.academicService.submitEnrollmentRequest(req.body), 'Enrollment request received', 201);
   listEnrollmentRequests = async (req, res) => ApiResponse.success(res, await this.academicService.listEnrollmentRequests(req.sessionUser), 'Enrollment requests');
+  createUser = async (req, res) => ApiResponse.success(res, await this.academicService.createAcademicUser(req.sessionUser, req.body), 'User created', 201);
   updateUserRole = async (req, res) => ApiResponse.success(res, await this.academicService.updateUserRole(req.sessionUser, req.params.id, req.body.role), 'User role updated');
   listUserBranchAccess = async (req, res) => ApiResponse.success(res, await this.academicService.listUserBranchAccess(req.params.id), 'User branch access');
   updateUserBranchAccess = async (req, res) => ApiResponse.success(res, await this.academicService.updateUserBranchAccess(req.sessionUser, req.params.id, req.body.branchIds), 'User branch access updated');

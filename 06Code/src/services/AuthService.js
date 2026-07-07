@@ -3,8 +3,7 @@ const jwt = require('jsonwebtoken');
 const { OAuth2Client } = require('google-auth-library');
 const { AppError } = require('../exceptions/AppError');
 const { env } = require('../config/env');
-const { Roles } = require('../models/constants');
-const { verifyPassword } = require('../utils/passwordHasher');
+const { hashPassword, verifyPassword } = require('../utils/passwordHasher');
 class AuthService {
   constructor(db, googleClient = new OAuth2Client(env.googleClientId)) { this.db = db; this.googleClient = googleClient; }
   hashToken(token) { return crypto.createHash('sha256').update(token).digest('hex'); }
@@ -34,12 +33,14 @@ class AuthService {
       const decoded = jwt.decode(idToken) || {};
       if (!decoded.sub || !decoded.email) throw new AppError('Invalid Google ID token', 401);
       if (decoded.aud && decoded.aud !== env.googleClientId) throw new AppError('Invalid Google audience', 401);
+      if (decoded.email_verified === false) throw new AppError('Google email is not verified', 401, { code:'GOOGLE_EMAIL_NOT_VERIFIED' });
       return { googleSub: decoded.sub, email: decoded.email, name: decoded.name || decoded.email };
     }
     try {
       const ticket = await this.googleClient.verifyIdToken({ idToken, audience: env.googleClientId });
       const payload = ticket.getPayload();
       if (!payload?.sub || !payload?.email) throw new AppError('Invalid Google ID token', 401);
+      if (payload.email_verified === false) throw new AppError('Google email is not verified', 401, { code:'GOOGLE_EMAIL_NOT_VERIFIED' });
       return { googleSub: payload.sub, email: payload.email, name: payload.name || payload.email };
     } catch (error) {
       if (error instanceof AppError) throw error;
@@ -48,14 +49,24 @@ class AuthService {
   }
   async loginWithGoogle(idToken) {
     const profile = await this.verifyGoogleIdToken(idToken);
-    let user = await this.db.users.findBy('googleSub', profile.googleSub) || await this.db.users.findBy('email', profile.email);
-    if (!user) user = await this.db.users.create({ email: profile.email, name: profile.name, googleSub: profile.googleSub, role: Roles.STUDENT });
-    else user = await this.db.users.update(user.id, { googleSub: profile.googleSub, name: profile.name });
+    const email = String(profile.email || '').trim().toLowerCase();
+    let user = await this.db.users.findBy('googleSub', profile.googleSub);
+    if (user) {
+      if (String(user.email || '').trim().toLowerCase() !== email) {
+        throw new AppError('Google email does not match the academy account', 409, { code:'GOOGLE_EMAIL_MISMATCH' });
+      }
+    } else {
+      user = await this.db.users.findBy('email', email);
+      if (!user) throw new AppError('Google account is not registered in the academy', 401, { code:'ACCOUNT_NOT_REGISTERED' });
+      if (user.active === false) throw new AppError('Invalid email or password', 401);
+      if (user.googleSub && user.googleSub !== profile.googleSub) throw new AppError('Google account is linked to a different profile', 409, { code:'GOOGLE_ACCOUNT_MISMATCH' });
+      user = await this.db.users.update(user.id, { googleSub:profile.googleSub });
+    }
+    if (user.active === false) throw new AppError('Invalid email or password', 401);
     const token = await this.createSession(user);
     return { token, user:this.publicUser(user) };
   }
   async loginWithPassword(email, password) {
-    if (!env.postmanLoginEnabled) throw new AppError('Postman password login is disabled', 403);
     const normalizedEmail = String(email || '').trim().toLowerCase();
     const authUser = await this.findAuthUserByEmail(normalizedEmail);
     if (authUser?.passwordHash && verifyPassword(password, authUser.passwordHash)) {
@@ -65,14 +76,30 @@ class AuthService {
       return { token, user };
     }
 
-    const expectedEmail = String(env.postmanLoginEmail || '').trim().toLowerCase();
-    if (normalizedEmail !== expectedEmail || !this.safeCompare(password, env.postmanLoginPassword)) {
-      throw new AppError('Invalid email or password', 401);
+    if (env.postmanLoginEnabled) {
+      const expectedEmail = String(env.postmanLoginEmail || '').trim().toLowerCase();
+      if (normalizedEmail === expectedEmail && this.safeCompare(password, env.postmanLoginPassword)) {
+        const user = await this.db.users.findBy('email', normalizedEmail);
+        if (!user || user.active === false) throw new AppError('Invalid email or password', 401);
+        const token = await this.createSession(user);
+        return { token, user:this.publicUser(user) };
+      }
     }
-    const user = await this.db.users.findBy('email', normalizedEmail);
-    if (!user || user.active === false) throw new AppError('Invalid email or password', 401);
-    const token = await this.createSession(user);
-    return { token, user:this.publicUser(user) };
+
+    throw new AppError('Invalid email or password', 401);
+  }
+  async changePassword(sessionUser, currentPassword, newPassword) {
+    const authUser = await this.findAuthUserByEmail(sessionUser?.email);
+    if (!authUser || authUser.active === false || !authUser.passwordHash) throw new AppError('Invalid email or password', 401);
+    if (!verifyPassword(currentPassword, authUser.passwordHash)) throw new AppError('Current password is incorrect', 401);
+    if (verifyPassword(newPassword, authUser.passwordHash)) throw new AppError('New password must be different from the current password', 422);
+
+    const updated = await this.db.users.update(authUser.id, {
+      passwordHash:hashPassword(newPassword),
+      mustChangePassword:false,
+      passwordChangedAt:new Date().toISOString(),
+    });
+    return this.publicUser(updated);
   }
   async resolveSession(token) {
     try { jwt.verify(token, env.sessionSecret); } catch { return null; }

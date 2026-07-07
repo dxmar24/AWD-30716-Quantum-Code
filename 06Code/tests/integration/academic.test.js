@@ -90,6 +90,14 @@ test('scholarship and promotion evaluations require candidate rules plus evaluat
 
 test('branch director manages only assigned branch resources', async () => {
   const app = createApp();
+  const directorUser = app.locals.db.users.create({
+    email:'branch-director@alc.edu',
+    name:'Branch Director',
+    role:'BranchDirector',
+    googleSub:'branch-director-scope',
+    active:true,
+    mustChangePassword:false,
+  });
   const directorToken = jwt.sign({
     sub:'branch-director-scope',
     email:'branch-director@alc.edu',
@@ -97,12 +105,10 @@ test('branch director manages only assigned branch resources', async () => {
     aud:'test-google-client-id',
   }, 'x');
   const loginResponse = await request(app).post('/api/v1/auth/google').send({ idToken:directorToken }).expect(200);
-  const director = loginResponse.body.data.user;
   const ownBranchId = '11111111-1111-4111-8111-111111111111';
   const otherBranchId = '22222222-2222-4222-8222-222222222222';
 
-  app.locals.db.users.update(director.id, { role:'BranchDirector' });
-  app.locals.db.userBranchAccess.replaceForUser(director.id, [ownBranchId]);
+  app.locals.db.userBranchAccess.replaceForUser(directorUser.id, [ownBranchId]);
 
   await request(app)
     .post('/api/v1/students')

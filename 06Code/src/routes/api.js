@@ -1,9 +1,9 @@
 const express = require('express');
 const rateLimit = require('express-rate-limit');
 const { env } = require('../config/env');
-const { z, attendanceRecord, teacherCheck, roleUpdate, branchAccessUpdate, enrollmentRequest, absenceJustification, absenceReview, scholarshipEvaluation, levelPromotionEvaluation, branch, student, teacher, danceCategory, danceStyle, classGroup, classSession } = require('../validators/commonValidators');
+const { z, attendanceRecord, teacherCheck, roleUpdate, accountCreate, passwordChange, branchAccessUpdate, enrollmentRequest, absenceJustification, absenceReview, scholarshipEvaluation, levelPromotionEvaluation, branch, student, teacher, danceCategory, danceStyle, classGroup, classSession } = require('../validators/commonValidators');
 const { validate } = require('../middleware/validate');
-const { requireAuth, allowRoles } = require('../middleware/auth');
+const { requireAuth, requirePasswordReady, allowRoles } = require('../middleware/auth');
 const { noStore, publicCache, privateCache } = require('../middleware/cacheControl');
 const { Roles } = require('../models/constants');
 const { setMemoryCacheHeaders } = require('../services/CacheService');
@@ -38,8 +38,8 @@ function registerCrud(router, name, repository, schema, accessPolicy, cacheServi
   const controller = new CrudController(repository, name, accessPolicy, cacheService);
   const policy = crudCachePolicy[name];
   const indexMiddlewares = policy ? [privateCache(policy.ttlSeconds, policy.policy)] : [];
-  router.get(`/${name}`, requireAuth, ...indexMiddlewares, wrap(controller.index));
-  router.get(`/${name}/:id`, requireAuth, wrap(controller.show));
+  router.get(`/${name}`, requireAuth, requirePasswordReady, ...indexMiddlewares, wrap(controller.index));
+  router.get(`/${name}/:id`, requireAuth, requirePasswordReady, wrap(controller.show));
   router.post(`/${name}`, allowRoles(...writeRoles), validate(schema), wrap(controller.create));
   router.patch(`/${name}/:id`, allowRoles(...writeRoles), validate(schema.partial()), wrap(controller.update));
 }
@@ -58,16 +58,18 @@ function buildApi(deps) {
   router.post('/auth/login', authLimiter, validate(z.object({ email:z.string().email(), password:z.string().min(8).max(120) })), wrap(auth.passwordLogin));
   router.post('/auth/google', authLimiter, validate(z.object({ idToken:z.string().min(10) })), wrap(auth.login));
   router.get('/auth/me', requireAuth, wrap(auth.me));
+  router.post('/auth/change-password', requireAuth, validate(passwordChange), wrap(auth.changePassword));
   router.post('/auth/logout', wrap(auth.logout));
 
   router.post('/enrollment-requests', validate(enrollmentRequest), wrap(academic.submitEnrollment));
   router.get('/enrollment-requests', allowRoles(...directorRoles), wrap(academic.listEnrollmentRequests));
 
   router.get('/users', allowRoles(Roles.ADMIN, Roles.GENERAL_DIRECTOR), wrap(async (req, res) => res.json({ success:true, message:'Users list', data:publicUsers(await deps.db.users.all()) })));
+  router.post('/users', allowRoles(Roles.ADMIN, Roles.GENERAL_DIRECTOR), validate(accountCreate), wrap(academic.createUser));
   router.patch('/users/:id/role', allowRoles(Roles.ADMIN), validate(roleUpdate), wrap(academic.updateUserRole));
   router.get('/users/:id/branch-access', allowRoles(Roles.ADMIN, Roles.GENERAL_DIRECTOR), wrap(academic.listUserBranchAccess));
   router.patch('/users/:id/branch-access', allowRoles(Roles.ADMIN), validate(branchAccessUpdate), wrap(academic.updateUserBranchAccess));
-  router.get('/roles', requireAuth, privateCache(1800, 'private-reference-roles'), wrap(async (req, res) => res.json({
+  router.get('/roles', requireAuth, requirePasswordReady, privateCache(1800, 'private-reference-roles'), wrap(async (req, res) => res.json({
     success:true,
     message:'Roles list',
     data:await cachedList(req, res, deps.cacheService, 'catalog:roles:all', 1800, ['roles'], () => deps.db.roles.all()),

@@ -98,9 +98,23 @@ async function main() {
   }
 
   async function loginAs(role, email, sub, name) {
+    const existing = await app.locals.db.users.findBy('email', email);
+    if (!existing) {
+      await app.locals.db.users.create({
+        email,
+        name,
+        role,
+        googleSub:sub,
+        active:true,
+        mustChangePassword:false,
+      });
+    } else if (!existing.googleSub) {
+      await app.locals.db.users.update(existing.id, { googleSub:sub, role, active:true, mustChangePassword:false });
+    }
+
     const agent = request.agent(app);
     const response = await runCase({
-      name: `Google login creates session for ${role}`,
+      name: `Google login opens existing session for ${role}`,
       method: 'post',
       route: `${apiPrefix}/auth/google`,
       client: agent,
@@ -117,7 +131,6 @@ async function main() {
       },
     });
     const data = requireSuccess(response, `Login as ${role}`);
-    await app.locals.db.users.update(data.user.id, { role });
     return { agent, sessionToken: data.sessionToken, user: { ...data.user, role } };
   }
 
@@ -140,6 +153,63 @@ async function main() {
     route: `${apiPrefix}/auth/google`,
     body: { idToken: 'not-a-valid-google-token' },
     expectedStatus: 401,
+  });
+
+  await runCase({
+    name: 'Unregistered Google email is rejected',
+    method: 'post',
+    route: `${apiPrefix}/auth/google`,
+    body: { idToken: googleToken('unregistered-validation-google', 'unregistered-validation@alc.test', 'Unregistered Google User') },
+    expectedStatus: 401,
+    assert: (res) => {
+      if (res.body.details?.code !== 'ACCOUNT_NOT_REGISTERED') throw new Error('Expected ACCOUNT_NOT_REGISTERED detail.');
+    },
+  });
+
+  await app.locals.db.users.create({
+    email:'unverified-validation@alc.test',
+    name:'Unverified Google User',
+    role:Roles.STUDENT,
+    googleSub:'unverified-validation-google',
+    active:true,
+    mustChangePassword:false,
+  });
+  await runCase({
+    name: 'Unverified Google email is rejected',
+    method: 'post',
+    route: `${apiPrefix}/auth/google`,
+    body: {
+      idToken: jwt.sign({
+        sub:'unverified-validation-google',
+        email:'unverified-validation@alc.test',
+        name:'Unverified Google User',
+        aud:process.env.GOOGLE_CLIENT_ID,
+        email_verified:false,
+      }, 'validation-secret'),
+    },
+    expectedStatus: 401,
+    assert: (res) => {
+      if (res.body.details?.code !== 'GOOGLE_EMAIL_NOT_VERIFIED') throw new Error('Expected GOOGLE_EMAIL_NOT_VERIFIED detail.');
+    },
+  });
+
+  await app.locals.db.users.create({
+    email:'email-mismatch@alc.test',
+    name:'Email Mismatch User',
+    role:Roles.STUDENT,
+    googleSub:'email-mismatch-google',
+    active:true,
+    mustChangePassword:false,
+  });
+  await runCase({
+    name: 'Linked Google account with different email is rejected',
+    method: 'post',
+    route: `${apiPrefix}/auth/google`,
+    body: { idToken: googleToken('email-mismatch-google', 'different-email@alc.test', 'Email Mismatch User') },
+    expectedStatus: 409,
+    assert: (res) => {
+      if (res.body.details?.code !== 'GOOGLE_EMAIL_MISMATCH') throw new Error('Expected GOOGLE_EMAIL_MISMATCH detail.');
+    },
   });
 
   await runCase({
@@ -356,6 +426,65 @@ async function main() {
 
   await runCase({ name: 'Admin lists enrollment requests', method: 'get', route: `${apiPrefix}/enrollment-requests`, client: admin.agent, expectedStatus: 200 });
   await runCase({ name: 'Admin lists users', method: 'get', route: `${apiPrefix}/users`, client: admin.agent, expectedStatus: 200 });
+  const createdAccount = requireSuccess(await runCase({
+    name: 'Admin creates academy account with a temporary password',
+    method: 'post',
+    route: `${apiPrefix}/users`,
+    client: admin.agent,
+    body: {
+      email:`created-account-${timestamp}@alc.test`,
+      name:'Created Account Validation',
+      role:Roles.STUDENT,
+    },
+    expectedStatus: 201,
+    assert: (res) => {
+      if (!res.body.data.temporaryPassword) throw new Error('Temporary password was not returned.');
+      if (res.body.data.user.mustChangePassword !== true) throw new Error('Created account should require password change.');
+    },
+  }), 'Account create');
+
+  const temporaryLogin = requireSuccess(await runCase({
+    name: 'Temporary password login requires first password change',
+    method: 'post',
+    route: `${apiPrefix}/auth/login`,
+    body: { email:createdAccount.user.email, password:createdAccount.temporaryPassword },
+    expectedStatus: 200,
+    assert: (res) => {
+      if (res.body.data.user.mustChangePassword !== true) throw new Error('Temporary login should require password change.');
+    },
+  }), 'Temporary password login');
+
+  await runCase({
+    name: 'Temporary-password session is blocked from academic catalogs',
+    method: 'get',
+    route: `${apiPrefix}/roles`,
+    headers: { Authorization: `Bearer ${temporaryLogin.sessionToken}` },
+    expectedStatus: 403,
+    assert: (res) => {
+      if (res.body.details?.code !== 'PASSWORD_CHANGE_REQUIRED') throw new Error('Expected PASSWORD_CHANGE_REQUIRED detail.');
+    },
+  });
+
+  await runCase({
+    name: 'Temporary-password user changes password',
+    method: 'post',
+    route: `${apiPrefix}/auth/change-password`,
+    headers: { Authorization: `Bearer ${temporaryLogin.sessionToken}` },
+    body: { currentPassword:createdAccount.temporaryPassword, newPassword:'createdAccountALC2027*' },
+    expectedStatus: 200,
+    assert: (res) => {
+      if (res.body.data.user.mustChangePassword !== false) throw new Error('Password change flag was not cleared.');
+    },
+  });
+
+  await runCase({
+    name: 'Password-changed session can read academic branch catalog',
+    method: 'get',
+    route: `${apiPrefix}/branches`,
+    headers: { Authorization: `Bearer ${temporaryLogin.sessionToken}` },
+    expectedStatus: 200,
+  });
+
   await runCase({
     name: 'Admin lists roles with private memory cache miss',
     method: 'get',

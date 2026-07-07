@@ -373,7 +373,7 @@ async function main() {
       classSessions: sessions.map((session) => session.id),
     },
     notes: [
-      'Set POSTMAN_LOGIN_ENABLED=true before using /api/v1/auth/login locally.',
+      'Use /api/v1/auth/login with the seeded email and temporary password; POSTMAN_LOGIN_ENABLED is only a legacy fallback.',
       'Do not run this seed in production/staging unless this temporary credential set is explicitly required.',
     ],
   }, null, 2));

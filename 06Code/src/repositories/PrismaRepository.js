@@ -69,6 +69,8 @@ class PrismaUserRepository extends PrismaRepository {
       name:row.name,
       role:row.role?.name || row.role,
       active:row.active,
+      mustChangePassword:row.mustChangePassword,
+      passwordChangedAt:row.passwordChangedAt,
       createdAt:row.createdAt,
     };
   }
@@ -106,6 +108,8 @@ class PrismaUserRepository extends PrismaRepository {
           email:data.email,
           name:data.name,
           passwordHash:data.passwordHash || null,
+          mustChangePassword:data.mustChangePassword ?? false,
+          passwordChangedAt:data.passwordChangedAt || null,
           active:data.active ?? true,
           role:{ connect:{ id:await this.roleId(data.role) } },
         },

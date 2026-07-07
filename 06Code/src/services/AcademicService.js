@@ -1,9 +1,15 @@
+const crypto = require('crypto');
 const { AppError } = require('../exceptions/AppError');
+const { hashPassword } = require('../utils/passwordHasher');
 
 function publicUser(user) {
   if (!user) return null;
   const { passwordHash, ...safeUser } = user;
   return safeUser;
+}
+
+function generateTemporaryPassword() {
+  return `ALC-${crypto.randomBytes(6).toString('base64url')}1`;
 }
 
 class AcademicService {
@@ -37,6 +43,39 @@ class AcademicService {
     const updated = await this.db.users.update(userId, { role });
     await this.audit.log(actor.id, 'USER_ROLE_UPDATED', 'users', userId, { role });
     return publicUser(updated);
+  }
+
+  async createAcademicUser(actor, data) {
+    const email = String(data.email || '').trim().toLowerCase();
+    if (await this.db.users.findBy('email', email)) throw new AppError('User already exists', 409);
+
+    const uniqueBranchIds = [...new Set(data.branchIds || [])];
+    for (const branchId of uniqueBranchIds) {
+      if (!(await this.db.branches.findById(branchId))) throw new AppError('Branch not found', 404);
+    }
+
+    const temporaryPassword = data.temporaryPassword || generateTemporaryPassword();
+    const mustChangePassword = data.mustChangePassword ?? true;
+    const user = await this.db.users.create({
+      email,
+      name:data.name,
+      role:data.role,
+      active:data.active ?? true,
+      passwordHash:hashPassword(temporaryPassword),
+      mustChangePassword,
+      passwordChangedAt:mustChangePassword ? null : new Date().toISOString(),
+    });
+
+    if (uniqueBranchIds.length) {
+      await this.db.userBranchAccess.replaceForUser(user.id, uniqueBranchIds);
+    }
+
+    await this.audit.log(actor.id, 'ACADEMIC_USER_CREATED', 'users', user.id, { role:data.role, email });
+    return {
+      user:publicUser(user),
+      temporaryPassword,
+      instruction:'Share this temporary password through the approved academy communication channel. The user must change it on first sign-in.',
+    };
   }
 
   async listUserBranchAccess(userId) {

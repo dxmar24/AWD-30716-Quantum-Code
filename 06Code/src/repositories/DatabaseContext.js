@@ -1,5 +1,6 @@
 const { InMemoryRepository } = require('./InMemoryRepository');
 const { Roles } = require('../models/constants');
+const { hashPassword } = require('../utils/passwordHasher');
 
 const branchIds = {
   norte: '11111111-1111-4111-8111-111111111111',
@@ -15,9 +16,9 @@ const categoryIds = {
 class DatabaseContext {
   constructor() {
     this.users = new InMemoryRepository([
-      { id:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', email:'admin@alc.edu', name:'Admin User', role:Roles.ADMIN, googleSub:'test-admin', active:true },
-      { id:'abababab-abab-4aba-8bab-abababababab', email:'student@alc.edu', name:'Demo Student User', role:Roles.STUDENT, googleSub:'test-student', active:true },
-      { id:'acacacac-acac-4aca-8cac-acacacacacac', email:'teacher@alc.edu', name:'Demo Teacher User', role:Roles.TEACHER, googleSub:'test-teacher', active:true },
+      { id:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', email:'admin@alc.edu', name:'Admin User', role:Roles.ADMIN, googleSub:'test-admin', active:true, mustChangePassword:false, passwordHash:hashPassword('AmericanLatin2026!') },
+      { id:'abababab-abab-4aba-8bab-abababababab', email:'student@alc.edu', name:'Demo Student User', role:Roles.STUDENT, googleSub:'test-student', active:true, mustChangePassword:false },
+      { id:'acacacac-acac-4aca-8cac-acacacacacac', email:'teacher@alc.edu', name:'Demo Teacher User', role:Roles.TEACHER, googleSub:'test-teacher', active:true, mustChangePassword:false },
     ]);
     this.roles = new InMemoryRepository([{ name:Roles.VISITOR },{ name:Roles.STUDENT },{ name:Roles.TEACHER },{ name:Roles.BRANCH_DIRECTOR },{ name:Roles.GENERAL_DIRECTOR },{ name:Roles.ADMIN }]);
     this.permissions = new InMemoryRepository([]);
