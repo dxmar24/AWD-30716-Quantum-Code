@@ -553,6 +553,34 @@ select:focus {
 
 .login-copy { margin: 0; }
 
+.password-login-form,
+.password-change-form {
+  display: grid;
+  gap: 14px;
+}
+
+.password-login-form button,
+.password-change-form button {
+  width: 100%;
+}
+
+.login-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.login-divider::before,
+.login-divider::after {
+  content: "";
+  height: 1px;
+  flex: 1;
+  background: var(--line);
+}
+
 .google-button { min-height: 44px; }
 
 .dashboard-shell {
@@ -626,6 +654,29 @@ select:focus {
   font-size: 22px;
 }
 
+.password-required-panel {
+  min-height: 420px;
+  padding: 30px;
+  border: 1px solid var(--line);
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at 82% 16%, rgba(56, 189, 248, .2), transparent 30%),
+    linear-gradient(135deg, rgba(37, 99, 235, .18), rgba(255, 255, 255, .04)),
+    var(--panel);
+  display: grid;
+  grid-template-columns: minmax(0, .95fr) minmax(340px, .7fr);
+  gap: 28px;
+  align-items: center;
+  box-shadow: 0 24px 80px var(--shadow);
+}
+
+.password-required-panel h1 {
+  max-width: 620px;
+  margin: 0;
+  font-size: clamp(38px, 5vw, 64px);
+  line-height: .98;
+}
+
 .overview-list {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -676,6 +727,52 @@ select:focus {
 
 .reports-panel { align-content: start; }
 
+.account-panel {
+  grid-column: 1 / -1;
+  min-height: auto;
+  grid-template-columns: minmax(0, .7fr) minmax(360px, 1fr);
+  align-items: start;
+}
+
+.account-form {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.account-form button,
+.credential-box,
+.account-panel > .form-status {
+  grid-column: 1 / -1;
+}
+
+.credential-box {
+  padding: 16px;
+  border: 1px solid rgba(125, 211, 252, .34);
+  border-radius: 18px;
+  background: rgba(56, 189, 248, .1);
+}
+
+.credential-box span,
+.credential-box strong {
+  display: block;
+}
+
+.credential-box span {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.credential-box strong {
+  margin-top: 4px;
+  color: #e0f2fe;
+  font-size: 24px;
+  word-break: break-word;
+}
+
+.credential-box p {
+  margin: 8px 0 0;
+}
+
 .result-box {
   min-height: 110px;
   margin-top: 4px;
@@ -718,7 +815,9 @@ select:focus {
 
   .feature-row,
   .split-section,
-  .enrollment-band {
+  .enrollment-band,
+  .account-panel,
+  .password-required-panel {
     grid-template-columns: 1fr;
   }
 }
@@ -761,6 +860,7 @@ select:focus {
   .program-panel,
   .overview-list,
   .attendance-grid,
+  .account-form,
   .enrollment-form {
     grid-template-columns: 1fr;
   }
@@ -784,6 +884,7 @@ select:focus {
   .content-band { padding: 56px 0; }
 
   .enrollment-band,
+  .password-required-panel,
   .dashboard-hero,
   .login-panel { padding: 24px; }
 }

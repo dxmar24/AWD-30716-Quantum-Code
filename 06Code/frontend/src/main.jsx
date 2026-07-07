@@ -54,7 +54,7 @@ const dancePrograms = [
 ];
 
 const accessItems = [
-  ['Director', 'visión general de sedes, asistencia, reportes y seguimiento académico'],
+  ['Director general', 'visión general de sedes, asistencia, reportes y seguimiento académico'],
   ['Director de sede', 'control de estudiantes, profesores, clases y registros de su sede'],
   ['Profesor', 'registro de entrada, asistencia de clase y seguimiento de grupos'],
   ['Estudiante', 'información de asistencia, nivel y solicitudes académicas'],
@@ -62,12 +62,21 @@ const accessItems = [
 
 const roleLabels = {
   Admin: 'Administrador',
-  GeneralDirector: 'Director',
+  GeneralDirector: 'Director general',
   BranchDirector: 'Director de sede',
   Teacher: 'Profesor',
   Student: 'Estudiante',
   Visitor: 'Visitante',
 };
+
+const accountRoleOptions = [
+  { value: 'Student', label: 'Estudiante' },
+  { value: 'Teacher', label: 'Profesor' },
+  { value: 'BranchDirector', label: 'Director de sede' },
+  { value: 'GeneralDirector', label: 'Director general' },
+];
+
+const accountManagerRoles = new Set(['Admin', 'GeneralDirector']);
 
 const studentOptions = [
   {
@@ -138,6 +147,19 @@ function LandingPage() {
 function LoginPage() {
   const buttonRef = useRef(null);
   const [status, setStatus] = useState('Cargando ingreso con Google...');
+  const [passwordStatus, setPasswordStatus] = useState('');
+
+  async function submitPasswordLogin(event) {
+    event.preventDefault();
+    setPasswordStatus('Verificando datos...');
+    try {
+      const form = Object.fromEntries(new FormData(event.currentTarget).entries());
+      await postJson('/auth/login', form);
+      window.location.href = '/private/dashboard.html';
+    } catch {
+      setPasswordStatus('No se pudo iniciar sesión. Revisa el correo y la contraseña.');
+    }
+  }
 
   useEffect(() => {
     let mounted = true;
@@ -176,7 +198,7 @@ function LoginPage() {
               await postJson('/auth/google', { idToken: response.credential });
               window.location.href = '/private/dashboard.html';
             } catch {
-              setStatus('No se pudo iniciar sesión con Google. Intenta nuevamente.');
+              setStatus('No se pudo iniciar sesión con Google. El correo debe estar registrado en la academia.');
             }
           },
         });
@@ -209,7 +231,14 @@ function LoginPage() {
       <section className="login-panel" aria-label="Ingreso al panel interno">
         <p className="eyebrow">Panel interno</p>
         <h1>Ingreso del equipo ALC</h1>
-        <p className="login-copy">Accede al control de asistencia, clases, sedes y reportes académicos.</p>
+        <p className="login-copy">Accede con el correo registrado por la academia y tu contraseña.</p>
+        <form className="password-login-form" onSubmit={submitPasswordLogin}>
+          <label>Correo electrónico<input name="email" type="email" autoComplete="email" required /></label>
+          <label>Contraseña<input name="password" type="password" autoComplete="current-password" required /></label>
+          <button type="submit">Ingresar al panel</button>
+          <p className="form-status" aria-live="polite">{passwordStatus}</p>
+        </form>
+        <div className="login-divider"><span>o continúa con Google</span></div>
         <div className="google-button" ref={buttonRef} />
         <p className="form-status" aria-live="polite">{status}</p>
       </section>
@@ -356,21 +385,8 @@ function SiteFooter() {
   );
 }
 
-function AuthStatus() {
-  const [text, setText] = useState('Verificando sesión...');
-
-  useEffect(() => {
-    apiRequest('/auth/me')
-      .then((payload) => {
-        const user = payload.data.user;
-        setText(`${user.name} · ${roleLabels[user.role] || 'Usuario autorizado'}`);
-      })
-      .catch(() => {
-        window.location.href = '/login.html?session=expired';
-      });
-  }, []);
-
-  return <p className="session-line">{text}</p>;
+function AuthStatus({ user }) {
+  return <p className="session-line">{user ? `${user.name} · ${roleLabels[user.role] || 'Usuario autorizado'}` : 'Verificando sesión...'}</p>;
 }
 
 function LogoutButton() {
@@ -461,8 +477,115 @@ function ReportsPanel({ output, onOutput }) {
   );
 }
 
+function AccountCreationPanel() {
+  const [status, setStatus] = useState('');
+  const [createdAccount, setCreatedAccount] = useState(null);
+
+  async function submit(event) {
+    event.preventDefault();
+    setStatus('');
+    setCreatedAccount(null);
+    const form = Object.fromEntries(new FormData(event.currentTarget).entries());
+    const body = {
+      name:form.name,
+      email:form.email,
+      role:form.role,
+    };
+    if (form.temporaryPassword) body.temporaryPassword = form.temporaryPassword;
+
+    try {
+      const payload = await postJson('/users', body);
+      setCreatedAccount(payload.data);
+      setStatus('Cuenta creada correctamente.');
+      event.currentTarget.reset();
+    } catch {
+      setStatus('No se pudo crear la cuenta. Revisa el correo y los datos ingresados.');
+    }
+  }
+
+  return (
+    <section className="academic-panel account-panel" aria-label="Creación de cuentas">
+      <div>
+        <p className="eyebrow">Cuentas</p>
+        <h2>Crear cuenta de academia</h2>
+        <p>Registra a una persona autorizada y entrega la contraseña temporal por el canal de la academia.</p>
+      </div>
+      <form className="account-form" onSubmit={submit}>
+        <label>Nombre completo<input name="name" autoComplete="name" required /></label>
+        <label>Correo electrónico<input name="email" type="email" autoComplete="email" required /></label>
+        <label>Rol<select name="role" required>{accountRoleOptions.map((role) => <option key={role.value} value={role.value}>{role.label}</option>)}</select></label>
+        <label>Contraseña temporal opcional<input name="temporaryPassword" type="password" autoComplete="new-password" placeholder="La academia puede generarla" /></label>
+        <button type="submit">Crear cuenta</button>
+      </form>
+      {createdAccount && (
+        <div className="credential-box" aria-live="polite">
+          <span>Contraseña temporal</span>
+          <strong>{createdAccount.temporaryPassword}</strong>
+          <p>Esta contraseña se muestra una sola vez. La persona deberá cambiarla en su primer ingreso.</p>
+        </div>
+      )}
+      <p className="form-status" aria-live="polite">{status}</p>
+    </section>
+  );
+}
+
+function PasswordChangeRequired({ user, onChanged }) {
+  const [status, setStatus] = useState('');
+
+  async function submit(event) {
+    event.preventDefault();
+    setStatus('');
+    const form = Object.fromEntries(new FormData(event.currentTarget).entries());
+    if (form.newPassword !== form.confirmPassword) {
+      setStatus('La nueva contraseña y la confirmación no coinciden.');
+      return;
+    }
+    try {
+      const payload = await postJson('/auth/change-password', {
+        currentPassword:form.currentPassword,
+        newPassword:form.newPassword,
+      });
+      onChanged(payload.data.user);
+    } catch {
+      setStatus('No se pudo actualizar la contraseña. Revisa la contraseña temporal e intenta nuevamente.');
+    }
+  }
+
+  return (
+    <section className="password-required-panel" aria-label="Cambio obligatorio de contraseña">
+      <div>
+        <p className="eyebrow">Primer ingreso</p>
+        <h1>Actualiza tu contraseña</h1>
+        <p className="dashboard-copy">
+          Hola, {user.name}. Para proteger tu cuenta debes cambiar la contraseña temporal antes de usar el panel privado.
+        </p>
+      </div>
+      <form className="password-change-form" onSubmit={submit}>
+        <label>Contraseña temporal<input name="currentPassword" type="password" autoComplete="current-password" required /></label>
+        <label>Nueva contraseña<input name="newPassword" type="password" autoComplete="new-password" required /></label>
+        <label>Confirmar nueva contraseña<input name="confirmPassword" type="password" autoComplete="new-password" required /></label>
+        <button type="submit">Guardar nueva contraseña</button>
+        <p className="form-status" aria-live="polite">{status}</p>
+      </form>
+    </section>
+  );
+}
+
 function PrivateDashboard() {
   const [output, setOutput] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [sessionReady, setSessionReady] = useState(false);
+
+  useEffect(() => {
+    apiRequest('/auth/me')
+      .then((payload) => {
+        setCurrentUser(payload.data.user);
+        setSessionReady(true);
+      })
+      .catch(() => {
+        window.location.href = '/login.html?session=expired';
+      });
+  }, []);
 
   return (
     <div className="dashboard-shell">
@@ -480,12 +603,28 @@ function PrivateDashboard() {
         </nav>
       </header>
       <main className="dashboard-main">
-        <section className="dashboard-hero">
+        {!sessionReady && (
+          <section className="dashboard-hero">
+            <div>
+              <p className="eyebrow">Panel académico</p>
+              <h1>Verificando sesión</h1>
+              <p className="dashboard-copy">Estamos preparando tu acceso privado.</p>
+            </div>
+          </section>
+        )}
+
+        {sessionReady && currentUser?.mustChangePassword && (
+          <PasswordChangeRequired user={currentUser} onChanged={setCurrentUser} />
+        )}
+
+        {sessionReady && currentUser && !currentUser.mustChangePassword && (
+          <>
+          <section className="dashboard-hero">
           <div>
             <p className="eyebrow">Gestión académica</p>
             <h1>Panel académico</h1>
             <p className="dashboard-copy">Registra asistencia, revisa sedes y mantén el seguimiento de clases en un solo lugar.</p>
-            <AuthStatus />
+            <AuthStatus user={currentUser} />
           </div>
           <div className="dashboard-badge">
             <span>Sesión activa</span>
@@ -501,10 +640,13 @@ function PrivateDashboard() {
         </section>
 
         <section className="attendance-grid" aria-label="Acciones de asistencia">
+          {accountManagerRoles.has(currentUser.role) && <AccountCreationPanel />}
           <StudentAttendanceForm onOutput={setOutput} />
           <TeacherCheckInForm onOutput={setOutput} />
           <ReportsPanel output={output} onOutput={setOutput} />
         </section>
+          </>
+        )}
       </main>
     </div>
   );
