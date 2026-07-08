@@ -11,8 +11,6 @@ const branches = [
   { name: 'Conocoto', focus: 'Espacio cercano para práctica de ritmos latinos, montaje y expresión escénica.' },
 ];
 
-const branchNames = branches.map((branch) => branch.name);
-
 const metrics = [
   ['5', 'sedes activas'],
   ['3', 'líneas de baile'],
@@ -77,27 +75,8 @@ const accountRoleOptions = [
 ];
 
 const accountManagerRoles = new Set(['Admin', 'GeneralDirector']);
-
-const studentOptions = [
-  {
-    value: '85f4bbe9-5d5f-4126-89b6-ddd9de432885',
-    label: 'Camila Rojas - Salsa B1',
-  },
-];
-
-const teacherOptions = [
-  {
-    value: '01c99342-ad47-4c4e-a094-6cab138d98e5',
-    label: 'Isabella Torres - Profesora de salsa',
-  },
-];
-
-const classSessionOptions = [
-  {
-    value: '76f37581-dbbc-4201-bb13-67fbc86f6d60',
-    label: 'Salsa B1 - Matriz - 18:00',
-  },
-];
+const directorRoles = new Set(['Admin', 'GeneralDirector', 'BranchDirector']);
+const attendanceWriterRoles = new Set(['Admin', 'GeneralDirector', 'BranchDirector', 'Teacher']);
 
 function LandingPage() {
   return (
@@ -343,12 +322,27 @@ function BranchesSection() {
 
 function EnrollmentForm() {
   const [status, setStatus] = useState('');
+  const [availableBranches, setAvailableBranches] = useState([]);
+
+  useEffect(() => {
+    apiRequest('/public/branches')
+      .then((payload) => setAvailableBranches(payload.data || []))
+      .catch(() => setAvailableBranches([]));
+  }, []);
 
   async function submit(event) {
     event.preventDefault();
     setStatus('');
     try {
-      await postJson('/enrollment-requests', Object.fromEntries(new FormData(event.currentTarget).entries()));
+      const form = Object.fromEntries(new FormData(event.currentTarget).entries());
+      const selectedBranch = availableBranches.find((branch) => branch.id === form.branchId);
+      await postJson('/enrollment-requests', {
+        fullName:form.fullName,
+        email:form.email,
+        branchId:form.branchId || undefined,
+        preferredBranch:selectedBranch?.name || form.preferredBranch || undefined,
+        styleInterest:form.styleInterest || undefined,
+      });
       event.currentTarget.reset();
       setStatus('Solicitud registrada. El equipo de la academia se comunicará contigo.');
     } catch {
@@ -366,7 +360,13 @@ function EnrollmentForm() {
       <form onSubmit={submit} className="enrollment-form">
         <label>Nombre completo<input name="fullName" autoComplete="name" required /></label>
         <label>Correo electrónico<input name="email" type="email" autoComplete="email" required /></label>
-        <label>Sede de preferencia<select name="preferredBranch">{branchNames.map((branch) => <option key={branch}>{branch}</option>)}</select></label>
+        <label>Sede de preferencia
+          {availableBranches.length ? (
+            <select name="branchId">{availableBranches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}</select>
+          ) : (
+            <input name="preferredBranch" placeholder="Norte, Matriz, Tumbaco" />
+          )}
+        </label>
         <label>Estilo de interés<input name="styleInterest" placeholder="Salsa, Hip Hop, Bachata" /></label>
         <button type="submit">Enviar solicitud</button>
         <p className="form-status" aria-live="polite">{status}</p>
@@ -425,7 +425,16 @@ async function submitAcademicAction(event, onOutput, path, successMessage) {
   }
 }
 
-function StudentAttendanceForm({ onOutput }) {
+function sessionLabel(session) {
+  const startsAt = session.startsAt ? new Date(session.startsAt) : null;
+  const time = startsAt && !Number.isNaN(startsAt.getTime())
+    ? startsAt.toLocaleString('es-EC', { dateStyle:'short', timeStyle:'short' })
+    : 'Horario pendiente';
+  return `${session.name || 'Clase'} - ${time}`;
+}
+
+function StudentAttendanceForm({ students, classSessions, onOutput }) {
+  const disabled = !students.length || !classSessions.length;
   return (
     <form
       onSubmit={(event) => submitAcademicAction(event, onOutput, '/student-attendance', 'Asistencia registrada correctamente.')}
@@ -433,15 +442,17 @@ function StudentAttendanceForm({ onOutput }) {
     >
       <p className="eyebrow">Asistencia</p>
       <h2>Registrar estudiante</h2>
-      <label>Estudiante<select name="studentId" required>{studentOptions.map((student) => <option key={student.value} value={student.value}>{student.label}</option>)}</select></label>
-      <label>Clase<select name="classSessionId" required>{classSessionOptions.map((session) => <option key={session.value} value={session.value}>{session.label}</option>)}</select></label>
+      {disabled && <p className="panel-note">No hay estudiantes o clases disponibles para registrar asistencia.</p>}
+      <label>Estudiante<select name="studentId" required disabled={!students.length}>{students.map((student) => <option key={student.id} value={student.id}>{student.fullName}</option>)}</select></label>
+      <label>Clase<select name="classSessionId" required disabled={!classSessions.length}>{classSessions.map((session) => <option key={session.id} value={session.id}>{sessionLabel(session)}</option>)}</select></label>
       <label>Estado<select name="status"><option value="present">Presente</option><option value="absent">Ausente</option><option value="justified">Justificado</option><option value="late">Atraso</option></select></label>
-      <button type="submit">Guardar asistencia</button>
+      <button type="submit" disabled={disabled}>Guardar asistencia</button>
     </form>
   );
 }
 
-function TeacherCheckInForm({ onOutput }) {
+function TeacherCheckInForm({ teachers, classSessions, onOutput }) {
+  const disabled = !teachers.length;
   return (
     <form
       onSubmit={(event) => submitAcademicAction(event, onOutput, '/teacher-attendance/check-in', 'Entrada del profesor registrada correctamente.')}
@@ -449,10 +460,32 @@ function TeacherCheckInForm({ onOutput }) {
     >
       <p className="eyebrow">Profesores</p>
       <h2>Marcar entrada</h2>
-      <label>Profesor<select name="teacherId" required>{teacherOptions.map((teacher) => <option key={teacher.value} value={teacher.value}>{teacher.label}</option>)}</select></label>
-      <label>Clase<select name="classSessionId">{classSessionOptions.map((session) => <option key={session.value} value={session.value}>{session.label}</option>)}</select></label>
-      <button type="submit">Registrar entrada</button>
+      {disabled && <p className="panel-note">No hay profesores disponibles para registrar entrada.</p>}
+      <label>Profesor<select name="teacherId" required disabled={!teachers.length}>{teachers.map((teacher) => <option key={teacher.id} value={teacher.id}>{teacher.fullName}</option>)}</select></label>
+      <label>Clase<select name="classSessionId" disabled={!classSessions.length}><option value="">Sin clase asociada</option>{classSessions.map((session) => <option key={session.id} value={session.id}>{sessionLabel(session)}</option>)}</select></label>
+      <button type="submit" disabled={disabled}>Registrar entrada</button>
     </form>
+  );
+}
+
+function StudentAttendanceHistory({ attendanceRecords }) {
+  return (
+    <div className="academic-panel">
+      <p className="eyebrow">Mi asistencia</p>
+      <h2>Historial reciente</h2>
+      {attendanceRecords.length ? (
+        <ul className="simple-list">
+          {attendanceRecords.slice(0, 6).map((record) => (
+            <li key={record.id}>
+              <strong>{record.status === 'present' ? 'Presente' : record.status === 'late' ? 'Atraso' : record.status === 'justified' ? 'Justificado' : 'Ausente'}</strong>
+              <span>{record.notes || 'Registro de clase'}</span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="panel-note">Todavía no tienes registros de asistencia visibles.</p>
+      )}
+    </div>
   );
 }
 
@@ -475,6 +508,60 @@ function ReportsPanel({ output, onOutput }) {
       <FriendlyOutput output={output} />
     </div>
   );
+}
+
+const emptyDashboardData = {
+  students:[],
+  teachers:[],
+  classSessions:[],
+  attendanceRecords:[],
+};
+
+async function fetchList(path) {
+  const payload = await apiRequest(path);
+  return payload.data || [];
+}
+
+async function loadDashboardData(role) {
+  const data = { ...emptyDashboardData };
+  const requests = [];
+
+  if (attendanceWriterRoles.has(role)) {
+    requests.push(fetchList('/students').then((rows) => { data.students = rows; }));
+    requests.push(fetchList('/teachers').then((rows) => { data.teachers = rows; }));
+    requests.push(fetchList('/class-sessions').then((rows) => { data.classSessions = rows; }));
+  }
+
+  if (role === 'Student') {
+    requests.push(fetchList('/students').then((rows) => { data.students = rows; }));
+    requests.push(fetchList('/student-attendance').then((rows) => { data.attendanceRecords = rows; }));
+  }
+
+  await Promise.allSettled(requests);
+  return data;
+}
+
+function dashboardOverview(role) {
+  if (role === 'Student') {
+    return [
+      ['Mi perfil', 'Consulta tu información académica registrada.'],
+      ['Mi asistencia', 'Revisa tus registros recientes y estados justificados.'],
+      ['Solicitudes', 'Presenta justificaciones cuando tengas una ausencia registrada.'],
+    ];
+  }
+  if (role === 'Teacher') {
+    return [
+      ['Mis clases', 'Revisa las clases asignadas para registrar asistencia.'],
+      ['Asistencia', 'Marca estudiantes presentes, ausentes, atrasados o justificados.'],
+      ['Entrada', 'Registra tu asistencia como profesor antes de iniciar clase.'],
+    ];
+  }
+  return [
+    ['Estudiantes', 'Asistencia, estados y seguimiento académico.'],
+    ['Profesores', 'Entradas, clases asignadas y horas registradas.'],
+    ['Sedes', 'Resumen de actividad por ubicación.'],
+    ['Solicitudes', 'Becas, justificaciones y promociones de nivel.'],
+  ];
 }
 
 function AccountCreationPanel() {
@@ -502,6 +589,20 @@ function AccountCreationPanel() {
     };
     if (form.temporaryPassword) body.temporaryPassword = form.temporaryPassword;
     if (form.role === 'BranchDirector') body.branchIds = formData.getAll('branchIds');
+    if (form.role === 'Student') {
+      body.studentProfile = {
+        branchId:form.branchId,
+        fullName:form.name,
+        level:form.level || 'B1',
+      };
+    }
+    if (form.role === 'Teacher') {
+      body.teacherProfile = {
+        branchId:form.branchId,
+        fullName:form.name,
+      };
+      if (form.hourlyRate) body.teacherProfile.hourlyRate = Number(form.hourlyRate);
+    }
 
     try {
       const payload = await postJson('/users', body);
@@ -526,6 +627,25 @@ function AccountCreationPanel() {
         <label>Correo electrónico<input name="email" type="email" autoComplete="email" required /></label>
         <label>Rol<select name="role" value={selectedRole} onChange={(event) => setSelectedRole(event.target.value)} required>{accountRoleOptions.map((role) => <option key={role.value} value={role.value}>{role.label}</option>)}</select></label>
         <label>Contraseña temporal opcional<input name="temporaryPassword" type="password" autoComplete="new-password" placeholder="La academia puede generarla" /></label>
+        {(selectedRole === 'Student' || selectedRole === 'Teacher') && (
+          <label>Sede
+            <select name="branchId" required>
+              <option value="">Selecciona una sede</option>
+              {availableBranches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}
+            </select>
+          </label>
+        )}
+        {selectedRole === 'Student' && (
+          <label>Nivel
+            <select name="level" defaultValue="B1">
+              <option value="B1">B1</option>
+              <option value="B2">B2</option>
+            </select>
+          </label>
+        )}
+        {selectedRole === 'Teacher' && (
+          <label>Tarifa por hora<input name="hourlyRate" type="number" min="0" step="0.01" placeholder="12.50" /></label>
+        )}
         {selectedRole === 'BranchDirector' && (
           <fieldset className="branch-checkbox-list">
             <legend>Sedes asignadas</legend>
@@ -597,6 +717,8 @@ function PrivateDashboard() {
   const [output, setOutput] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
   const [sessionReady, setSessionReady] = useState(false);
+  const [dashboardData, setDashboardData] = useState(emptyDashboardData);
+  const [dashboardLoading, setDashboardLoading] = useState(false);
 
   useEffect(() => {
     apiRequest('/auth/me')
@@ -608,6 +730,20 @@ function PrivateDashboard() {
         window.location.href = '/login.html?session=expired';
       });
   }, []);
+
+  useEffect(() => {
+    if (!sessionReady || !currentUser || currentUser.mustChangePassword) return undefined;
+    let mounted = true;
+    setDashboardLoading(true);
+    loadDashboardData(currentUser.role)
+      .then((data) => {
+        if (mounted) setDashboardData(data);
+      })
+      .finally(() => {
+        if (mounted) setDashboardLoading(false);
+      });
+    return () => { mounted = false; };
+  }, [sessionReady, currentUser?.role, currentUser?.mustChangePassword]);
 
   return (
     <div className="dashboard-shell">
@@ -655,17 +791,22 @@ function PrivateDashboard() {
         </section>
 
         <section className="overview-list" aria-label="Opciones del panel">
-          <article><span>Estudiantes</span><p>Asistencia, estados y seguimiento académico.</p></article>
-          <article><span>Profesores</span><p>Entradas, clases asignadas y horas registradas.</p></article>
-          <article><span>Sedes</span><p>Resumen de actividad por ubicación.</p></article>
-          <article><span>Solicitudes</span><p>Becas, justificaciones y promociones de nivel.</p></article>
+          {dashboardOverview(currentUser.role).map(([title, copy]) => (
+            <article key={title}><span>{title}</span><p>{copy}</p></article>
+          ))}
         </section>
 
         <section className="attendance-grid" aria-label="Acciones de asistencia">
           {accountManagerRoles.has(currentUser.role) && <AccountCreationPanel />}
-          <StudentAttendanceForm onOutput={setOutput} />
-          <TeacherCheckInForm onOutput={setOutput} />
-          <ReportsPanel output={output} onOutput={setOutput} />
+          {dashboardLoading && <p className="panel-note">Cargando información académica...</p>}
+          {currentUser.role === 'Student' && <StudentAttendanceHistory attendanceRecords={dashboardData.attendanceRecords} />}
+          {attendanceWriterRoles.has(currentUser.role) && (
+            <StudentAttendanceForm students={dashboardData.students} classSessions={dashboardData.classSessions} onOutput={setOutput} />
+          )}
+          {attendanceWriterRoles.has(currentUser.role) && (
+            <TeacherCheckInForm teachers={dashboardData.teachers} classSessions={dashboardData.classSessions} onOutput={setOutput} />
+          )}
+          {directorRoles.has(currentUser.role) && <ReportsPanel output={output} onOutput={setOutput} />}
         </section>
           </>
         )}

@@ -726,6 +726,33 @@ select:focus {
 
 .academic-panel p { margin: 0; }
 
+.panel-note {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.simple-list {
+  display: grid;
+  gap: 10px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.simple-list li {
+  border-bottom: 1px solid var(--line);
+  display: grid;
+  gap: 4px;
+  padding-bottom: 10px;
+}
+
+.simple-list strong { color: #e0f2fe; }
+
+.simple-list span {
+  color: var(--muted);
+  font-size: 14px;
+}
+
 .reports-panel { align-content: start; }
 
 .account-panel {
