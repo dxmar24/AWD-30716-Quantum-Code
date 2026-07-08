@@ -1,6 +1,7 @@
 const crypto = require('crypto');
 const { AppError } = require('../exceptions/AppError');
 const { hashPassword } = require('../utils/passwordHasher');
+const { Roles } = require('../models/constants');
 
 function publicUser(user) {
   if (!user) return null;
@@ -50,6 +51,9 @@ class AcademicService {
     if (await this.db.users.findBy('email', email)) throw new AppError('User already exists', 409);
 
     const uniqueBranchIds = [...new Set(data.branchIds || [])];
+    if (data.role === Roles.BRANCH_DIRECTOR && !uniqueBranchIds.length) {
+      throw new AppError('BranchDirector accounts require at least one assigned branch', 422, { code:'BRANCH_ACCESS_REQUIRED' });
+    }
     for (const branchId of uniqueBranchIds) {
       if (!(await this.db.branches.findById(branchId))) throw new AppError('Branch not found', 404);
     }

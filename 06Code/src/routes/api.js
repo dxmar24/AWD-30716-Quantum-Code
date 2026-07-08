@@ -68,7 +68,7 @@ function buildApi(deps) {
   router.post('/users', allowRoles(Roles.ADMIN, Roles.GENERAL_DIRECTOR), validate(accountCreate), wrap(academic.createUser));
   router.patch('/users/:id/role', allowRoles(Roles.ADMIN), validate(roleUpdate), wrap(academic.updateUserRole));
   router.get('/users/:id/branch-access', allowRoles(Roles.ADMIN, Roles.GENERAL_DIRECTOR), wrap(academic.listUserBranchAccess));
-  router.patch('/users/:id/branch-access', allowRoles(Roles.ADMIN), validate(branchAccessUpdate), wrap(academic.updateUserBranchAccess));
+  router.patch('/users/:id/branch-access', allowRoles(Roles.ADMIN, Roles.GENERAL_DIRECTOR), validate(branchAccessUpdate), wrap(academic.updateUserBranchAccess));
   router.get('/roles', requireAuth, requirePasswordReady, privateCache(1800, 'private-reference-roles'), wrap(async (req, res) => res.json({
     success:true,
     message:'Roles list',
