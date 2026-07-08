@@ -20,10 +20,11 @@ A visitor should learn about American Latin Class, submit an enrollment request 
 2. System serves the public American Latin Class landing experience.
 3. Visitor opens the login page through `/login.html`.
 4. System serves the login page without requiring a session.
-5. Visitor submits an enrollment request through `POST /api/v1/enrollment-requests`.
-6. System validates the name and email.
-7. System stores the request with pending review status.
-8. Director roles can later review the request queue.
+5. The public enrollment form loads active branches through `GET /api/v1/public/branches`.
+6. Visitor submits an enrollment request through `POST /api/v1/enrollment-requests`.
+7. System validates the name, email and selected branch when provided.
+8. System stores the request with pending review status.
+9. Director roles can later review the request queue.
 
 Expected result: enrollment request returns `201`.
 
@@ -38,6 +39,7 @@ Expected result: enrollment request returns `201`.
 - `GET /`
 - `GET /login.html`
 - `GET /api/v1/auth/config`
+- `GET /api/v1/public/branches`
 - `POST /api/v1/enrollment-requests`
 - `GET /private/dashboard.html`
 - `POST /api/v1/auth/google`

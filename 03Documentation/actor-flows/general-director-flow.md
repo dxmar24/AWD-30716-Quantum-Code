@@ -21,15 +21,18 @@ The GeneralDirector should operate as the academy owner: create accounts, assign
 3. System creates a private session.
 4. GeneralDirector lists users through `GET /api/v1/users`.
 5. GeneralDirector creates a user through `POST /api/v1/users`.
-6. If creating a BranchDirector, GeneralDirector assigns at least one branch in `branchIds`.
-7. GeneralDirector reviews or replaces branch access through `/api/v1/users/{id}/branch-access`.
-8. GeneralDirector reads permissions and branch reports.
-9. GeneralDirector reads audit logs.
+6. If creating a Student or Teacher, GeneralDirector includes the linked academic profile payload.
+7. If creating a BranchDirector, GeneralDirector assigns at least one branch in `branchIds`.
+8. GeneralDirector reviews or replaces BranchDirector branch access through `/api/v1/users/{id}/branch-access`.
+9. GeneralDirector reads permissions and branch reports.
+10. GeneralDirector reads audit logs.
 
 Expected result: GeneralDirector can manage academy accounts and branch scopes without needing technical Admin access.
 
 ## Alternate Flows
 - Creating a BranchDirector without `branchIds` returns `422 BRANCH_ACCESS_REQUIRED`.
+- Creating a Student or Teacher without the matching profile payload returns `422`.
+- Creating an Admin account as GeneralDirector returns `403 ADMIN_ROLE_RESTRICTED`.
 - Assigning a non-existent branch returns `404`.
 - GeneralDirector can create users and branch access, but cannot change existing user roles through `PATCH /api/v1/users/{id}/role`; that action remains Admin-only.
 - Created users receive a temporary password and must change it before protected academic flows.
@@ -50,6 +53,7 @@ Expected result: GeneralDirector can manage academy accounts and branch scopes w
 - GeneralDirector login.
 - Create academy account panel.
 - BranchDirector account creation with selected branches.
+- Student or Teacher account creation with academic profile data.
 - Temporary password returned once.
 - Branch access list showing assigned branches.
 - Global branch report.
