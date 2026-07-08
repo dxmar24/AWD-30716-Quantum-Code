@@ -65,6 +65,9 @@ FROM dance_categories c
 JOIN (VALUES
 ('Urban','Hip hop'),
 ('Urban','Afro'),
+('Urban','Hip Hop Foundation'),
+('Urban','Afro Foundation'),
+('Urban','Dancehall Skanking'),
 ('Urban','House'),
 ('Urban','Locking'),
 ('Urban','Popping'),
@@ -72,8 +75,11 @@ JOIN (VALUES
 ('Urban','Dancehall'),
 ('Urban','Fem'),
 ('Urban','Heels'),
+('Urban','Heels Technique'),
 ('Tropical','Salsa'),
+('Tropical','Salsa Level 1'),
 ('Tropical','Bachata'),
+('Tropical','Bachata Sensual'),
 ('Ethnic','Traditional Ecuadorian dances')
 ) AS s(category,name) ON s.category=c.name
 ON CONFLICT DO NOTHING;

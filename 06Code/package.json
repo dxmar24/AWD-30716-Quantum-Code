@@ -20,6 +20,7 @@
     "db:seed:business-rules": "node scripts/seed-business-rule-demo-data.js",
     "db:seed:real-verification": "node scripts/seed-real-verification-data.js",
     "db:seed:role-test": "node scripts/seed-role-test-data.js",
+    "db:seed:academic-demo": "node scripts/seed-academic-demo-data.js",
     "db:normalize:levels": "node scripts/normalize-academic-levels.js",
     "postman:evidence:local": "node scripts/run-postman-local-evidence.js",
     "test:api:validation": "node scripts/api-validation-suite.js"
