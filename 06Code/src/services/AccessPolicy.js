@@ -60,7 +60,7 @@ class AccessPolicy {
   async branchIdForResource(entityName, resource) {
     if (!resource) return null;
     if (entityName === 'branches') return resource.id;
-    if (['students', 'teachers', 'class-groups', 'enrollment-requests'].includes(entityName)) return resource.branchId || null;
+    if (['students', 'teachers', 'class-groups', 'enrollment-requests', 'academy-events', 'student-payments'].includes(entityName)) return resource.branchId || null;
     if (entityName === 'class-sessions') return (await this.classGroupForSession(resource))?.branchId || null;
     if (entityName === 'student-attendance') {
       const student = resource.studentId ? await this.db.students.findById(resource.studentId) : null;
@@ -132,6 +132,25 @@ class AccessPolicy {
       }
     }
 
+    if (entityName === 'academy-events') {
+      if (resource.active === false) return false;
+      if (user.role === Roles.STUDENT) {
+        const student = await this.userStudent(user);
+        return Boolean(student
+          && student.branchId === resource.branchId
+          && (resource.level === 'ALL' || resource.level === student.level));
+      }
+      if (user.role === Roles.TEACHER) return this.canAccessBranch(user, resource.branchId);
+    }
+
+    if (entityName === 'student-payments') {
+      if (user.role === Roles.STUDENT) {
+        const student = await this.userStudent(user);
+        return Boolean(student && student.id === resource.studentId);
+      }
+      if (user.role === Roles.TEACHER) return false;
+    }
+
     if (entityName === 'student-attendance') {
       if (user.role === Roles.STUDENT) return this.studentOwnsStudentId(user, resource.studentId);
       if (user.role === Roles.TEACHER) return this.teacherCanAccessStudent(user, resource.studentId, resource.classSessionId);
@@ -182,7 +201,7 @@ class AccessPolicy {
 
     if (['branches', 'dance-categories', 'dance-styles'].includes(entityName)) this.deny();
 
-    if (['students', 'teachers', 'class-groups'].includes(entityName)) {
+    if (['students', 'teachers', 'class-groups', 'academy-events', 'student-payments'].includes(entityName)) {
       return this.requireBranchAccess(user, data.branchId);
     }
 
@@ -228,7 +247,7 @@ class AccessPolicy {
     if (this.isGlobal(user)) return;
     if (!(await this.canReadResource(user, entityName, resource))) this.deny();
 
-    if (['students', 'teachers', 'class-groups'].includes(entityName) && updates.branchId && updates.branchId !== resource.branchId) {
+    if (['students', 'teachers', 'class-groups', 'academy-events', 'student-payments'].includes(entityName) && updates.branchId && updates.branchId !== resource.branchId) {
       await this.requireBranchAccess(user, updates.branchId);
     }
 

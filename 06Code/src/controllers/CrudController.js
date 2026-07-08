@@ -5,6 +5,7 @@ const cacheConfig = {
   branches:{ ttlSeconds:300, tags:['branches'] },
   'dance-categories':{ ttlSeconds:600, tags:['dance-categories'] },
   'dance-styles':{ ttlSeconds:600, tags:['dance-styles'] },
+  'academy-events':{ ttlSeconds:60, tags:['academy-events'] },
 };
 
 const mutationTags = {
@@ -15,6 +16,8 @@ const mutationTags = {
   'dance-styles':['dance-styles'],
   'class-groups':['class-groups', 'reports'],
   'class-sessions':['class-sessions', 'attendance', 'reports'],
+  'academy-events':['academy-events', 'reports'],
+  'student-payments':['student-payments', 'reports'],
 };
 
 class CrudController {

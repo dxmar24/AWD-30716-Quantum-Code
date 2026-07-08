@@ -34,8 +34,10 @@ class DatabaseContext {
     this.danceCategories = new InMemoryRepository([{ id:categoryIds.urban, name:'Urban' },{ id:categoryIds.tropical, name:'Tropical' },{ id:categoryIds.ethnic, name:'Ethnic' }]);
     this.danceStyles = new InMemoryRepository([{ categoryId:categoryIds.urban, name:'Hip hop' },{ categoryId:categoryIds.urban, name:'Afro' },{ categoryId:categoryIds.urban, name:'House' },{ categoryId:categoryIds.urban, name:'Locking' },{ categoryId:categoryIds.urban, name:'Popping' },{ categoryId:categoryIds.urban, name:'Waacking' },{ categoryId:categoryIds.urban, name:'Dancehall' },{ categoryId:categoryIds.urban, name:'Fem' },{ categoryId:categoryIds.urban, name:'Heels' },{ categoryId:categoryIds.tropical, name:'Salsa' },{ categoryId:categoryIds.tropical, name:'Bachata' },{ categoryId:categoryIds.ethnic, name:'Traditional Ecuadorian dances' }]);
     this.teacherStyles = new InMemoryRepository([]);
-    this.classGroups = new InMemoryRepository([{ id:'dddddddd-dddd-4ddd-8ddd-dddddddddddd', branchId:branchIds.norte, level:'B1', styleId:null, teacherId:'cccccccc-cccc-4ccc-8ccc-cccccccccccc', name:'B1 Urban Norte', active:true }]);
-    this.classSessions = new InMemoryRepository([{ id:'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', classGroupId:'dddddddd-dddd-4ddd-8ddd-dddddddddddd', startsAt:'2026-06-01T18:00:00.000Z', endsAt:'2026-06-01T20:00:00.000Z', status:'scheduled' }]);
+    this.classGroups = new InMemoryRepository([{ id:'dddddddd-dddd-4ddd-8ddd-dddddddddddd', branchId:branchIds.norte, level:'B1', styleId:null, teacherId:'cccccccc-cccc-4ccc-8ccc-cccccccccccc', name:'Hip Hop Foundation', active:true }]);
+    this.classSessions = new InMemoryRepository([{ id:'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', classGroupId:'dddddddd-dddd-4ddd-8ddd-dddddddddddd', name:'Hip Hop Foundation', startsAt:'2026-06-01T18:00:00.000Z', endsAt:'2026-06-01T20:00:00.000Z', status:'scheduled' }]);
+    this.academyEvents = new InMemoryRepository([]);
+    this.studentPayments = new InMemoryRepository([]);
     this.studentAttendance = new InMemoryRepository([]);
     this.teacherAttendance = new InMemoryRepository([]);
     this.absenceJustifications = new InMemoryRepository([]);

@@ -16,6 +16,8 @@ class PrismaDatabaseContext {
     this.teacherStyles = new PrismaRepository(this.prisma.teacherStyle);
     this.classGroups = new PrismaRepository(this.prisma.classGroup);
     this.classSessions = new PrismaRepository(this.prisma.classSession);
+    this.academyEvents = new PrismaRepository(this.prisma.academyEvent);
+    this.studentPayments = new PrismaRepository(this.prisma.studentPayment);
     this.studentAttendance = new PrismaRepository(this.prisma.studentAttendanceRecord);
     this.teacherAttendance = new PrismaRepository(this.prisma.teacherAttendanceRecord);
     this.absenceJustifications = new PrismaRepository(this.prisma.absenceJustification);

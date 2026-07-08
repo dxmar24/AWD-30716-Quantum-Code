@@ -1,7 +1,7 @@
 const express = require('express');
 const rateLimit = require('express-rate-limit');
 const { env } = require('../config/env');
-const { z, attendanceRecord, teacherCheck, roleUpdate, accountCreate, passwordChange, branchAccessUpdate, enrollmentRequest, absenceJustification, absenceReview, scholarshipEvaluation, levelPromotionEvaluation, branch, student, teacher, danceCategory, danceStyle, classGroup, classSession } = require('../validators/commonValidators');
+const { z, attendanceRecord, teacherCheck, roleUpdate, accountCreate, passwordChange, branchAccessUpdate, enrollmentRequest, absenceJustification, absenceReview, scholarshipEvaluation, levelPromotionEvaluation, branch, student, studentPhoto, teacher, danceCategory, danceStyle, classGroup, classSession, academyEvent, studentPayment } = require('../validators/commonValidators');
 const { validate } = require('../middleware/validate');
 const { requireAuth, requirePasswordReady, allowRoles } = require('../middleware/auth');
 const { noStore, publicCache, privateCache } = require('../middleware/cacheControl');
@@ -96,6 +96,39 @@ function buildApi(deps) {
   registerCrud(router, 'dance-styles', deps.db.danceStyles, danceStyle, deps.accessPolicy, deps.cacheService);
   registerCrud(router, 'class-groups', deps.db.classGroups, classGroup, deps.accessPolicy, deps.cacheService);
   registerCrud(router, 'class-sessions', deps.db.classSessions, classSession, deps.accessPolicy, deps.cacheService);
+  registerCrud(router, 'academy-events', deps.db.academyEvents, academyEvent, deps.accessPolicy, deps.cacheService);
+  registerCrud(router, 'student-payments', deps.db.studentPayments, studentPayment, deps.accessPolicy, deps.cacheService);
+
+  router.patch('/students/me/profile-photo', allowRoles(Roles.STUDENT), validate(studentPhoto), wrap(async (req, res) => {
+    const profile = await deps.db.students.findBy('userId', req.sessionUser.id);
+    if (!profile) return res.status(404).json({ success:false, message:'Student profile not found' });
+    const updated = await deps.db.students.update(profile.id, {
+      profilePhotoUrl:req.body.profilePhotoUrl,
+      profilePhotoUpdatedAt:new Date().toISOString(),
+    });
+    if (deps.cacheService) deps.cacheService.invalidateTags(['students']);
+    return res.json({ success:true, message:'Profile photo updated', data:updated });
+  }));
+
+  router.delete('/students/me/profile-photo', allowRoles(Roles.STUDENT), wrap(async (req, res) => {
+    const profile = await deps.db.students.findBy('userId', req.sessionUser.id);
+    if (!profile) return res.status(404).json({ success:false, message:'Student profile not found' });
+    const updated = await deps.db.students.update(profile.id, {
+      profilePhotoUrl:null,
+      profilePhotoUpdatedAt:new Date().toISOString(),
+    });
+    if (deps.cacheService) deps.cacheService.invalidateTags(['students']);
+    return res.json({ success:true, message:'Profile photo removed', data:updated });
+  }));
+
+  router.delete('/academy-events/:id', allowRoles(...writeRoles), wrap(async (req, res) => {
+    const event = await deps.db.academyEvents.findById(req.params.id);
+    if (!event) return res.status(404).json({ success:false, message:'Academy event not found' });
+    if (deps.accessPolicy) await deps.accessPolicy.assertCanUpdate(req.sessionUser, 'academy-events', event, { active:false });
+    const updated = await deps.db.academyEvents.update(req.params.id, { active:false });
+    if (deps.cacheService) deps.cacheService.invalidateTags(['academy-events', 'reports']);
+    return res.json({ success:true, message:'Academy event removed', data:updated });
+  }));
 
   router.get('/student-attendance', requireAuth, requirePasswordReady, wrap(async (req, res) => {
     const rows = await deps.db.studentAttendance.all();
@@ -111,6 +144,8 @@ function buildApi(deps) {
   router.patch('/absence-justifications/:id/review', allowRoles(...directorRoles), validate(absenceReview), wrap(academic.reviewAbsenceJustification));
 
   router.get('/reports/branches/summary', allowRoles(...directorRoles), privateCache(30, 'private-scoped-report-cache'), wrap(reports.branchSummary));
+  router.get('/reports/general', allowRoles(Roles.ADMIN, Roles.GENERAL_DIRECTOR), privateCache(30, 'private-scoped-report-cache'), wrap(reports.generalReport));
+  router.get('/reports/branches/:branchId/detail', allowRoles(...directorRoles), privateCache(30, 'private-scoped-report-cache'), wrap(reports.branchDetail));
   router.get('/reports/scholarships/:studentId/candidate', allowRoles(...directorRoles), wrap(reports.scholarshipCandidate));
   router.get('/reports/level-promotions/:studentId/candidate', allowRoles(...directorRoles), wrap(reports.promotionCandidate));
   router.get('/reports/teachers/:teacherId/payment', allowRoles(...directorRoles), wrap(reports.teacherPayment));

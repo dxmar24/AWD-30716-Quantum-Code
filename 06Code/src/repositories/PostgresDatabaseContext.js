@@ -15,6 +15,8 @@ class PostgresDatabaseContext {
     this.teacherStyles = new PostgresRepository(this.pool, 'teacher_styles');
     this.classGroups = new PostgresRepository(this.pool, 'class_groups');
     this.classSessions = new PostgresRepository(this.pool, 'class_sessions');
+    this.academyEvents = new PostgresRepository(this.pool, 'academy_events');
+    this.studentPayments = new PostgresRepository(this.pool, 'student_payments');
     this.studentAttendance = new PostgresRepository(this.pool, 'student_attendance_records');
     this.teacherAttendance = new PostgresRepository(this.pool, 'teacher_attendance_records');
     this.absenceJustifications = new PostgresRepository(this.pool, 'absence_justifications');

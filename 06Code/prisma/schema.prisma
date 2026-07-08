@@ -18,6 +18,8 @@ model Branch {
   classGroups        ClassGroup[]
   enrollmentRequests EnrollmentRequest[]
   userBranchAccess   UserBranchAccess[]
+  academyEvents      AcademyEvent[]
+  studentPayments    StudentPayment[]
 
   @@map("branches")
 }
@@ -51,25 +53,25 @@ model RolePermission {
 }
 
 model User {
-  id                    String                     @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  googleSub             String?                    @unique @map("google_sub") @db.VarChar(160)
-  email                 String                     @unique @db.VarChar(160)
-  name                  String                     @db.VarChar(160)
-  passwordHash          String?                    @map("password_hash")
-  mustChangePassword    Boolean                    @default(false) @map("must_change_password")
-  passwordChangedAt     DateTime?                  @map("password_changed_at") @db.Timestamptz
-  roleId                String?                    @map("role_id") @db.Uuid
-  active                Boolean                    @default(true)
-  createdAt             DateTime                   @default(now()) @map("created_at") @db.Timestamptz
-  role                  Role?                      @relation(fields: [roleId], references: [id])
-  student               Student?
-  teacher               Teacher?
-  sessions              Session[]
-  reviewedJustifications AbsenceJustification[]
-  scholarshipEvaluations ScholarshipEvaluation[]
+  id                        String                     @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  googleSub                 String?                    @unique @map("google_sub") @db.VarChar(160)
+  email                     String                     @unique @db.VarChar(160)
+  name                      String                     @db.VarChar(160)
+  passwordHash              String?                    @map("password_hash")
+  mustChangePassword        Boolean                    @default(false) @map("must_change_password")
+  passwordChangedAt         DateTime?                  @map("password_changed_at") @db.Timestamptz
+  roleId                    String?                    @map("role_id") @db.Uuid
+  active                    Boolean                    @default(true)
+  createdAt                 DateTime                   @default(now()) @map("created_at") @db.Timestamptz
+  role                      Role?                      @relation(fields: [roleId], references: [id])
+  student                   Student?
+  teacher                   Teacher?
+  sessions                  Session[]
+  reviewedJustifications    AbsenceJustification[]
+  scholarshipEvaluations    ScholarshipEvaluation[]
   levelPromotionEvaluations LevelPromotionEvaluation[]
-  auditLogs             AuditLog[]
-  branchAccess          UserBranchAccess[]
+  auditLogs                 AuditLog[]
+  branchAccess              UserBranchAccess[]
 
   @@map("users")
 }
@@ -88,17 +90,20 @@ model UserBranchAccess {
 }
 
 model Student {
-  id                         String                     @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  userId                     String?                    @unique @map("user_id") @db.Uuid
-  branchId                   String                     @map("branch_id") @db.Uuid
-  fullName                   String                     @map("full_name") @db.VarChar(160)
-  level                      String                     @db.VarChar(2)
-  active                     Boolean                    @default(true)
-  user                       User?                      @relation(fields: [userId], references: [id])
-  branch                     Branch                     @relation(fields: [branchId], references: [id])
-  attendanceRecords          StudentAttendanceRecord[]
-  scholarshipEvaluations     ScholarshipEvaluation[]
-  levelPromotionEvaluations  LevelPromotionEvaluation[]
+  id                        String                     @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId                    String?                    @unique @map("user_id") @db.Uuid
+  branchId                  String                     @map("branch_id") @db.Uuid
+  fullName                  String                     @map("full_name") @db.VarChar(160)
+  level                     String                     @db.VarChar(2)
+  active                    Boolean                    @default(true)
+  profilePhotoUrl           String?                    @map("profile_photo_url")
+  profilePhotoUpdatedAt     DateTime?                  @map("profile_photo_updated_at") @db.Timestamptz
+  user                      User?                      @relation(fields: [userId], references: [id])
+  branch                    Branch                     @relation(fields: [branchId], references: [id])
+  attendanceRecords         StudentAttendanceRecord[]
+  scholarshipEvaluations    ScholarshipEvaluation[]
+  levelPromotionEvaluations LevelPromotionEvaluation[]
+  payments                  StudentPayment[]
 
   @@index([branchId])
   @@map("students")
@@ -170,6 +175,7 @@ model ClassSession {
   classGroupId             String?                   @map("class_group_id") @db.Uuid
   startsAt                 DateTime                  @map("starts_at") @db.Timestamptz
   endsAt                   DateTime                  @map("ends_at") @db.Timestamptz
+  name                     String?                   @db.VarChar(120)
   status                   String?                   @default("scheduled") @db.VarChar(20)
   classGroup               ClassGroup?               @relation(fields: [classGroupId], references: [id])
   studentAttendanceRecords StudentAttendanceRecord[]
@@ -279,6 +285,49 @@ model EnrollmentRequest {
   branch          Branch?  @relation(fields: [branchId], references: [id])
 
   @@map("enrollment_requests")
+}
+
+model AcademyEvent {
+  id          String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  branchId    String?   @map("branch_id") @db.Uuid
+  title       String    @db.VarChar(160)
+  description String?
+  level       String    @default("ALL") @db.VarChar(3)
+  startsAt    DateTime  @map("starts_at") @db.Timestamptz
+  endsAt      DateTime? @map("ends_at") @db.Timestamptz
+  location    String?   @db.VarChar(160)
+  showIncome  Decimal   @default(0) @map("show_income") @db.Decimal(10, 2)
+  active      Boolean   @default(true)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  branch      Branch?   @relation(fields: [branchId], references: [id])
+
+  @@index([branchId])
+  @@index([level])
+  @@index([startsAt])
+  @@map("academy_events")
+}
+
+model StudentPayment {
+  id        String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  studentId String?   @map("student_id") @db.Uuid
+  branchId  String?   @map("branch_id") @db.Uuid
+  amount    Decimal   @default(0) @db.Decimal(10, 2)
+  concept   String    @db.VarChar(100)
+  period    String    @db.VarChar(7)
+  status    String    @default("pending") @db.VarChar(20)
+  paidAt    DateTime? @map("paid_at") @db.Timestamptz
+  dueAt     DateTime? @map("due_at") @db.Timestamptz
+  notes     String?
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  student   Student?  @relation(fields: [studentId], references: [id])
+  branch    Branch?   @relation(fields: [branchId], references: [id])
+
+  @@unique([studentId, period, concept])
+  @@index([studentId])
+  @@index([branchId])
+  @@index([status])
+  @@index([period])
+  @@map("student_payments")
 }
 
 model Session {
