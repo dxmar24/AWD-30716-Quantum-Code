@@ -80,29 +80,29 @@ const attendanceWriterRoles = new Set(['Teacher']);
 
 const roleModuleLinks = {
   Admin: [
-    ['Cuentas', '#cuentas'],
-    ['Seguridad', '#seguridad'],
-    ['Auditoría', '#seguridad'],
+    { id:'cuentas', label:'Cuentas' },
+    { id:'seguridad', label:'Seguridad' },
+    { id:'auditoria', label:'Auditoría' },
   ],
   GeneralDirector: [
-    ['Indicadores', '#indicadores'],
-    ['Cuentas', '#cuentas'],
-    ['Reportes', '#reportes'],
+    { id:'indicadores', label:'Indicadores' },
+    { id:'cuentas', label:'Cuentas' },
+    { id:'reportes', label:'Reportes' },
   ],
   BranchDirector: [
-    ['Mi sede', '#sede'],
-    ['Solicitudes', '#solicitudes'],
-    ['Reportes', '#reportes'],
+    { id:'sede', label:'Mi sede' },
+    { id:'solicitudes', label:'Solicitudes' },
+    { id:'reportes', label:'Reportes' },
   ],
   Teacher: [
-    ['Clase de hoy', '#clase'],
-    ['Asistencia', '#asistencia'],
-    ['Mi entrada', '#entrada'],
+    { id:'clase', label:'Clase de hoy' },
+    { id:'asistencia', label:'Asistencia' },
+    { id:'entrada', label:'Mi entrada' },
   ],
   Student: [
-    ['Inicio', '#inicio'],
-    ['Asistencia', '#asistencia'],
-    ['Justificaciones', '#justificaciones'],
+    { id:'inicio', label:'Inicio' },
+    { id:'asistencia', label:'Asistencia' },
+    { id:'justificaciones', label:'Justificaciones' },
   ],
 };
 
@@ -465,6 +465,9 @@ function statusLabel(status) {
     late:'Atraso',
     justified:'Justificado',
     absent:'Ausente',
+    pending:'Pendiente',
+    approved:'Aprobada',
+    rejected:'Rechazada',
   }[status] || 'Registrado';
 }
 
@@ -638,6 +641,56 @@ function StudentJustificationPanel({ attendanceRecords, onOutput }) {
   );
 }
 
+function StudentHomePanel({ data }) {
+  return (
+    <section className="academic-panel" id="inicio">
+      <p className="eyebrow">Inicio</p>
+      <h2>Tu seguimiento académico</h2>
+      <ul className="simple-list">
+        <li><strong>Asistencia personal</strong><span>Consulta tus registros recientes y detecta ausencias pendientes.</span></li>
+        <li><strong>Justificaciones</strong><span>Envía una solicitud solo cuando exista una ausencia registrada en tu perfil.</span></li>
+        <li><strong>Nivel académico</strong><span>{data.students[0]?.level ? `Tu nivel actual es ${data.students[0].level}.` : 'Tu nivel se mostrará cuando la sede complete tu perfil.'}</span></li>
+      </ul>
+    </section>
+  );
+}
+
+function TeacherClassPanel({ data }) {
+  return (
+    <section className="academic-panel" id="clase">
+      <p className="eyebrow">Clase de hoy</p>
+      <h2>Preparación de clase</h2>
+      <ul className="simple-list">
+        <li><strong>{data.classSessions.length} clases visibles</strong><span>Selecciona la clase correspondiente antes de guardar asistencia.</span></li>
+        <li><strong>{data.students.length} estudiantes en lista</strong><span>La asistencia se registra desde una lista completa para evitar errores.</span></li>
+        <li><strong>Entrada del profesor</strong><span>Registra tu llegada en la sección Mi entrada cuando inicie la clase.</span></li>
+      </ul>
+    </section>
+  );
+}
+
+function DirectorRequestsPanel({ data }) {
+  const requests = data.absenceJustifications.slice(0, 6);
+  return (
+    <section className="academic-panel" id="solicitudes">
+      <p className="eyebrow">Solicitudes</p>
+      <h2>Justificaciones pendientes</h2>
+      {requests.length ? (
+        <ul className="simple-list">
+          {requests.map((request) => (
+            <li key={request.id}>
+              <strong>{statusLabel(request.status)}</strong>
+              <span>{cleanDisplayText(request.reason, 'Solicitud de justificación')}</span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="panel-note">No hay solicitudes pendientes para revisar.</p>
+      )}
+    </section>
+  );
+}
+
 function ReportsPanel({ output, onOutput }) {
   return (
     <div className="academic-panel reports-panel">
@@ -704,52 +757,46 @@ async function loadDashboardData(role) {
   return data;
 }
 
-function dashboardOverview(role) {
-  if (role === 'Student') {
-    return [
-      ['Próxima clase', 'Horario visible según tu perfil académico.'],
-      ['Asistencia', 'Consulta estados, ausencias y atrasos registrados.'],
-      ['Justificaciones', 'Envía solicitudes solo sobre tus propias ausencias.'],
-    ];
-  }
-  if (role === 'Teacher') {
-    return [
-      ['Clase de hoy', 'Trabaja solamente con tus clases asignadas.'],
-      ['Lista completa', 'Marca la asistencia de la clase en una sola pantalla.'],
-      ['Mi entrada', 'Registra tu llegada para la clase correspondiente.'],
-    ];
-  }
-  if (role === 'BranchDirector') {
-    return [
-      ['Mi sede', 'Supervisa estudiantes, profesores y clases asignadas.'],
-      ['Solicitudes', 'Revisa justificaciones pendientes de tu sede.'],
-      ['Incidencias', 'Corrige registros solo con motivo y auditoría.'],
-    ];
-  }
-  if (role === 'GeneralDirector') {
-    return [
-      ['Indicadores', 'Consulta el estado global de sedes y solicitudes.'],
-      ['Cuentas', 'Crea accesos institucionales y directores de sede.'],
-      ['Reportes', 'Revisa tendencias y decisiones académicas.'],
-    ];
-  }
-  if (role === 'Admin') {
-    return [
-      ['Accesos', 'Gestiona usuarios, roles y recuperación de cuentas.'],
-      ['Configuración', 'Mantén sedes y parámetros técnicos del sistema.'],
-      ['Auditoría', 'Consulta actividad sensible para soporte.'],
-    ];
-  }
-  return [
-    ['Inicio', 'Resumen del panel académico.'],
-  ];
+function firstDashboardModule(role) {
+  return (roleModuleLinks[role] || [{ id:'inicio' }])[0].id;
 }
 
-function ModuleNavigation({ role }) {
-  const links = roleModuleLinks[role] || [['Inicio', '#inicio']];
+function profileImageUrl(user) {
+  return user?.photoUrl || user?.avatarUrl || user?.picture || user?.imageUrl || '';
+}
+
+function UserAvatar({ user }) {
+  const imageUrl = profileImageUrl(user);
+  const label = `Foto de ${displayUserName(user)}`;
+  return (
+    <div className="user-avatar" aria-label={label} title={label}>
+      {imageUrl ? (
+        <img src={imageUrl} alt={label} />
+      ) : (
+        <svg aria-hidden="true" viewBox="0 0 128 128">
+          <circle cx="64" cy="43" r="28" />
+          <path d="M20 116c5-28 22-42 44-42s39 14 44 42" />
+        </svg>
+      )}
+    </div>
+  );
+}
+
+function ModuleNavigation({ role, activeModule, onChange }) {
+  const links = roleModuleLinks[role] || [{ id:'inicio', label:'Inicio' }];
   return (
     <nav className="module-nav" aria-label="Módulos del panel">
-      {links.map(([label, href], index) => <a key={label} className={index === 0 ? 'active' : ''} href={href}>{label}</a>)}
+      {links.map((link) => (
+        <button
+          key={link.id}
+          type="button"
+          className={activeModule === link.id ? 'active' : ''}
+          aria-pressed={activeModule === link.id}
+          onClick={() => onChange(link.id)}
+        >
+          {link.label}
+        </button>
+      ))}
     </nav>
   );
 }
@@ -769,22 +816,19 @@ function DashboardIntro({ user, data }) {
         <h1>Buenos días, {displayUserName(user)}</h1>
         <p className="dashboard-copy">{detail}</p>
       </div>
-      <div className="dashboard-status">
-        <span>Sesión activa</span>
-        <strong>{roleLabels[user.role] || 'Usuario'}</strong>
-      </div>
+      <UserAvatar user={user} />
     </section>
   );
 }
 
-function MetricGrid({ items }) {
+function SummaryStrip({ items }) {
   return (
-    <section className="metric-grid" aria-label="Indicadores principales">
+    <section className="summary-strip" aria-label="Indicadores principales">
       {items.map(([value, label]) => (
-        <article key={label}>
+        <div key={label}>
           <strong>{value}</strong>
           <span>{label}</span>
-        </article>
+        </div>
       ))}
     </section>
   );
@@ -795,19 +839,19 @@ function RoleSummary({ role, data }) {
     const absences = data.attendanceRecords.filter((record) => record.status === 'absent').length;
     const attended = data.attendanceRecords.filter((record) => ['present', 'late', 'justified'].includes(record.status)).length;
     const rate = data.attendanceRecords.length ? Math.round((attended / data.attendanceRecords.length) * 100) : 0;
-    return <MetricGrid items={[[data.classSessions[0] ? 'Hoy' : 'Pendiente', 'Próxima clase'], [`${rate}%`, 'Asistencia visible'], [absences, 'Ausencias sin justificar']]} />;
+    return <SummaryStrip items={[[data.classSessions[0] ? 'Hoy' : 'Pendiente', 'Próxima clase'], [`${rate}%`, 'Asistencia visible'], [absences, 'Ausencias sin justificar']]} />;
   }
   if (role === 'Teacher') {
-    return <MetricGrid items={[[data.classSessions.length, 'Clases visibles'], [data.students.length, 'Estudiantes en lista'], [data.teachers.length ? 'Lista' : 'Pendiente', 'Entrada del profesor']]} />;
+    return <SummaryStrip items={[[data.classSessions.length, 'Clases visibles'], [data.students.length, 'Estudiantes en lista'], [data.teachers.length ? 'Lista' : 'Pendiente', 'Entrada del profesor']]} />;
   }
   if (role === 'BranchDirector') {
-    return <MetricGrid items={[[data.students.length, 'Estudiantes de sede'], [data.teachers.length, 'Profesores de sede'], [data.absenceJustifications.length, 'Justificaciones visibles']]} />;
+    return <SummaryStrip items={[[data.students.length, 'Estudiantes de sede'], [data.teachers.length, 'Profesores de sede'], [data.absenceJustifications.length, 'Justificaciones visibles']]} />;
   }
   if (role === 'GeneralDirector') {
-    return <MetricGrid items={[[data.students.length, 'Estudiantes visibles'], [data.enrollmentRequests.length, 'Solicitudes de ingreso'], [data.absenceJustifications.length, 'Justificaciones']]} />;
+    return <SummaryStrip items={[[data.students.length, 'Estudiantes visibles'], [data.enrollmentRequests.length, 'Solicitudes de ingreso'], [data.absenceJustifications.length, 'Justificaciones']]} />;
   }
   if (role === 'Admin') {
-    return <MetricGrid items={[[data.users.length, 'Usuarios del sistema'], [data.students.length, 'Perfiles académicos'], ['Activa', 'Auditoría y seguridad']]} />;
+    return <SummaryStrip items={[[data.users.length, 'Usuarios del sistema'], [data.students.length, 'Perfiles académicos'], ['Activa', 'Seguimiento institucional']]} />;
   }
   return null;
 }
@@ -831,11 +875,25 @@ function AdminSecurityPanel({ data }) {
   return (
     <section className="academic-panel" id="seguridad">
       <p className="eyebrow">Seguridad</p>
-      <h2>Administración técnica</h2>
+      <h2>Gestión de accesos</h2>
       <ul className="simple-list">
-        <li><strong>{data.users.length} usuarios</strong><span>Gestiona accesos, roles y recuperación de cuentas.</span></li>
-        <li><strong>Separación académica</strong><span>Las decisiones de asistencia, becas y promociones quedan fuera de la operación normal del administrador.</span></li>
-        <li><strong>Auditoría</strong><span>Todo cambio sensible debe mantener trazabilidad institucional.</span></li>
+        <li><strong>{data.users.length} usuarios activos</strong><span>Controla quién puede ingresar al sistema académico.</span></li>
+        <li><strong>Permisos por rol</strong><span>Cada persona ve únicamente las funciones que corresponden a su responsabilidad.</span></li>
+        <li><strong>Recuperación de acceso</strong><span>Las cuentas nuevas reciben una clave temporal para activar su ingreso privado.</span></li>
+      </ul>
+    </section>
+  );
+}
+
+function AdminAuditPanel({ data }) {
+  return (
+    <section className="academic-panel" id="auditoria">
+      <p className="eyebrow">Auditoría</p>
+      <h2>Seguimiento de cambios</h2>
+      <ul className="simple-list">
+        <li><strong>Actividad sensible</strong><span>Los cambios de cuentas y permisos deben quedar asociados a un responsable.</span></li>
+        <li><strong>{data.students.length} perfiles académicos</strong><span>El administrador acompaña el acceso, sin intervenir la asistencia diaria.</span></li>
+        <li><strong>Control institucional</strong><span>Las acciones importantes se revisan desde dirección cuando corresponde.</span></li>
       </ul>
     </section>
   );
@@ -988,12 +1046,53 @@ function PasswordChangeRequired({ user, onChanged }) {
   );
 }
 
+function DashboardModuleContent({ role, activeModule, data, output, onOutput }) {
+  if (role === 'Student') {
+    if (activeModule === 'asistencia') return <StudentAttendanceHistory attendanceRecords={data.attendanceRecords} />;
+    if (activeModule === 'justificaciones') return <StudentJustificationPanel attendanceRecords={data.attendanceRecords} onOutput={onOutput} />;
+    return <StudentHomePanel data={data} />;
+  }
+
+  if (role === 'Teacher') {
+    if (activeModule === 'asistencia') return <TeacherAttendanceSheet students={data.students} classSessions={data.classSessions} onOutput={onOutput} />;
+    if (activeModule === 'entrada') return <TeacherCheckInForm teachers={data.teachers} classSessions={data.classSessions} onOutput={onOutput} />;
+    return <TeacherClassPanel data={data} />;
+  }
+
+  if (role === 'BranchDirector') {
+    if (activeModule === 'solicitudes') return <DirectorRequestsPanel data={data} />;
+    if (activeModule === 'reportes') return <ReportsPanel output={output} onOutput={onOutput} />;
+    return <SupervisorPanel role={role} data={data} />;
+  }
+
+  if (role === 'GeneralDirector') {
+    if (activeModule === 'cuentas') return <AccountCreationPanel />;
+    if (activeModule === 'reportes') return <ReportsPanel output={output} onOutput={onOutput} />;
+    return <SupervisorPanel role={role} data={data} />;
+  }
+
+  if (role === 'Admin') {
+    if (activeModule === 'seguridad') return <AdminSecurityPanel data={data} />;
+    if (activeModule === 'auditoria') return <AdminAuditPanel data={data} />;
+    return <AccountCreationPanel />;
+  }
+
+  return (
+    <section className="academic-panel">
+      <p className="eyebrow">Panel académico</p>
+      <h2>Resumen</h2>
+      <p>Tu información estará disponible cuando la cuenta tenga un rol asignado.</p>
+    </section>
+  );
+}
+
 function PrivateDashboard() {
   const [output, setOutput] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
   const [sessionReady, setSessionReady] = useState(false);
   const [dashboardData, setDashboardData] = useState(emptyDashboardData);
   const [dashboardLoading, setDashboardLoading] = useState(false);
+  const [activeModule, setActiveModule] = useState('inicio');
 
   useEffect(() => {
     apiRequest('/auth/me')
@@ -1019,6 +1118,22 @@ function PrivateDashboard() {
       });
     return () => { mounted = false; };
   }, [sessionReady, currentUser?.role, currentUser?.mustChangePassword]);
+
+  useEffect(() => {
+    if (currentUser?.role) {
+      setActiveModule(firstDashboardModule(currentUser.role));
+      setOutput(null);
+    }
+  }, [currentUser?.role]);
+
+  function changeModule(moduleId) {
+    setActiveModule(moduleId);
+    setOutput(null);
+  }
+
+  const selectedModule = currentUser?.role && (roleModuleLinks[currentUser.role] || []).some((link) => link.id === activeModule)
+    ? activeModule
+    : firstDashboardModule(currentUser?.role);
 
   return (
     <div className="dashboard-shell">
@@ -1052,26 +1167,11 @@ function PrivateDashboard() {
         {sessionReady && currentUser && !currentUser.mustChangePassword && (
           <>
             <DashboardIntro user={currentUser} data={dashboardData} />
-            <ModuleNavigation role={currentUser.role} />
+            <ModuleNavigation role={currentUser.role} activeModule={selectedModule} onChange={changeModule} />
             {dashboardLoading && <p className="panel-note">Cargando información académica...</p>}
-            <RoleSummary role={currentUser.role} data={dashboardData} />
-
-            <section className="attendance-grid" aria-label="Módulos del panel">
-              {currentUser.role === 'Student' && <StudentAttendanceHistory attendanceRecords={dashboardData.attendanceRecords} />}
-              {currentUser.role === 'Student' && <StudentJustificationPanel attendanceRecords={dashboardData.attendanceRecords} onOutput={setOutput} />}
-
-              {currentUser.role === 'Teacher' && (
-                <TeacherAttendanceSheet students={dashboardData.students} classSessions={dashboardData.classSessions} onOutput={setOutput} />
-              )}
-              {currentUser.role === 'Teacher' && (
-                <TeacherCheckInForm teachers={dashboardData.teachers} classSessions={dashboardData.classSessions} onOutput={setOutput} />
-              )}
-
-              {currentUser.role === 'BranchDirector' && <SupervisorPanel role={currentUser.role} data={dashboardData} />}
-              {currentUser.role === 'GeneralDirector' && <SupervisorPanel role={currentUser.role} data={dashboardData} />}
-              {currentUser.role === 'Admin' && <AdminSecurityPanel data={dashboardData} />}
-              {accountManagerRoles.has(currentUser.role) && <AccountCreationPanel />}
-              {directorRoles.has(currentUser.role) && currentUser.role !== 'Admin' && <ReportsPanel output={output} onOutput={setOutput} />}
+            <section className="dashboard-workspace" aria-label="Contenido del módulo activo">
+              <RoleSummary role={currentUser.role} data={dashboardData} />
+              <DashboardModuleContent role={currentUser.role} activeModule={selectedModule} data={dashboardData} output={output} onOutput={setOutput} />
               <FriendlyOutput output={output} />
             </section>
           </>
