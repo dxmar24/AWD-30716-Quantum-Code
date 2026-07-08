@@ -12,3 +12,7 @@ export async function apiRequest(path, options = {}) {
 export function postJson(path, body) {
   return apiRequest(path, { method: 'POST', body: JSON.stringify(body) });
 }
+
+export function patchJson(path, body) {
+  return apiRequest(path, { method: 'PATCH', body: JSON.stringify(body) });
+}

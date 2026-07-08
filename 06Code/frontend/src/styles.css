@@ -593,23 +593,85 @@ textarea:focus {
   --muted: #60738d;
   --muted-strong: #24415f;
   --shadow: rgba(15, 37, 69, .1);
-  background:
-    radial-gradient(circle at 16% 0%, rgba(14, 165, 233, .17), transparent 28%),
-    linear-gradient(180deg, #edf7ff 0%, #f8fbff 380px, #f7fbff 100%);
+  background: #07111f;
   color: var(--text);
 }
 
-.dashboard-header {
-  border-bottom: 1px solid var(--line);
-  background: rgba(255, 255, 255, .88);
-  backdrop-filter: blur(18px);
-  box-shadow: 0 10px 34px rgba(15, 37, 69, .06);
+.dashboard-layout {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 286px minmax(0, 1fr);
+}
+
+.dashboard-sidebar {
+  min-height: 100vh;
+  padding: 24px 18px;
+  background:
+    radial-gradient(circle at 16% 0%, rgba(56, 189, 248, .18), transparent 30%),
+    linear-gradient(180deg, #07111f, #0c1828);
+  color: #f7fbff;
+  border-right: 1px solid rgba(125, 211, 252, .14);
+  display: grid;
+  align-content: start;
+  gap: 24px;
+  position: sticky;
+  top: 0;
+}
+
+.dashboard-sidebar .brand {
+  color: #f7fbff;
+}
+
+.sidebar-profile {
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+  padding: 14px;
+  border: 1px solid rgba(125, 211, 252, .16);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, .05);
+}
+
+.sidebar-profile strong {
+  color: #ffffff;
+  font-size: 16px;
+}
+
+.sidebar-profile span,
+.sidebar-actions a {
+  color: #9db3cf;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.sidebar-actions {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.sidebar-actions a,
+.sidebar-actions button {
+  justify-content: flex-start;
+  min-height: 42px;
+  text-decoration: none;
+}
+
+.sidebar-actions button {
+  width: 100%;
 }
 
 .dashboard-main {
-  padding: 42px 0 70px;
+  width: 100%;
+  min-height: 100vh;
+  margin: 0;
+  padding: 34px clamp(22px, 4vw, 54px) 70px;
+  background:
+    radial-gradient(circle at 18% 0%, rgba(14, 165, 233, .14), transparent 26%),
+    linear-gradient(180deg, #edf7ff 0%, #f8fbff 380px, #f7fbff 100%);
   display: grid;
   gap: 20px;
+  align-content: start;
 }
 
 .dashboard-hero {
@@ -677,6 +739,16 @@ textarea:focus {
   stroke-linejoin: round;
 }
 
+.user-avatar.large {
+  width: 132px;
+  height: 132px;
+}
+
+.user-avatar.large svg {
+  width: 88px;
+  height: 88px;
+}
+
 .password-required-panel {
   min-height: 420px;
   padding: 30px;
@@ -701,34 +773,34 @@ textarea:focus {
 }
 
 .module-nav {
-  min-height: 54px;
-  padding: 6px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, .72);
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  overflow-x: auto;
-  box-shadow: 0 12px 30px rgba(15, 37, 69, .06);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  display: grid;
+  gap: 8px;
+  overflow: visible;
+  box-shadow: none;
 }
 
 .module-nav button {
-  min-height: 40px;
-  padding: 9px 14px;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
   border: 0;
-  border-radius: 999px;
+  border-radius: 14px;
   background: transparent;
-  color: var(--muted);
+  color: #9db3cf;
   font-weight: 850;
   white-space: nowrap;
   box-shadow: none;
+  justify-content: flex-start;
 }
 
 .module-nav button.active,
 .module-nav button:hover {
-  background: #dff2ff;
-  color: #075985;
+  background: rgba(56, 189, 248, .14);
+  color: #e0f2fe;
 }
 
 .dashboard-workspace {
@@ -898,6 +970,91 @@ textarea:focus {
 
 .reports-panel { align-content: start; }
 
+.profile-photo-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 22px;
+}
+
+.profile-actions,
+.event-form,
+.report-controls,
+.button-row {
+  display: grid;
+  gap: 12px;
+}
+
+.button-row {
+  grid-auto-flow: column;
+  justify-content: start;
+  align-items: center;
+}
+
+.button-row.compact {
+  gap: 8px;
+}
+
+.event-form {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.event-form label:last-of-type,
+.event-form .button-row {
+  grid-column: 1 / -1;
+}
+
+.event-list li {
+  gap: 7px;
+}
+
+.report-controls {
+  grid-template-columns: repeat(4, minmax(0, max-content));
+  align-items: center;
+}
+
+.report-controls select {
+  min-width: 220px;
+}
+
+.report-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  overflow: hidden;
+  background: #f5f9ff;
+}
+
+.report-metrics div {
+  min-height: 96px;
+  padding: 16px;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  display: grid;
+  align-content: center;
+  gap: 4px;
+}
+
+.report-metrics div:nth-child(4n) {
+  border-right: 0;
+}
+
+.report-metrics div:nth-last-child(-n + 4) {
+  border-bottom: 0;
+}
+
+.report-metrics strong {
+  color: #0f3f76;
+  font-size: 25px;
+  line-height: 1;
+}
+
+.report-metrics span {
+  color: var(--muted);
+  font-weight: 800;
+}
+
 .account-panel {
   grid-column: 1 / -1;
   min-height: auto;
@@ -1026,6 +1183,7 @@ textarea:focus {
   .metrics-band,
   .program-panel,
   .summary-strip,
+  .report-metrics,
   .overview-list,
   .attendance-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1042,12 +1200,23 @@ textarea:focus {
   .split-section,
   .enrollment-band,
   .account-panel,
+  .event-form,
+  .profile-photo-row,
   .password-required-panel {
     grid-template-columns: 1fr;
   }
 }
 
 @media (max-width: 720px) {
+  .dashboard-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-sidebar {
+    min-height: auto;
+    position: relative;
+  }
+
   .topbar,
   .floating-nav,
   .site-footer,
@@ -1079,12 +1248,34 @@ textarea:focus {
   .metrics-band,
   .program-panel,
   .summary-strip,
+  .report-metrics,
   .overview-list,
   .attendance-grid,
   .account-form,
   .branch-checkbox-list,
   .enrollment-form {
     grid-template-columns: 1fr;
+  }
+
+  .report-controls,
+  .button-row {
+    grid-auto-flow: row;
+    grid-template-columns: 1fr;
+  }
+
+  .report-controls select {
+    min-width: 0;
+  }
+
+  .report-metrics div,
+  .report-metrics div:nth-child(4n),
+  .report-metrics div:nth-last-child(-n + 4) {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .report-metrics div:last-child {
+    border-bottom: 0;
   }
 
   .overview-list article {

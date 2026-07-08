@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { apiRequest, postJson } from './api/client';
+import { apiRequest, patchJson, postJson } from './api/client';
 import './styles.css';
 
 const branches = [
@@ -87,10 +87,12 @@ const roleModuleLinks = {
   GeneralDirector: [
     { id:'indicadores', label:'Indicadores' },
     { id:'cuentas', label:'Cuentas' },
+    { id:'eventos', label:'Eventos' },
     { id:'reportes', label:'Reportes' },
   ],
   BranchDirector: [
     { id:'sede', label:'Mi sede' },
+    { id:'eventos', label:'Eventos' },
     { id:'solicitudes', label:'Solicitudes' },
     { id:'reportes', label:'Reportes' },
   ],
@@ -101,8 +103,10 @@ const roleModuleLinks = {
   ],
   Student: [
     { id:'inicio', label:'Inicio' },
+    { id:'perfil', label:'Perfil' },
     { id:'asistencia', label:'Asistencia' },
     { id:'justificaciones', label:'Justificaciones' },
+    { id:'eventos', label:'Eventos' },
   ],
 };
 
@@ -493,6 +497,21 @@ function sessionLabel(session) {
   return `${cleanDisplayText(session.name, 'Clase programada')} - ${time}`;
 }
 
+function formatDateTime(value) {
+  const date = value ? new Date(value) : null;
+  return date && !Number.isNaN(date.getTime())
+    ? date.toLocaleString('es-EC', { dateStyle:'medium', timeStyle:'short' })
+    : 'Fecha pendiente';
+}
+
+function formatMoney(value) {
+  return new Intl.NumberFormat('es-EC', { style:'currency', currency:'USD' }).format(Number(value || 0));
+}
+
+function studentProfile(data) {
+  return data.students[0] || null;
+}
+
 function TeacherAttendanceSheet({ students, classSessions, onOutput }) {
   const [classSessionId, setClassSessionId] = useState('');
   const [statuses, setStatuses] = useState({});
@@ -655,6 +674,112 @@ function StudentHomePanel({ data }) {
   );
 }
 
+function StudentProfilePanel({ data, onOutput, onProfileUpdated }) {
+  const student = studentProfile(data);
+  const [preview, setPreview] = useState(student?.profilePhotoUrl || '');
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setPreview(student?.profilePhotoUrl || '');
+  }, [student?.profilePhotoUrl]);
+
+  function readPhoto(event) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      onOutput({ success:false, message:'Selecciona una imagen válida para tu perfil.' });
+      return;
+    }
+    if (file.size > 240000) {
+      onOutput({ success:false, message:'La imagen debe pesar menos de 240 KB para guardarse en el perfil.' });
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => setPreview(String(reader.result || ''));
+    reader.readAsDataURL(file);
+  }
+
+  async function savePhoto() {
+    if (!preview || saving) return;
+    setSaving(true);
+    try {
+      const payload = await patchJson('/students/me/profile-photo', { profilePhotoUrl:preview });
+      onProfileUpdated(payload.data);
+      onOutput({ success:true, message:'Tu foto de perfil fue actualizada.' });
+    } catch {
+      onOutput({ success:false, message:'No se pudo actualizar la foto. Intenta con una imagen más liviana.' });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function removePhoto() {
+    if (saving) return;
+    setSaving(true);
+    try {
+      const payload = await apiRequest('/students/me/profile-photo', { method:'DELETE' });
+      setPreview('');
+      onProfileUpdated(payload.data);
+      onOutput({ success:true, message:'Tu foto de perfil fue eliminada.' });
+    } catch {
+      onOutput({ success:false, message:'No se pudo eliminar la foto de perfil.' });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <section className="academic-panel profile-panel" id="perfil">
+      <div>
+        <p className="eyebrow">Perfil</p>
+        <h2>Foto de estudiante</h2>
+        <p>Sube, actualiza o elimina la imagen que se mostrará en tu panel académico.</p>
+      </div>
+      <div className="profile-photo-row">
+        <div className="user-avatar large">
+          {preview ? (
+            <img src={preview} alt="Foto de perfil del estudiante" />
+          ) : (
+            <svg aria-hidden="true" viewBox="0 0 128 128">
+              <circle cx="64" cy="43" r="28" />
+              <path d="M20 116c5-28 22-42 44-42s39 14 44 42" />
+            </svg>
+          )}
+        </div>
+        <div className="profile-actions">
+          <label>Seleccionar imagen<input type="file" accept="image/*" onChange={readPhoto} /></label>
+          <div className="button-row">
+            <button type="button" onClick={savePhoto} disabled={!preview || saving}>{saving ? 'Guardando...' : 'Guardar foto'}</button>
+            <button type="button" className="secondary-action" onClick={removePhoto} disabled={saving || !student?.profilePhotoUrl}>Eliminar foto</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function StudentEventsPanel({ events }) {
+  return (
+    <section className="academic-panel" id="eventos">
+      <p className="eyebrow">Eventos</p>
+      <h2>Eventos de la academia</h2>
+      {events.length ? (
+        <ul className="simple-list event-list">
+          {events.map((event) => (
+            <li key={event.id}>
+              <strong>{cleanDisplayText(event.title, 'Evento académico')}</strong>
+              <span>{event.level === 'ALL' ? 'Todos los niveles' : `Nivel ${event.level}`} · {formatDateTime(event.startsAt)}</span>
+              {event.location && <span>{event.location}</span>}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="panel-note">No hay eventos visibles para tu nivel por el momento.</p>
+      )}
+    </section>
+  );
+}
+
 function TeacherClassPanel({ data }) {
   return (
     <section className="academic-panel" id="clase">
@@ -664,6 +789,105 @@ function TeacherClassPanel({ data }) {
         <li><strong>{data.classSessions.length} clases visibles</strong><span>Selecciona la clase correspondiente antes de guardar asistencia.</span></li>
         <li><strong>{data.students.length} estudiantes en lista</strong><span>La asistencia se registra desde una lista completa para evitar errores.</span></li>
         <li><strong>Entrada del profesor</strong><span>Registra tu llegada en la sección Mi entrada cuando inicie la clase.</span></li>
+      </ul>
+    </section>
+  );
+}
+
+function EventsManagerPanel({ data, onOutput }) {
+  const [events, setEvents] = useState(data.academyEvents || []);
+  const [branches, setBranches] = useState(data.branches || []);
+  const [editingEvent, setEditingEvent] = useState(null);
+
+  useEffect(() => {
+    setEvents(data.academyEvents || []);
+  }, [data.academyEvents]);
+
+  useEffect(() => {
+    if (!branches.length) {
+      fetchList('/branches').then(setBranches).catch(() => setBranches([]));
+    }
+  }, []);
+
+  async function submit(event) {
+    event.preventDefault();
+    const form = Object.fromEntries(new FormData(event.currentTarget).entries());
+    const body = {
+      branchId:form.branchId,
+      title:form.title,
+      description:form.description || undefined,
+      level:form.level,
+      startsAt:new Date(form.startsAt).toISOString(),
+      endsAt:form.endsAt ? new Date(form.endsAt).toISOString() : undefined,
+      location:form.location || undefined,
+      showIncome:Number(form.showIncome || 0),
+      active:true,
+    };
+    try {
+      const payload = editingEvent
+        ? await patchJson(`/academy-events/${editingEvent.id}`, body)
+        : await postJson('/academy-events', body);
+      setEvents((current) => {
+        const others = current.filter((item) => item.id !== payload.data.id);
+        return [payload.data, ...others].sort((a, b) => new Date(a.startsAt) - new Date(b.startsAt));
+      });
+      setEditingEvent(null);
+      event.currentTarget.reset();
+      onOutput({ success:true, message:editingEvent ? 'Evento actualizado.' : 'Evento creado.' });
+    } catch {
+      onOutput({ success:false, message:'No se pudo guardar el evento. Revisa sede, nivel y fecha.' });
+    }
+  }
+
+  async function removeEvent(eventId) {
+    try {
+      await apiRequest(`/academy-events/${eventId}`, { method:'DELETE' });
+      setEvents((current) => current.filter((item) => item.id !== eventId));
+      onOutput({ success:true, message:'Evento eliminado del calendario visible.' });
+    } catch {
+      onOutput({ success:false, message:'No se pudo eliminar el evento.' });
+    }
+  }
+
+  return (
+    <section className="academic-panel events-manager" id="eventos">
+      <div>
+        <p className="eyebrow">Eventos</p>
+        <h2>Calendario académico</h2>
+        <p>Crea eventos por sede y nivel para que cada estudiante vea únicamente lo que le corresponde.</p>
+      </div>
+      <form key={editingEvent?.id || 'new-event'} className="event-form" onSubmit={submit}>
+        <label>Sede<select name="branchId" required defaultValue={editingEvent?.branchId || ''}>
+          <option value="">Selecciona una sede</option>
+          {branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}
+        </select></label>
+        <label>Nivel<select name="level" required defaultValue={editingEvent?.level || 'ALL'}>
+          <option value="ALL">Todos</option>
+          <option value="B1">B1</option>
+          <option value="B2">B2</option>
+        </select></label>
+        <label>Título<input name="title" required defaultValue={editingEvent?.title || ''} placeholder="Showcase Urbano B1" /></label>
+        <label>Lugar<input name="location" defaultValue={editingEvent?.location || ''} placeholder="Sede Norte" /></label>
+        <label>Inicio<input name="startsAt" type="datetime-local" required defaultValue={editingEvent?.startsAt ? editingEvent.startsAt.slice(0, 16) : ''} /></label>
+        <label>Fin<input name="endsAt" type="datetime-local" defaultValue={editingEvent?.endsAt ? editingEvent.endsAt.slice(0, 16) : ''} /></label>
+        <label>Ingreso por show<input name="showIncome" type="number" min="0" step="0.01" defaultValue={editingEvent?.showIncome || 0} /></label>
+        <label>Descripción<textarea name="description" maxLength="1000" defaultValue={editingEvent?.description || ''} /></label>
+        <div className="button-row">
+          <button type="submit">{editingEvent ? 'Actualizar evento' : 'Crear evento'}</button>
+          {editingEvent && <button type="button" className="secondary-action" onClick={() => setEditingEvent(null)}>Cancelar edición</button>}
+        </div>
+      </form>
+      <ul className="simple-list event-list">
+        {events.length ? events.map((event) => (
+          <li key={event.id}>
+            <strong>{cleanDisplayText(event.title, 'Evento académico')}</strong>
+            <span>{event.level === 'ALL' ? 'Todos los niveles' : event.level} · {formatDateTime(event.startsAt)} · Show {formatMoney(event.showIncome)}</span>
+            <div className="button-row compact">
+              <button type="button" className="secondary-action" onClick={() => setEditingEvent(event)}>Editar</button>
+              <button type="button" className="secondary-action" onClick={() => removeEvent(event.id)}>Eliminar</button>
+            </div>
+          </li>
+        )) : <li><span>No hay eventos registrados todavía.</span></li>}
       </ul>
     </section>
   );
@@ -691,7 +915,7 @@ function DirectorRequestsPanel({ data }) {
   );
 }
 
-function ReportsPanel({ output, onOutput }) {
+function LegacyReportsPanel({ output, onOutput }) {
   return (
     <div className="academic-panel reports-panel">
       <p className="eyebrow">Reportes</p>
@@ -711,6 +935,84 @@ function ReportsPanel({ output, onOutput }) {
   );
 }
 
+function ReportMetricList({ report }) {
+  const totals = report?.totals || report?.branch || {};
+  return (
+    <div className="report-metrics">
+      <div><strong>{formatMoney(totals.totalIncome)}</strong><span>Ingreso total</span></div>
+      <div><strong>{formatMoney(totals.tuitionIncome)}</strong><span>Mensualidades</span></div>
+      <div><strong>{formatMoney(totals.showIncome)}</strong><span>Shows y eventos</span></div>
+      <div><strong>{totals.activeStudents || 0}</strong><span>Alumnos activos</span></div>
+      <div><strong>{totals.pendingPayments || 0}</strong><span>Pendientes de pago</span></div>
+      <div><strong>{totals.retiredStudents || 0}</strong><span>Retirados</span></div>
+      <div><strong>{totals.attendanceRate || 0}%</strong><span>Asistencia</span></div>
+      <div><strong>{totals.b1Students || 0} / {totals.b2Students || 0}</strong><span>B1 / B2</span></div>
+    </div>
+  );
+}
+
+function ReportsPanel({ data, role, onOutput }) {
+  const canUseGeneralReport = ['Admin', 'GeneralDirector'].includes(role);
+  const [reportMode, setReportMode] = useState(canUseGeneralReport ? 'general' : 'branch');
+  const [selectedBranchId, setSelectedBranchId] = useState('');
+  const [report, setReport] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!selectedBranchId && data.branches.length) setSelectedBranchId(data.branches[0].id);
+  }, [selectedBranchId, data.branches]);
+
+  async function loadReport(mode = reportMode) {
+    setLoading(true);
+    try {
+      const branchId = selectedBranchId || data.branches[0]?.id;
+      const path = mode === 'branch' || !canUseGeneralReport ? `/reports/branches/${branchId}/detail` : '/reports/general';
+      const payload = await apiRequest(path);
+      setReport(payload.data);
+      onOutput({ success:true, message:mode === 'branch' ? 'Reporte por sede actualizado.' : 'Reporte general actualizado.' });
+    } catch {
+      onOutput({ success:false, message:'No se pudo cargar el reporte. Revisa tu rol o la sede seleccionada.' });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="academic-panel reports-panel">
+      <p className="eyebrow">Reportes</p>
+      <h2>{reportMode === 'branch' ? 'Reporte por sede' : 'Reporte general'}</h2>
+      <p>Revisa ingresos, pagos pendientes, alumnos activos, retirados, eventos con ingreso y asistencia.</p>
+      <div className="report-controls">
+        {canUseGeneralReport && <button type="button" className={reportMode === 'general' ? '' : 'secondary-action'} onClick={() => { setReportMode('general'); loadReport('general'); }}>Reporte general</button>}
+        <button type="button" className={reportMode === 'branch' ? '' : 'secondary-action'} onClick={() => { setReportMode('branch'); loadReport('branch'); }}>Reporte por sede</button>
+        {reportMode === 'branch' && (
+          <select value={selectedBranchId} onChange={(event) => setSelectedBranchId(event.target.value)}>
+            {data.branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}
+          </select>
+        )}
+        <button type="button" onClick={() => loadReport()} disabled={loading}>{loading ? 'Cargando...' : 'Actualizar reporte'}</button>
+      </div>
+      {report ? (
+        <>
+          <ReportMetricList report={report} />
+          {report.branches && (
+            <ul className="simple-list branch-report-list">
+              {report.branches.map((branch) => (
+                <li key={branch.id}>
+                  <strong>{branch.name}</strong>
+                  <span>{branch.activeStudents} activos · {formatMoney(branch.totalIncome)} ingreso total · {branch.attendanceRate}% asistencia</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
+      ) : (
+        <p className="panel-note">Selecciona un reporte para visualizar indicadores de dirección.</p>
+      )}
+    </div>
+  );
+}
+
 const emptyDashboardData = {
   students:[],
   teachers:[],
@@ -718,6 +1020,9 @@ const emptyDashboardData = {
   attendanceRecords:[],
   absenceJustifications:[],
   enrollmentRequests:[],
+  academyEvents:[],
+  branches:[],
+  studentPayments:[],
   users:[],
 };
 
@@ -737,9 +1042,12 @@ async function loadDashboardData(role) {
   }
 
   if (directorRoles.has(role)) {
+    requests.push(fetchList('/branches').then((rows) => { data.branches = rows; }));
     requests.push(fetchList('/students').then((rows) => { data.students = rows; }));
     requests.push(fetchList('/teachers').then((rows) => { data.teachers = rows; }));
     requests.push(fetchList('/class-sessions').then((rows) => { data.classSessions = rows; }));
+    requests.push(fetchList('/academy-events').then((rows) => { data.academyEvents = rows; }));
+    requests.push(fetchList('/student-payments').then((rows) => { data.studentPayments = rows; }));
     requests.push(fetchList('/absence-justifications').then((rows) => { data.absenceJustifications = rows; }));
     requests.push(fetchList('/enrollment-requests').then((rows) => { data.enrollmentRequests = rows; }));
   }
@@ -751,6 +1059,7 @@ async function loadDashboardData(role) {
   if (role === 'Student') {
     requests.push(fetchList('/students').then((rows) => { data.students = rows; }));
     requests.push(fetchList('/student-attendance').then((rows) => { data.attendanceRecords = rows; }));
+    requests.push(fetchList('/academy-events').then((rows) => { data.academyEvents = rows; }));
   }
 
   await Promise.allSettled(requests);
@@ -761,12 +1070,12 @@ function firstDashboardModule(role) {
   return (roleModuleLinks[role] || [{ id:'inicio' }])[0].id;
 }
 
-function profileImageUrl(user) {
-  return user?.photoUrl || user?.avatarUrl || user?.picture || user?.imageUrl || '';
+function profileImageUrl(user, profile = null) {
+  return profile?.profilePhotoUrl || user?.photoUrl || user?.avatarUrl || user?.picture || user?.imageUrl || '';
 }
 
-function UserAvatar({ user }) {
-  const imageUrl = profileImageUrl(user);
+function UserAvatar({ user, profile = null }) {
+  const imageUrl = profileImageUrl(user, profile);
   const label = `Foto de ${displayUserName(user)}`;
   return (
     <div className="user-avatar" aria-label={label} title={label}>
@@ -816,7 +1125,7 @@ function DashboardIntro({ user, data }) {
         <h1>Buenos días, {displayUserName(user)}</h1>
         <p className="dashboard-copy">{detail}</p>
       </div>
-      <UserAvatar user={user} />
+      <UserAvatar user={user} profile={profile} />
     </section>
   );
 }
@@ -1046,10 +1355,12 @@ function PasswordChangeRequired({ user, onChanged }) {
   );
 }
 
-function DashboardModuleContent({ role, activeModule, data, output, onOutput }) {
+function DashboardModuleContent({ role, activeModule, data, output, onOutput, onProfileUpdated }) {
   if (role === 'Student') {
+    if (activeModule === 'perfil') return <StudentProfilePanel data={data} onOutput={onOutput} onProfileUpdated={onProfileUpdated} />;
     if (activeModule === 'asistencia') return <StudentAttendanceHistory attendanceRecords={data.attendanceRecords} />;
     if (activeModule === 'justificaciones') return <StudentJustificationPanel attendanceRecords={data.attendanceRecords} onOutput={onOutput} />;
+    if (activeModule === 'eventos') return <StudentEventsPanel events={data.academyEvents} />;
     return <StudentHomePanel data={data} />;
   }
 
@@ -1060,14 +1371,16 @@ function DashboardModuleContent({ role, activeModule, data, output, onOutput }) 
   }
 
   if (role === 'BranchDirector') {
+    if (activeModule === 'eventos') return <EventsManagerPanel data={data} onOutput={onOutput} />;
     if (activeModule === 'solicitudes') return <DirectorRequestsPanel data={data} />;
-    if (activeModule === 'reportes') return <ReportsPanel output={output} onOutput={onOutput} />;
+    if (activeModule === 'reportes') return <ReportsPanel data={data} role={role} output={output} onOutput={onOutput} />;
     return <SupervisorPanel role={role} data={data} />;
   }
 
   if (role === 'GeneralDirector') {
     if (activeModule === 'cuentas') return <AccountCreationPanel />;
-    if (activeModule === 'reportes') return <ReportsPanel output={output} onOutput={onOutput} />;
+    if (activeModule === 'eventos') return <EventsManagerPanel data={data} onOutput={onOutput} />;
+    if (activeModule === 'reportes') return <ReportsPanel data={data} role={role} output={output} onOutput={onOutput} />;
     return <SupervisorPanel role={role} data={data} />;
   }
 
@@ -1131,25 +1444,39 @@ function PrivateDashboard() {
     setOutput(null);
   }
 
+  function updateStudentProfile(profile) {
+    setDashboardData((current) => ({
+      ...current,
+      students:current.students.map((student) => (student.id === profile.id ? profile : student)),
+    }));
+  }
+
   const selectedModule = currentUser?.role && (roleModuleLinks[currentUser.role] || []).some((link) => link.id === activeModule)
     ? activeModule
     : firstDashboardModule(currentUser?.role);
 
   return (
     <div className="dashboard-shell">
-      <header className="dashboard-header">
-        <nav className="topbar" aria-label="Navegación del panel">
-          <a className="brand" href="/">
-            <span className="brand-mark">ALC</span>
-            <span>American Latin Class</span>
-          </a>
-          <div className="nav-links">
-            <a href="/">Inicio</a>
-            <LogoutButton />
-          </div>
-        </nav>
-      </header>
-      <main className="dashboard-main">
+      <div className="dashboard-layout">
+        {sessionReady && currentUser && !currentUser.mustChangePassword && (
+          <aside className="dashboard-sidebar" aria-label="Menú del panel">
+            <a className="brand" href="/">
+              <span className="brand-mark">ALC</span>
+              <span>American Latin Class</span>
+            </a>
+            <div className="sidebar-profile">
+              <UserAvatar user={currentUser} profile={currentUser.role === 'Student' ? studentProfile(dashboardData) : null} />
+              <strong>{displayUserName(currentUser)}</strong>
+              <span>{roleLabels[currentUser.role] || 'Usuario'}</span>
+            </div>
+            <ModuleNavigation role={currentUser.role} activeModule={selectedModule} onChange={changeModule} />
+            <div className="sidebar-actions">
+              <a href="/">Inicio</a>
+              <LogoutButton />
+            </div>
+          </aside>
+        )}
+        <main className="dashboard-main">
         {!sessionReady && (
           <section className="dashboard-hero">
             <div>
@@ -1167,16 +1494,16 @@ function PrivateDashboard() {
         {sessionReady && currentUser && !currentUser.mustChangePassword && (
           <>
             <DashboardIntro user={currentUser} data={dashboardData} />
-            <ModuleNavigation role={currentUser.role} activeModule={selectedModule} onChange={changeModule} />
             {dashboardLoading && <p className="panel-note">Cargando información académica...</p>}
             <section className="dashboard-workspace" aria-label="Contenido del módulo activo">
               <RoleSummary role={currentUser.role} data={dashboardData} />
-              <DashboardModuleContent role={currentUser.role} activeModule={selectedModule} data={dashboardData} output={output} onOutput={setOutput} />
+              <DashboardModuleContent role={currentUser.role} activeModule={selectedModule} data={dashboardData} output={output} onOutput={setOutput} onProfileUpdated={updateStudentProfile} />
               <FriendlyOutput output={output} />
             </section>
           </>
         )}
-      </main>
+        </main>
+      </div>
     </div>
   );
 }
