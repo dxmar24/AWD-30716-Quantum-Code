@@ -5,20 +5,33 @@ const teacherCheck = z.object({ teacherId: z.string().uuid(), classSessionId: z.
 const roles = ['Student','Teacher','BranchDirector','GeneralDirector','Admin'];
 const roleUpdate = z.object({ role:z.enum(roles) });
 const password = z.string().min(10).max(120).regex(/[A-Za-z]/).regex(/[0-9]/);
+const accountStudentProfile = z.object({
+  branchId:z.string().uuid(),
+  fullName:z.string().min(3).max(160).optional(),
+  level:z.enum(['B1','B2']).default('B1'),
+  active:z.boolean().optional(),
+});
+const accountTeacherProfile = z.object({
+  branchId:z.string().uuid(),
+  fullName:z.string().min(3).max(160).optional(),
+  hourlyRate:z.coerce.number().min(0).optional(),
+  active:z.boolean().optional(),
+});
 const accountCreate = z.object({
   email:z.string().email(),
   name:z.string().min(3).max(160),
   role:z.enum(roles),
   temporaryPassword:password.optional(),
   active:z.boolean().optional(),
-  mustChangePassword:z.boolean().optional(),
   branchIds:z.array(z.string().uuid()).max(20).optional(),
+  studentProfile:accountStudentProfile.optional(),
+  teacherProfile:accountTeacherProfile.optional(),
 });
 const passwordChange = z.object({
   currentPassword:z.string().min(8).max(120),
   newPassword:password,
 });
-const branchAccessUpdate = z.object({ branchIds:z.array(z.string().uuid()).max(20) });
+const branchAccessUpdate = z.object({ branchIds:z.array(z.string().uuid()).min(1).max(20) });
 const enrollmentRequest = z.object({ fullName:z.string().min(3).max(160), email:z.string().email(), phone:z.string().max(40).optional(), branchId:z.string().uuid().optional(), preferredBranch:z.string().max(80).optional(), styleInterest:z.string().max(120).optional(), message:z.string().max(500).optional() });
 const absenceJustification = z.object({ attendanceRecordId:z.string().uuid(), reason:z.string().min(5).max(500), evidenceUrl:z.string().url().optional() });
 const absenceReview = z.object({ status:z.enum(['approved','rejected']), reviewNotes:z.string().max(500).optional() });

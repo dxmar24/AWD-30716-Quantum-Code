@@ -260,6 +260,7 @@ describe('actor flow verification', () => {
       .set('Cookie', director.cookie)
       .send({ status:'approved', reviewNotes:'Accepted by branch.' })
       .expect(200);
+    expect(app.locals.db.studentAttendance.findById(attendance.id).status).toBe('justified');
 
     await request(app).get('/api/v1/users').set('Cookie', director.cookie).expect(403);
     await request(app).get('/api/v1/audit-logs').set('Cookie', director.cookie).expect(403);
@@ -279,6 +280,36 @@ describe('actor flow verification', () => {
     await request(app).get('/api/v1/permissions').set('Cookie', generalDirector.cookie).expect(200);
     const summary = await request(app).get('/api/v1/reports/branches/summary').set('Cookie', generalDirector.cookie).expect(200);
     expect(summary.body.data.branches.length).toBeGreaterThan(1);
+
+    await request(app)
+      .post('/api/v1/users')
+      .set('Cookie', generalDirector.cookie)
+      .send({ email:'admin.created.by.gd@alc.test', name:'Invalid Admin', role:Roles.ADMIN })
+      .expect(403);
+
+    const createdStudent = await request(app)
+      .post('/api/v1/users')
+      .set('Cookie', generalDirector.cookie)
+      .send({
+        email:'student.created.by.gd@alc.test',
+        name:'Student Created By GD',
+        role:Roles.STUDENT,
+        studentProfile:{ branchId:ids.northBranch, level:'B1' },
+      })
+      .expect(201);
+    expect(createdStudent.body.data.profile).toMatchObject({ userId:createdStudent.body.data.user.id, branchId:ids.northBranch });
+
+    const studentLogin = await loginWithPassword(app, 'student.created.by.gd@alc.test', createdStudent.body.data.temporaryPassword);
+    await request(app)
+      .post('/api/v1/auth/change-password')
+      .set('Authorization', `Bearer ${studentLogin.token}`)
+      .send({ currentPassword:createdStudent.body.data.temporaryPassword, newPassword:'studentCreatedALC2027*' })
+      .expect(200);
+    const ownProfile = await request(app)
+      .get('/api/v1/students')
+      .set('Authorization', `Bearer ${studentLogin.token}`)
+      .expect(200);
+    expect(ownProfile.body.data.map((student) => student.id)).toEqual([createdStudent.body.data.profile.id]);
 
     await request(app)
       .post('/api/v1/users')
@@ -332,13 +363,27 @@ describe('actor flow verification', () => {
       .patch(`/api/v1/users/${targetUser.id}/role`)
       .set('Cookie', admin.cookie)
       .send({ role:Roles.BRANCH_DIRECTOR })
+      .expect(422);
+
+    const teacherProfile = app.locals.db.teachers.create({
+      userId:targetUser.id,
+      branchId:ids.northBranch,
+      fullName:'Admin Target Teacher',
+      active:true,
+      hourlyRate:12.5,
+    });
+    await request(app)
+      .patch(`/api/v1/users/${targetUser.id}/role`)
+      .set('Cookie', admin.cookie)
+      .send({ role:Roles.TEACHER })
       .expect(200);
 
     await request(app)
       .patch(`/api/v1/users/${targetUser.id}/branch-access`)
       .set('Cookie', admin.cookie)
       .send({ branchIds:[ids.northBranch] })
-      .expect(200);
+      .expect(422);
+    expect(teacherProfile.userId).toBe(targetUser.id);
 
     await request(app)
       .post('/api/v1/branches')

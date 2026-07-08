@@ -191,12 +191,18 @@ describe('auth/session', () => {
     const created = await request(app)
       .post('/api/v1/users')
       .set('Authorization', `Bearer ${adminLogin.body.data.sessionToken}`)
-      .send({ email:'created.student@alc.edu', name:'Created Student', role:Roles.STUDENT })
+      .send({
+        email:'created.student@alc.edu',
+        name:'Created Student',
+        role:Roles.STUDENT,
+        studentProfile:{ branchId:'11111111-1111-4111-8111-111111111111', level:'B1' },
+      })
       .expect(201);
 
     expect(created.body.data.user.email).toBe('created.student@alc.edu');
     expect(created.body.data.user.passwordHash).toBeUndefined();
     expect(created.body.data.user.mustChangePassword).toBe(true);
+    expect(created.body.data.profile.userId).toBe(created.body.data.user.id);
     expect(created.body.data.temporaryPassword).toMatch(/^ALC-/);
 
     const login = await request(app)

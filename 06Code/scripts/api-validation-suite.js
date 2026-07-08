@@ -21,6 +21,7 @@ const jsonPath = path.join(rootDir, '07Other', 'api-validation-results.json');
 
 const seed = {
   adminUserId: 'd8c025f6-bcd0-4f25-a6b1-1486338678e7',
+  northBranchId: '11111111-1111-4111-8111-111111111111',
   branchId: '0c8675f1-9c30-430a-8b2c-c4dd1ec88b09',
   studentId: '85f4bbe9-5d5f-4126-89b6-ddd9de432885',
   teacherId: '01c99342-ad47-4c4e-a094-6cab138d98e5',
@@ -144,6 +145,17 @@ async function main() {
       if (!res.headers['cache-control']?.includes('public')) throw new Error('Auth config was not marked as public cache.');
       if (!res.headers['cache-control']?.includes('max-age=3600')) throw new Error('Auth config cache TTL was not exposed.');
       if (res.headers['x-cache-policy'] !== 'public-auth-config') throw new Error('Unexpected auth config cache policy.');
+    },
+  });
+
+  await runCase({
+    name: 'Public branch catalog exposes active branches',
+    method: 'get',
+    route: `${apiPrefix}/public/branches`,
+    expectedStatus: 200,
+    assert: (res) => {
+      if (!res.headers['cache-control']?.includes('public')) throw new Error('Public branches should be publicly cacheable.');
+      if (!Array.isArray(res.body.data) || !res.body.data.some((branch) => branch.id && branch.name)) throw new Error('Public branches were not returned.');
     },
   });
 
@@ -435,11 +447,13 @@ async function main() {
       email:`created-account-${timestamp}@alc.test`,
       name:'Created Account Validation',
       role:Roles.STUDENT,
+      studentProfile:{ branchId:seed.northBranchId, level:'B1' },
     },
     expectedStatus: 201,
     assert: (res) => {
       if (!res.body.data.temporaryPassword) throw new Error('Temporary password was not returned.');
       if (res.body.data.user.mustChangePassword !== true) throw new Error('Created account should require password change.');
+      if (res.body.data.profile?.userId !== res.body.data.user.id) throw new Error('Created student profile was not linked to the user.');
     },
   }), 'Account create');
 
@@ -840,6 +854,10 @@ async function main() {
     client: admin.agent,
     body: { status: 'approved', reviewNotes: 'Validation approved.' },
     expectedStatus: 200,
+    assert: async () => {
+      const reviewedAttendance = await app.locals.db.studentAttendance.findById(absentAttendance.id);
+      if (reviewedAttendance.status !== 'justified') throw new Error('Approved justification did not update attendance status.');
+    },
   });
 
   await runCase({

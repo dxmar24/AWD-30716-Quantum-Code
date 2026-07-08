@@ -61,6 +61,15 @@ function buildApi(deps) {
   router.post('/auth/change-password', requireAuth, validate(passwordChange), wrap(auth.changePassword));
   router.post('/auth/logout', wrap(auth.logout));
 
+  router.get('/public/branches', publicCache(300, 'public-branches'), wrap(async (req, res) => res.json({
+    success:true,
+    message:'Public branches list',
+    data:await cachedList(req, res, deps.cacheService, 'public:branches:active', 300, ['branches'], async () => (
+      (await deps.db.branches.all())
+        .filter((branch) => branch.active !== false)
+        .map(({ id, name, city }) => ({ id, name, city }))
+    )),
+  })));
   router.post('/enrollment-requests', validate(enrollmentRequest), wrap(academic.submitEnrollment));
   router.get('/enrollment-requests', allowRoles(...directorRoles), wrap(academic.listEnrollmentRequests));
 
@@ -88,6 +97,11 @@ function buildApi(deps) {
   registerCrud(router, 'class-groups', deps.db.classGroups, classGroup, deps.accessPolicy, deps.cacheService);
   registerCrud(router, 'class-sessions', deps.db.classSessions, classSession, deps.accessPolicy, deps.cacheService);
 
+  router.get('/student-attendance', requireAuth, requirePasswordReady, wrap(async (req, res) => {
+    const rows = await deps.db.studentAttendance.all();
+    const data = deps.accessPolicy ? await deps.accessPolicy.filterList(req.sessionUser, 'student-attendance', rows) : rows;
+    return res.json({ success:true, message:'Student attendance list', data });
+  }));
   router.post('/student-attendance', allowRoles(...teacherAttendanceRoles), validate(attendanceRecord), wrap(attendance.recordStudent));
   router.post('/teacher-attendance/check-in', allowRoles(...teacherAttendanceRoles), validate(teacherCheck), wrap(attendance.teacherCheckIn));
   router.patch('/teacher-attendance/:id/check-out', allowRoles(...teacherAttendanceRoles), wrap(attendance.teacherCheckOut));
