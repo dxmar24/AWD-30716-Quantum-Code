@@ -480,26 +480,37 @@ function ReportsPanel({ output, onOutput }) {
 function AccountCreationPanel() {
   const [status, setStatus] = useState('');
   const [createdAccount, setCreatedAccount] = useState(null);
+  const [selectedRole, setSelectedRole] = useState('Student');
+  const [availableBranches, setAvailableBranches] = useState([]);
+
+  useEffect(() => {
+    apiRequest('/branches')
+      .then((payload) => setAvailableBranches(payload.data || []))
+      .catch(() => setAvailableBranches([]));
+  }, []);
 
   async function submit(event) {
     event.preventDefault();
     setStatus('');
     setCreatedAccount(null);
-    const form = Object.fromEntries(new FormData(event.currentTarget).entries());
+    const formData = new FormData(event.currentTarget);
+    const form = Object.fromEntries(formData.entries());
     const body = {
       name:form.name,
       email:form.email,
       role:form.role,
     };
     if (form.temporaryPassword) body.temporaryPassword = form.temporaryPassword;
+    if (form.role === 'BranchDirector') body.branchIds = formData.getAll('branchIds');
 
     try {
       const payload = await postJson('/users', body);
       setCreatedAccount(payload.data);
       setStatus('Cuenta creada correctamente.');
       event.currentTarget.reset();
+      setSelectedRole('Student');
     } catch {
-      setStatus('No se pudo crear la cuenta. Revisa el correo y los datos ingresados.');
+      setStatus('No se pudo crear la cuenta. Revisa el correo, el rol y las sedes asignadas.');
     }
   }
 
@@ -513,8 +524,19 @@ function AccountCreationPanel() {
       <form className="account-form" onSubmit={submit}>
         <label>Nombre completo<input name="name" autoComplete="name" required /></label>
         <label>Correo electrónico<input name="email" type="email" autoComplete="email" required /></label>
-        <label>Rol<select name="role" required>{accountRoleOptions.map((role) => <option key={role.value} value={role.value}>{role.label}</option>)}</select></label>
+        <label>Rol<select name="role" value={selectedRole} onChange={(event) => setSelectedRole(event.target.value)} required>{accountRoleOptions.map((role) => <option key={role.value} value={role.value}>{role.label}</option>)}</select></label>
         <label>Contraseña temporal opcional<input name="temporaryPassword" type="password" autoComplete="new-password" placeholder="La academia puede generarla" /></label>
+        {selectedRole === 'BranchDirector' && (
+          <fieldset className="branch-checkbox-list">
+            <legend>Sedes asignadas</legend>
+            {availableBranches.length ? availableBranches.map((branch) => (
+              <label key={branch.id}>
+                <input name="branchIds" type="checkbox" value={branch.id} />
+                <span>{branch.name}</span>
+              </label>
+            )) : <p>No se pudieron cargar las sedes. Intenta nuevamente más tarde.</p>}
+          </fieldset>
+        )}
         <button type="submit">Crear cuenta</button>
       </form>
       {createdAccount && (
