@@ -76,13 +76,40 @@ const accountRoleOptions = [
 
 const accountManagerRoles = new Set(['Admin', 'GeneralDirector']);
 const directorRoles = new Set(['Admin', 'GeneralDirector', 'BranchDirector']);
-const attendanceWriterRoles = new Set(['Admin', 'GeneralDirector', 'BranchDirector', 'Teacher']);
+const attendanceWriterRoles = new Set(['Teacher']);
+
+const roleModuleLinks = {
+  Admin: [
+    ['Cuentas', '#cuentas'],
+    ['Seguridad', '#seguridad'],
+    ['Auditoría', '#seguridad'],
+  ],
+  GeneralDirector: [
+    ['Indicadores', '#indicadores'],
+    ['Cuentas', '#cuentas'],
+    ['Reportes', '#reportes'],
+  ],
+  BranchDirector: [
+    ['Mi sede', '#sede'],
+    ['Solicitudes', '#solicitudes'],
+    ['Reportes', '#reportes'],
+  ],
+  Teacher: [
+    ['Clase de hoy', '#clase'],
+    ['Asistencia', '#asistencia'],
+    ['Mi entrada', '#entrada'],
+  ],
+  Student: [
+    ['Inicio', '#inicio'],
+    ['Asistencia', '#asistencia'],
+    ['Justificaciones', '#justificaciones'],
+  ],
+};
 
 function LandingPage() {
   return (
     <>
       <header className="site-hero">
-        <div className="promo-bar">Inscripciones abiertas para Salsa, Bachata, Hip Hop, Heels y Danza tradicional ecuatoriana.</div>
         <nav className="topbar" aria-label="Navegación principal">
           <a className="brand" href="/">
             <span className="brand-mark">ALC</span>
@@ -400,9 +427,7 @@ function LogoutButton() {
 }
 
 function FriendlyOutput({ output }) {
-  if (!output) {
-    return <p className="result-box">Aquí aparecerá la confirmación de la última acción realizada.</p>;
-  }
+  if (!output) return null;
 
   const success = output.success !== false;
   const message = output.message || (success ? 'La acción se completó correctamente.' : 'No se pudo completar la acción.');
@@ -413,6 +438,38 @@ function FriendlyOutput({ output }) {
       <p>{message}</p>
     </div>
   );
+}
+
+function cleanDisplayText(value, fallback = 'Registro académico') {
+  const text = String(value || '').trim();
+  if (!text) return fallback;
+  if (/^ALC\s+(Student|Teacher|Admin|General Director|Branch Director)$/i.test(text)) return fallback;
+  return text
+    .replace(/\bBRDEMO-\d+\s*/gi, '')
+    .replace(/\bREAL-\d+\b/gi, '')
+    .replace(/\bValidation\b/gi, '')
+    .replace(/\bVerification\b/gi, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim() || fallback;
+}
+
+function cleanAttendanceNote(value) {
+  const text = String(value || '').trim();
+  if (!text || /role test seed|verification|brdemo/i.test(text)) return 'Registro de asistencia de clase';
+  return cleanDisplayText(text, 'Registro de asistencia de clase');
+}
+
+function statusLabel(status) {
+  return {
+    present:'Presente',
+    late:'Atraso',
+    justified:'Justificado',
+    absent:'Ausente',
+  }[status] || 'Registrado';
+}
+
+function displayUserName(user) {
+  return cleanDisplayText(user?.name, roleLabels[user?.role] || 'Usuario');
 }
 
 async function submitAcademicAction(event, onOutput, path, successMessage) {
@@ -430,23 +487,73 @@ function sessionLabel(session) {
   const time = startsAt && !Number.isNaN(startsAt.getTime())
     ? startsAt.toLocaleString('es-EC', { dateStyle:'short', timeStyle:'short' })
     : 'Horario pendiente';
-  return `${session.name || 'Clase'} - ${time}`;
+  return `${cleanDisplayText(session.name, 'Clase programada')} - ${time}`;
 }
 
-function StudentAttendanceForm({ students, classSessions, onOutput }) {
-  const disabled = !students.length || !classSessions.length;
+function TeacherAttendanceSheet({ students, classSessions, onOutput }) {
+  const [classSessionId, setClassSessionId] = useState('');
+  const [statuses, setStatuses] = useState({});
+  const [saving, setSaving] = useState(false);
+  const disabled = !students.length || !classSessions.length || saving;
+
+  useEffect(() => {
+    if (!classSessionId && classSessions.length) setClassSessionId(classSessions[0].id);
+  }, [classSessionId, classSessions]);
+
+  useEffect(() => {
+    setStatuses(Object.fromEntries(students.map((student) => [student.id, statuses[student.id] || 'present'])));
+  }, [students]);
+
+  function updateStatus(studentId, status) {
+    setStatuses((current) => ({ ...current, [studentId]: status }));
+  }
+
+  async function submit(event) {
+    event.preventDefault();
+    if (disabled || !classSessionId) return;
+    setSaving(true);
+    try {
+      let saved = 0;
+      for (const student of students) {
+        await postJson('/student-attendance', {
+          studentId:student.id,
+          classSessionId,
+          status:statuses[student.id] || 'present',
+        });
+        saved += 1;
+      }
+      onOutput({ success:true, message:`Se guardó la asistencia de ${saved} estudiantes.` });
+    } catch {
+      onOutput({ success:false, message:'No se pudo guardar toda la lista. Revisa si la asistencia ya fue registrada o si la clase fue cerrada.' });
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return (
-    <form
-      onSubmit={(event) => submitAcademicAction(event, onOutput, '/student-attendance', 'Asistencia registrada correctamente.')}
-      className="academic-panel"
-    >
+    <form className="academic-panel attendance-sheet" id="asistencia" onSubmit={submit}>
       <p className="eyebrow">Asistencia</p>
-      <h2>Registrar estudiante</h2>
-      {disabled && <p className="panel-note">No hay estudiantes o clases disponibles para registrar asistencia.</p>}
-      <label>Estudiante<select name="studentId" required disabled={!students.length}>{students.map((student) => <option key={student.id} value={student.id}>{student.fullName}</option>)}</select></label>
-      <label>Clase<select name="classSessionId" required disabled={!classSessions.length}>{classSessions.map((session) => <option key={session.id} value={session.id}>{sessionLabel(session)}</option>)}</select></label>
-      <label>Estado<select name="status"><option value="present">Presente</option><option value="absent">Ausente</option><option value="justified">Justificado</option><option value="late">Atraso</option></select></label>
-      <button type="submit" disabled={disabled}>Guardar asistencia</button>
+      <h2>Lista de clase</h2>
+      {disabled && <p className="panel-note">No hay clase o estudiantes disponibles para registrar asistencia.</p>}
+      <label>Clase<select value={classSessionId} onChange={(event) => setClassSessionId(event.target.value)} disabled={!classSessions.length}>{classSessions.map((session) => <option key={session.id} value={session.id}>{sessionLabel(session)}</option>)}</select></label>
+      <div className="attendance-toolbar">
+        <button type="button" className="secondary-action" disabled={!students.length || saving} onClick={() => setStatuses(Object.fromEntries(students.map((student) => [student.id, 'present'])))}>Marcar todos presentes</button>
+        <span>{students.length} estudiantes</span>
+      </div>
+      <ul className="attendance-list">
+        {students.slice(0, 28).map((student) => (
+          <li key={student.id}>
+            <strong>{cleanDisplayText(student.fullName, 'Estudiante')}</strong>
+            <select value={statuses[student.id] || 'present'} onChange={(event) => updateStatus(student.id, event.target.value)}>
+              <option value="present">Presente</option>
+              <option value="late">Atraso</option>
+              <option value="absent">Ausente</option>
+              <option value="justified">Justificado</option>
+            </select>
+          </li>
+        ))}
+      </ul>
+      <button type="submit" disabled={disabled}>{saving ? 'Guardando...' : 'Guardar asistencia de la clase'}</button>
     </form>
   );
 }
@@ -459,9 +566,9 @@ function TeacherCheckInForm({ teachers, classSessions, onOutput }) {
       className="academic-panel"
     >
       <p className="eyebrow">Profesores</p>
-      <h2>Marcar entrada</h2>
+      <h2>Mi entrada</h2>
       {disabled && <p className="panel-note">No hay profesores disponibles para registrar entrada.</p>}
-      <label>Profesor<select name="teacherId" required disabled={!teachers.length}>{teachers.map((teacher) => <option key={teacher.id} value={teacher.id}>{teacher.fullName}</option>)}</select></label>
+      <label>Profesor<select name="teacherId" required disabled={!teachers.length}>{teachers.map((teacher) => <option key={teacher.id} value={teacher.id}>{cleanDisplayText(teacher.fullName, 'Profesor')}</option>)}</select></label>
       <label>Clase<select name="classSessionId" disabled={!classSessions.length}><option value="">Sin clase asociada</option>{classSessions.map((session) => <option key={session.id} value={session.id}>{sessionLabel(session)}</option>)}</select></label>
       <button type="submit" disabled={disabled}>Registrar entrada</button>
     </form>
@@ -470,15 +577,15 @@ function TeacherCheckInForm({ teachers, classSessions, onOutput }) {
 
 function StudentAttendanceHistory({ attendanceRecords }) {
   return (
-    <div className="academic-panel">
+    <div className="academic-panel" id="asistencia">
       <p className="eyebrow">Mi asistencia</p>
       <h2>Historial reciente</h2>
       {attendanceRecords.length ? (
         <ul className="simple-list">
           {attendanceRecords.slice(0, 6).map((record) => (
             <li key={record.id}>
-              <strong>{record.status === 'present' ? 'Presente' : record.status === 'late' ? 'Atraso' : record.status === 'justified' ? 'Justificado' : 'Ausente'}</strong>
-              <span>{record.notes || 'Registro de clase'}</span>
+              <strong>{statusLabel(record.status)}</strong>
+              <span>{cleanAttendanceNote(record.notes)}</span>
             </li>
           ))}
         </ul>
@@ -486,6 +593,48 @@ function StudentAttendanceHistory({ attendanceRecords }) {
         <p className="panel-note">Todavía no tienes registros de asistencia visibles.</p>
       )}
     </div>
+  );
+}
+
+function StudentJustificationPanel({ attendanceRecords, onOutput }) {
+  const absences = attendanceRecords.filter((record) => record.status === 'absent');
+  const [submitting, setSubmitting] = useState(false);
+
+  async function submit(event) {
+    event.preventDefault();
+    if (!absences.length || submitting) return;
+    setSubmitting(true);
+    const form = Object.fromEntries(new FormData(event.currentTarget).entries());
+    try {
+      await postJson('/absence-justifications', {
+        attendanceRecordId:form.attendanceRecordId,
+        reason:form.reason,
+        evidenceUrl:form.evidenceUrl || undefined,
+      });
+      event.currentTarget.reset();
+      onOutput({ success:true, message:'Tu justificación fue enviada para revisión.' });
+    } catch {
+      onOutput({ success:false, message:'No se pudo enviar la justificación. Verifica que la ausencia siga pendiente.' });
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <form className="academic-panel" id="justificaciones" onSubmit={submit}>
+      <p className="eyebrow">Solicitudes</p>
+      <h2>Justificar ausencia</h2>
+      {absences.length ? (
+        <>
+          <label>Ausencia<select name="attendanceRecordId" required>{absences.map((record) => <option key={record.id} value={record.id}>{cleanAttendanceNote(record.notes)}</option>)}</select></label>
+          <label>Motivo<textarea name="reason" minLength="5" maxLength="500" required placeholder="Explica brevemente el motivo de la ausencia" /></label>
+          <label>Evidencia opcional<input name="evidenceUrl" type="url" placeholder="https://..." /></label>
+          <button type="submit" disabled={submitting}>{submitting ? 'Enviando...' : 'Enviar justificación'}</button>
+        </>
+      ) : (
+        <p className="panel-note">No tienes ausencias pendientes para justificar.</p>
+      )}
+    </form>
   );
 }
 
@@ -505,7 +654,6 @@ function ReportsPanel({ output, onOutput }) {
       }}>
         Cargar resumen
       </button>
-      <FriendlyOutput output={output} />
     </div>
   );
 }
@@ -515,6 +663,9 @@ const emptyDashboardData = {
   teachers:[],
   classSessions:[],
   attendanceRecords:[],
+  absenceJustifications:[],
+  enrollmentRequests:[],
+  users:[],
 };
 
 async function fetchList(path) {
@@ -532,6 +683,18 @@ async function loadDashboardData(role) {
     requests.push(fetchList('/class-sessions').then((rows) => { data.classSessions = rows; }));
   }
 
+  if (directorRoles.has(role)) {
+    requests.push(fetchList('/students').then((rows) => { data.students = rows; }));
+    requests.push(fetchList('/teachers').then((rows) => { data.teachers = rows; }));
+    requests.push(fetchList('/class-sessions').then((rows) => { data.classSessions = rows; }));
+    requests.push(fetchList('/absence-justifications').then((rows) => { data.absenceJustifications = rows; }));
+    requests.push(fetchList('/enrollment-requests').then((rows) => { data.enrollmentRequests = rows; }));
+  }
+
+  if (accountManagerRoles.has(role)) {
+    requests.push(fetchList('/users').then((rows) => { data.users = rows; }));
+  }
+
   if (role === 'Student') {
     requests.push(fetchList('/students').then((rows) => { data.students = rows; }));
     requests.push(fetchList('/student-attendance').then((rows) => { data.attendanceRecords = rows; }));
@@ -544,24 +707,138 @@ async function loadDashboardData(role) {
 function dashboardOverview(role) {
   if (role === 'Student') {
     return [
-      ['Mi perfil', 'Consulta tu información académica registrada.'],
-      ['Mi asistencia', 'Revisa tus registros recientes y estados justificados.'],
-      ['Solicitudes', 'Presenta justificaciones cuando tengas una ausencia registrada.'],
+      ['Próxima clase', 'Horario visible según tu perfil académico.'],
+      ['Asistencia', 'Consulta estados, ausencias y atrasos registrados.'],
+      ['Justificaciones', 'Envía solicitudes solo sobre tus propias ausencias.'],
     ];
   }
   if (role === 'Teacher') {
     return [
-      ['Mis clases', 'Revisa las clases asignadas para registrar asistencia.'],
-      ['Asistencia', 'Marca estudiantes presentes, ausentes, atrasados o justificados.'],
-      ['Entrada', 'Registra tu asistencia como profesor antes de iniciar clase.'],
+      ['Clase de hoy', 'Trabaja solamente con tus clases asignadas.'],
+      ['Lista completa', 'Marca la asistencia de la clase en una sola pantalla.'],
+      ['Mi entrada', 'Registra tu llegada para la clase correspondiente.'],
+    ];
+  }
+  if (role === 'BranchDirector') {
+    return [
+      ['Mi sede', 'Supervisa estudiantes, profesores y clases asignadas.'],
+      ['Solicitudes', 'Revisa justificaciones pendientes de tu sede.'],
+      ['Incidencias', 'Corrige registros solo con motivo y auditoría.'],
+    ];
+  }
+  if (role === 'GeneralDirector') {
+    return [
+      ['Indicadores', 'Consulta el estado global de sedes y solicitudes.'],
+      ['Cuentas', 'Crea accesos institucionales y directores de sede.'],
+      ['Reportes', 'Revisa tendencias y decisiones académicas.'],
+    ];
+  }
+  if (role === 'Admin') {
+    return [
+      ['Accesos', 'Gestiona usuarios, roles y recuperación de cuentas.'],
+      ['Configuración', 'Mantén sedes y parámetros técnicos del sistema.'],
+      ['Auditoría', 'Consulta actividad sensible para soporte.'],
     ];
   }
   return [
-    ['Estudiantes', 'Asistencia, estados y seguimiento académico.'],
-    ['Profesores', 'Entradas, clases asignadas y horas registradas.'],
-    ['Sedes', 'Resumen de actividad por ubicación.'],
-    ['Solicitudes', 'Becas, justificaciones y promociones de nivel.'],
+    ['Inicio', 'Resumen del panel académico.'],
   ];
+}
+
+function ModuleNavigation({ role }) {
+  const links = roleModuleLinks[role] || [['Inicio', '#inicio']];
+  return (
+    <nav className="module-nav" aria-label="Módulos del panel">
+      {links.map(([label, href], index) => <a key={label} className={index === 0 ? 'active' : ''} href={href}>{label}</a>)}
+    </nav>
+  );
+}
+
+function DashboardIntro({ user, data }) {
+  const student = data.students[0];
+  const teacher = data.teachers[0];
+  const profile = user.role === 'Student' ? student : user.role === 'Teacher' ? teacher : null;
+  const detail = profile
+    ? [roleLabels[user.role], profile.level ? `Nivel ${profile.level}` : null].filter(Boolean).join(' · ')
+    : roleLabels[user.role] || 'Usuario autorizado';
+
+  return (
+    <section className="dashboard-hero compact" id="inicio">
+      <div>
+        <p className="eyebrow">Panel académico</p>
+        <h1>Buenos días, {displayUserName(user)}</h1>
+        <p className="dashboard-copy">{detail}</p>
+      </div>
+      <div className="dashboard-status">
+        <span>Sesión activa</span>
+        <strong>{roleLabels[user.role] || 'Usuario'}</strong>
+      </div>
+    </section>
+  );
+}
+
+function MetricGrid({ items }) {
+  return (
+    <section className="metric-grid" aria-label="Indicadores principales">
+      {items.map(([value, label]) => (
+        <article key={label}>
+          <strong>{value}</strong>
+          <span>{label}</span>
+        </article>
+      ))}
+    </section>
+  );
+}
+
+function RoleSummary({ role, data }) {
+  if (role === 'Student') {
+    const absences = data.attendanceRecords.filter((record) => record.status === 'absent').length;
+    const attended = data.attendanceRecords.filter((record) => ['present', 'late', 'justified'].includes(record.status)).length;
+    const rate = data.attendanceRecords.length ? Math.round((attended / data.attendanceRecords.length) * 100) : 0;
+    return <MetricGrid items={[[data.classSessions[0] ? 'Hoy' : 'Pendiente', 'Próxima clase'], [`${rate}%`, 'Asistencia visible'], [absences, 'Ausencias sin justificar']]} />;
+  }
+  if (role === 'Teacher') {
+    return <MetricGrid items={[[data.classSessions.length, 'Clases visibles'], [data.students.length, 'Estudiantes en lista'], [data.teachers.length ? 'Lista' : 'Pendiente', 'Entrada del profesor']]} />;
+  }
+  if (role === 'BranchDirector') {
+    return <MetricGrid items={[[data.students.length, 'Estudiantes de sede'], [data.teachers.length, 'Profesores de sede'], [data.absenceJustifications.length, 'Justificaciones visibles']]} />;
+  }
+  if (role === 'GeneralDirector') {
+    return <MetricGrid items={[[data.students.length, 'Estudiantes visibles'], [data.enrollmentRequests.length, 'Solicitudes de ingreso'], [data.absenceJustifications.length, 'Justificaciones']]} />;
+  }
+  if (role === 'Admin') {
+    return <MetricGrid items={[[data.users.length, 'Usuarios del sistema'], [data.students.length, 'Perfiles académicos'], ['Activa', 'Auditoría y seguridad']]} />;
+  }
+  return null;
+}
+
+function SupervisorPanel({ role, data }) {
+  const isBranch = role === 'BranchDirector';
+  return (
+    <section className="academic-panel supervisor-panel" id={isBranch ? 'sede' : 'indicadores'}>
+      <p className="eyebrow">{isBranch ? 'Supervisión de sede' : 'Dirección académica'}</p>
+      <h2>{isBranch ? 'Revisión operativa' : 'Indicadores institucionales'}</h2>
+      <ul className="simple-list">
+        <li><strong>{data.classSessions.length} clases visibles</strong><span>{isBranch ? 'Revisa clases sin asistencia cerrada y casos pendientes.' : 'Consulta tendencias antes de intervenir procesos.'}</span></li>
+        <li><strong>{data.absenceJustifications.length} solicitudes</strong><span>Las aprobaciones deben conservar motivo, fecha y responsable.</span></li>
+        <li><strong>Correcciones auditadas</strong><span>Las asistencias o entradas no se registran como tarea cotidiana desde este panel.</span></li>
+      </ul>
+    </section>
+  );
+}
+
+function AdminSecurityPanel({ data }) {
+  return (
+    <section className="academic-panel" id="seguridad">
+      <p className="eyebrow">Seguridad</p>
+      <h2>Administración técnica</h2>
+      <ul className="simple-list">
+        <li><strong>{data.users.length} usuarios</strong><span>Gestiona accesos, roles y recuperación de cuentas.</span></li>
+        <li><strong>Separación académica</strong><span>Las decisiones de asistencia, becas y promociones quedan fuera de la operación normal del administrador.</span></li>
+        <li><strong>Auditoría</strong><span>Todo cambio sensible debe mantener trazabilidad institucional.</span></li>
+      </ul>
+    </section>
+  );
 }
 
 function AccountCreationPanel() {
@@ -587,7 +864,6 @@ function AccountCreationPanel() {
       email:form.email,
       role:form.role,
     };
-    if (form.temporaryPassword) body.temporaryPassword = form.temporaryPassword;
     if (form.role === 'BranchDirector') body.branchIds = formData.getAll('branchIds');
     if (form.role === 'Student') {
       body.studentProfile = {
@@ -616,17 +892,16 @@ function AccountCreationPanel() {
   }
 
   return (
-    <section className="academic-panel account-panel" aria-label="Creación de cuentas">
+    <section className="academic-panel account-panel" id="cuentas" aria-label="Creación de cuentas">
       <div>
         <p className="eyebrow">Cuentas</p>
-        <h2>Crear cuenta de academia</h2>
-        <p>Registra a una persona autorizada y entrega la contraseña temporal por el canal de la academia.</p>
+        <h2>Enviar invitación de acceso</h2>
+        <p>Registra a una persona autorizada. El sistema generará una clave temporal de un solo uso para su primer ingreso.</p>
       </div>
       <form className="account-form" onSubmit={submit}>
         <label>Nombre completo<input name="name" autoComplete="name" required /></label>
         <label>Correo electrónico<input name="email" type="email" autoComplete="email" required /></label>
         <label>Rol<select name="role" value={selectedRole} onChange={(event) => setSelectedRole(event.target.value)} required>{accountRoleOptions.map((role) => <option key={role.value} value={role.value}>{role.label}</option>)}</select></label>
-        <label>Contraseña temporal opcional<input name="temporaryPassword" type="password" autoComplete="new-password" placeholder="La academia puede generarla" /></label>
         {(selectedRole === 'Student' || selectedRole === 'Teacher') && (
           <label>Sede
             <select name="branchId" required>
@@ -657,13 +932,13 @@ function AccountCreationPanel() {
             )) : <p>No se pudieron cargar las sedes. Intenta nuevamente más tarde.</p>}
           </fieldset>
         )}
-        <button type="submit">Crear cuenta</button>
+        <button type="submit">Generar invitación</button>
       </form>
       {createdAccount && (
         <div className="credential-box" aria-live="polite">
-          <span>Contraseña temporal</span>
+          <span>Clave temporal generada</span>
           <strong>{createdAccount.temporaryPassword}</strong>
-          <p>Esta contraseña se muestra una sola vez. La persona deberá cambiarla en su primer ingreso.</p>
+          <p>Esta clave se muestra una sola vez. La persona deberá cambiarla en su primer ingreso.</p>
         </div>
       )}
       <p className="form-status" aria-live="polite">{status}</p>
@@ -747,7 +1022,6 @@ function PrivateDashboard() {
 
   return (
     <div className="dashboard-shell">
-      <div className="promo-bar">Panel interno de American Latin Class</div>
       <header className="dashboard-header">
         <nav className="topbar" aria-label="Navegación del panel">
           <a className="brand" href="/">
@@ -777,37 +1051,29 @@ function PrivateDashboard() {
 
         {sessionReady && currentUser && !currentUser.mustChangePassword && (
           <>
-          <section className="dashboard-hero">
-          <div>
-            <p className="eyebrow">Gestión académica</p>
-            <h1>Panel académico</h1>
-            <p className="dashboard-copy">Registra asistencia, revisa sedes y mantén el seguimiento de clases en un solo lugar.</p>
-            <AuthStatus user={currentUser} />
-          </div>
-          <div className="dashboard-badge">
-            <span>Sesión activa</span>
-            <strong>Acceso autorizado</strong>
-          </div>
-        </section>
+            <DashboardIntro user={currentUser} data={dashboardData} />
+            <ModuleNavigation role={currentUser.role} />
+            {dashboardLoading && <p className="panel-note">Cargando información académica...</p>}
+            <RoleSummary role={currentUser.role} data={dashboardData} />
 
-        <section className="overview-list" aria-label="Opciones del panel">
-          {dashboardOverview(currentUser.role).map(([title, copy]) => (
-            <article key={title}><span>{title}</span><p>{copy}</p></article>
-          ))}
-        </section>
+            <section className="attendance-grid" aria-label="Módulos del panel">
+              {currentUser.role === 'Student' && <StudentAttendanceHistory attendanceRecords={dashboardData.attendanceRecords} />}
+              {currentUser.role === 'Student' && <StudentJustificationPanel attendanceRecords={dashboardData.attendanceRecords} onOutput={setOutput} />}
 
-        <section className="attendance-grid" aria-label="Acciones de asistencia">
-          {accountManagerRoles.has(currentUser.role) && <AccountCreationPanel />}
-          {dashboardLoading && <p className="panel-note">Cargando información académica...</p>}
-          {currentUser.role === 'Student' && <StudentAttendanceHistory attendanceRecords={dashboardData.attendanceRecords} />}
-          {attendanceWriterRoles.has(currentUser.role) && (
-            <StudentAttendanceForm students={dashboardData.students} classSessions={dashboardData.classSessions} onOutput={setOutput} />
-          )}
-          {attendanceWriterRoles.has(currentUser.role) && (
-            <TeacherCheckInForm teachers={dashboardData.teachers} classSessions={dashboardData.classSessions} onOutput={setOutput} />
-          )}
-          {directorRoles.has(currentUser.role) && <ReportsPanel output={output} onOutput={setOutput} />}
-        </section>
+              {currentUser.role === 'Teacher' && (
+                <TeacherAttendanceSheet students={dashboardData.students} classSessions={dashboardData.classSessions} onOutput={setOutput} />
+              )}
+              {currentUser.role === 'Teacher' && (
+                <TeacherCheckInForm teachers={dashboardData.teachers} classSessions={dashboardData.classSessions} onOutput={setOutput} />
+              )}
+
+              {currentUser.role === 'BranchDirector' && <SupervisorPanel role={currentUser.role} data={dashboardData} />}
+              {currentUser.role === 'GeneralDirector' && <SupervisorPanel role={currentUser.role} data={dashboardData} />}
+              {currentUser.role === 'Admin' && <AdminSecurityPanel data={dashboardData} />}
+              {accountManagerRoles.has(currentUser.role) && <AccountCreationPanel />}
+              {directorRoles.has(currentUser.role) && currentUser.role !== 'Admin' && <ReportsPanel output={output} onOutput={setOutput} />}
+              <FriendlyOutput output={output} />
+            </section>
           </>
         )}
       </main>
