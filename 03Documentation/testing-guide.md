@@ -21,14 +21,15 @@ Current automated coverage:
 - JWT/Postman session: `/auth/login` returns `sessionToken`, Bearer token can call `/auth/me`, logout revokes the backend session, and the same token returns `401`.
 - Cache management: public auth config cache headers, no-store session responses, private catalog memory-cache `MISS/HIT`, branch-list invalidation after writes and scoped branch report cache.
 - RBAC: invalid role cannot access consolidated reports.
+- Actor flows: Visitor enrollment, Student first-password change and own-scope access, Teacher attendance work, BranchDirector branch scope, GeneralDirector account/branch-access management, and Admin governance.
 - Rules: scholarship threshold, promotion candidate rule, teacher payment calculation.
 - Academic integration: enrollment request, duplicate attendance rejection, absence review, scholarship evaluation, level promotion evaluation.
 - Python analytics: health cache headers, protected no-store responses and analytics service calculations.
 
 Expected result:
 ```text
-Test Suites: 5 passed, 5 total
-Tests:       32 passed, 32 total
+Test Suites: 6 passed, 6 total
+Tests:       38 passed, 38 total
 ```
 
 Current API validation result:
@@ -51,6 +52,7 @@ Assertions: 78 executed, 0 failed
 Evidence files:
 - `03Documentation/cache-management.md`
 - `03Documentation/api-validation-report.md`
+- `03Documentation/actor-flows/`
 - `07Other/api-validation-results.json`
 - `postman/evidence/postman-local-jwt-auth-evidence.md`
 - `postman/evidence/postman-local-jwt-auth-evidence.json`

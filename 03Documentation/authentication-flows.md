@@ -11,9 +11,10 @@ Google is an alternate sign-in method, not a self-registration method. A Google 
 3. The private dashboard exposes the same flow as "Create academy account" for Admin and GeneralDirector users.
 4. If no temporary password is provided, the backend generates one and returns it once in the response.
 5. The backend validates assigned branches before creating the user, so invalid branch assignments do not leave partial accounts.
-6. The backend stores only `password_hash`.
-7. New accounts default to `must_change_password = true`.
-8. The director shares the temporary password through the approved academy channel.
+6. BranchDirector accounts must include at least one assigned branch.
+7. The backend stores only `password_hash`.
+8. New accounts default to `must_change_password = true`.
+9. The director shares the temporary password through the approved academy channel.
 
 ## First Email/Password Sign-In
 1. User opens `/login.html`.
@@ -46,6 +47,7 @@ Google is an alternate sign-in method, not a self-registration method. A Google 
 - Temporary-password users can view `/auth/me`, logout, and change password, but cannot use protected academic endpoints.
 - Password change requires the current password and a new password that satisfies the password policy.
 - Director-created temporary passwords are returned only at creation time.
+- BranchDirector account creation without branch access returns `422 BRANCH_ACCESS_REQUIRED`.
 
 ## Role Expectations
 - Visitor: public landing and enrollment request only.

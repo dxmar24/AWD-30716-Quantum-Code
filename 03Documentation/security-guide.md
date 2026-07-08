@@ -7,14 +7,14 @@
 - Unverified Google emails, inactive academy accounts and linked Google accounts whose email no longer matches the academy email are rejected.
 - Seeded and director-created users authenticate through `users.password_hash`; password hashes are never returned by `/auth/me`, `/users` or login responses.
 - New users can be marked with `must_change_password`; protected academic endpoints reject them with `PASSWORD_CHANGE_REQUIRED` until `/auth/change-password` succeeds.
-- Account creation validates optional branch assignments before writing the user record to avoid partial user setup.
+- Account creation validates optional branch assignments before writing the user record to avoid partial user setup; BranchDirector accounts require at least one assigned branch.
 - The role-test seed creates temporary credentials only for verification. Rotate or delete them before production use.
 - Application roles are internal and are not derived from Google profile data.
 - Protected endpoints use `requireAuth` or `allowRoles`.
 - Resource access is scoped after role validation: BranchDirector users only see assigned branches through `user_branch_access`, Teacher users are limited to their own profile/classes, and Student users are limited to their own academic records.
 - The Python Analytics API validates the shared session token and applies the same resource-scope checks before returning student, branch or teacher analytics.
 - Role updates are restricted to `Admin` and are audited.
-- Branch access assignment is restricted to `Admin` and is audited.
+- Branch access assignment is restricted to `GeneralDirector`/`Admin` and is audited.
 
 ## Session Security
 - Session cookie is HttpOnly and SameSite strict.

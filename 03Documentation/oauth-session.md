@@ -42,11 +42,12 @@ Google documentation reference: https://support.google.com/cloud/answer/15549257
 ## Account Lifecycle
 1. Admin or GeneralDirector creates the user with `POST /api/v1/users`.
 2. The private React dashboard exposes the same "Create academy account" flow for Admin and GeneralDirector users.
-3. The email is the username for password login.
-4. The backend stores only `password_hash`.
-5. The director gives the user a temporary password.
-6. The user signs in and must change the temporary password.
-7. Google Sign-In can then be used as an alternate login when the Google email matches the academy account.
+3. BranchDirector account creation requires at least one assigned branch.
+4. The email is the username for password login.
+5. The backend stores only `password_hash`.
+6. The director gives the user a temporary password.
+7. The user signs in and must change the temporary password.
+8. Google Sign-In can then be used as an alternate login when the Google email matches the academy account.
 
 ## Manual Role-Test Login
 Run `npm run db:seed:role-test` after the database schema is applied to create temporary users for Admin, GeneralDirector, BranchDirector, Teacher and Student. The seed stores only one-way password hashes in `users.password_hash`.
@@ -79,7 +80,7 @@ Override defaults with `SEED_*_PASSWORD` variables before running the seed. The 
 - Public landing access points to `/login.html`.
 - Successful email/password or Google login redirects to `/private/dashboard.html`.
 - First-login users see the mandatory password-change screen before the academic dashboard.
-- Admin and GeneralDirector users can create academy accounts from the private dashboard and see the one-time temporary password.
+- Admin and GeneralDirector users can create academy accounts from the private dashboard, assign BranchDirector branches and see the one-time temporary password.
 - Logout revokes the server-side session and redirects to `/login.html?session=logout`.
 - The Content Security Policy allows the Google Identity Services script/frame while keeping application resources self-hosted.
 
