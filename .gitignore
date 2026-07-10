@@ -8,3 +8,4 @@ __pycache__/
 .pytest_cache/
 .venv/
 *.pyc
+07Other/local-secrets/

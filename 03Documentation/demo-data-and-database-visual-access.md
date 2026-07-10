@@ -1,5 +1,23 @@
 # Demo Data and Visual Database Access
 
+## Persistent Cloud Viewer
+
+The project also includes a persistent browser-based database viewer for AWS verification:
+
+```text
+https://18-217-255-109.sslip.io/db-admin/
+```
+
+The route is protected with Nginx Basic Auth and uses Adminer running locally on the Frontend EC2 instance. The recommended PostgreSQL user for visual inspection is `alc_readonly`.
+
+Credential details are intentionally kept outside Git in:
+
+```text
+07Other/local-secrets/database-viewer-credentials.txt
+```
+
+Full setup and evidence instructions are documented in `03Documentation/cloud-database-viewer.md`.
+
 ## Academic Demo Seed
 
 Run this seed after applying database migrations when you need realistic report data:
