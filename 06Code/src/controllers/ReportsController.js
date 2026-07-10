@@ -1,5 +1,6 @@
 const { ApiResponse } = require('../utils/ApiResponse');
 const { actorCacheScope, setMemoryCacheHeaders } = require('../services/CacheService');
+const { buildAcademicReport } = require('../functional/reportMetrics');
 
 class ReportsController {
   constructor(db, rulesService, accessPolicy = null, cacheService = null) {
@@ -7,10 +8,6 @@ class ReportsController {
     this.rulesService = rulesService;
     this.accessPolicy = accessPolicy;
     this.cacheService = cacheService;
-  }
-
-  money(value) {
-    return Number(Number(value || 0).toFixed(2));
   }
 
   async visibleBranches(user) {
@@ -31,77 +28,9 @@ class ReportsController {
     return { branches, students, payments, attendance, events, classGroups };
   }
 
-  attendanceRate(records) {
-    if (!records.length) return 0;
-    const positive = records.filter((record) => ['present', 'late', 'justified'].includes(record.status)).length;
-    return Math.round((positive / records.length) * 100);
-  }
-
-  branchReport(branch, source) {
-    const students = source.students.filter((student) => student.branchId === branch.id);
-    const studentIds = new Set(students.map((student) => student.id));
-    const payments = source.payments.filter((payment) => payment.branchId === branch.id || studentIds.has(payment.studentId));
-    const attendance = source.attendance.filter((record) => studentIds.has(record.studentId));
-    const events = source.events.filter((event) => event.branchId === branch.id);
-    const paidPayments = payments.filter((payment) => payment.status === 'paid');
-    const pendingPayments = payments.filter((payment) => ['pending', 'overdue'].includes(payment.status));
-    const showIncome = events.reduce((sum, event) => sum + Number(event.showIncome || 0), 0);
-    const tuitionIncome = paidPayments.reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
-    const pendingAmount = pendingPayments.reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
-
-    return {
-      id:branch.id,
-      name:branch.name,
-      city:branch.city,
-      activeStudents:students.filter((student) => student.active !== false).length,
-      retiredStudents:students.filter((student) => student.active === false).length,
-      b1Students:students.filter((student) => student.level === 'B1' && student.active !== false).length,
-      b2Students:students.filter((student) => student.level === 'B2' && student.active !== false).length,
-      pendingPayments:pendingPayments.length,
-      pendingAmount:this.money(pendingAmount),
-      tuitionIncome:this.money(tuitionIncome),
-      showIncome:this.money(showIncome),
-      totalIncome:this.money(tuitionIncome + showIncome),
-      attendanceRate:this.attendanceRate(attendance),
-      events:events.length,
-    };
-  }
-
   async buildReport(user) {
     const source = await this.reportSource(user);
-    const branches = source.branches.map((branch) => this.branchReport(branch, source));
-    const totals = branches.reduce((summary, branch) => ({
-      activeStudents:summary.activeStudents + branch.activeStudents,
-      retiredStudents:summary.retiredStudents + branch.retiredStudents,
-      b1Students:summary.b1Students + branch.b1Students,
-      b2Students:summary.b2Students + branch.b2Students,
-      pendingPayments:summary.pendingPayments + branch.pendingPayments,
-      pendingAmount:this.money(summary.pendingAmount + branch.pendingAmount),
-      tuitionIncome:this.money(summary.tuitionIncome + branch.tuitionIncome),
-      showIncome:this.money(summary.showIncome + branch.showIncome),
-      totalIncome:this.money(summary.totalIncome + branch.totalIncome),
-      events:summary.events + branch.events,
-    }), {
-      activeStudents:0,
-      retiredStudents:0,
-      b1Students:0,
-      b2Students:0,
-      pendingPayments:0,
-      pendingAmount:0,
-      tuitionIncome:0,
-      showIncome:0,
-      totalIncome:0,
-      events:0,
-    });
-    const allAttendance = source.attendance;
-    return {
-      generatedAt:new Date().toISOString(),
-      totals:{
-        ...totals,
-        attendanceRate:this.attendanceRate(allAttendance),
-      },
-      branches,
-    };
+    return buildAcademicReport(source);
   }
 
   cachedReport = async (req, res, keySuffix, loader) => {
