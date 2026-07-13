@@ -1,5 +1,7 @@
 const { PrismaClient } = require('@prisma/client');
 
+require('dotenv').config();
+
 async function main() {
   if (!process.env.DATABASE_URL) {
     console.log('Skipping Prisma smoke test because DATABASE_URL is not set.');

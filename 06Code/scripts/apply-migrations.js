@@ -3,6 +3,8 @@ const fs = require('fs');
 const path = require('path');
 const { Pool } = require('pg');
 
+require('dotenv').config();
+
 const databaseUrl = String(process.env.DATABASE_URL || '').trim();
 if (!databaseUrl) {
   console.error('DATABASE_URL is required to apply database migrations.');
