@@ -28,13 +28,13 @@ Python Analytics API order:
 Notes:
 - Do not commit real Google ID tokens, database passwords or session cookies.
 - `login_email` and `login_password` are academic Postman verification credentials for the configured demo user; the shared environment leaves `login_password` blank on purpose.
-- After running `npm run db:seed:role-test`, you can switch `login_email` to `generaldirector@alc.edu`, `branchdirector@alc.edu`, `teacher@alc.edu` or `student@alc.edu` and use the matching temporary local password for role-scope checks.
+- After running the localhost-only role seed, fill a private environment with the explicitly supplied local account and one-time password. Seeded accounts require immediate password rotation.
 - `google_id_token` is intentionally blank in the environment file.
 - `session_token` is intentionally blank in the environment file and is filled by `Password Login - Demo`.
 - The collection uses `{{base_url}}` for API calls and `{{site_url}}` for private page checks.
 - The collection is configured with Bearer auth using `{{session_token}}`, while the browser flow still uses the `alc_session` cookie.
 - Create/update requests save generated IDs back into the active Postman environment.
-- Existing environment IDs point to records already loaded in AWS RDS; they can be used immediately for read/report tests.
+- Committed environment IDs are blank. Populate them from disposable local seed output in a private environment.
 - `analytics_base_url` is prepared for the Python FastAPI service through the frontend Nginx path `/api/analytics/v1`.
 
 Automated evidence:

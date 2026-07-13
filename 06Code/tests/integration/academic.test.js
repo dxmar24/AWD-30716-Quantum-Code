@@ -14,6 +14,28 @@ async function login(app, payload = {}) {
   return { cookie:response.headers['set-cookie'][0], user:response.body.data.user };
 }
 
+function seedFinalizedAttendance(db, studentId, count = 8) {
+  const rows = [];
+  for (let index = 0; index < count; index += 1) {
+    const startsAt = new Date(Date.UTC(2026, 5, 2 + index, 18, 0, 0));
+    const session = db.classSessions.create({
+      classGroupId:'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+      name:`Finalized class ${index + 1}`,
+      startsAt:startsAt.toISOString(),
+      endsAt:new Date(startsAt.getTime() + 3600000).toISOString(),
+      status:'completed',
+      attendanceState:'finalized',
+    });
+    rows.push(db.studentAttendance.create({
+      studentId,
+      classSessionId:session.id,
+      status:'present',
+      version:1,
+    }));
+  }
+  return rows;
+}
+
 test('visitor can submit enrollment request and directors can list it', async () => {
   const app = createApp();
   const { cookie } = await login(app);
@@ -65,9 +87,7 @@ test('scholarship and promotion evaluations require candidate rules plus evaluat
   const { cookie } = await login(app);
   const studentId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
 
-  app.locals.db.studentAttendance.create({ studentId, classSessionId:'11111111-2222-4333-8444-555555555555', status:'present' });
-  app.locals.db.studentAttendance.create({ studentId, classSessionId:'11111111-2222-4333-8444-666666666666', status:'present' });
-  app.locals.db.studentAttendance.create({ studentId, classSessionId:'11111111-2222-4333-8444-777777777777', status:'late' });
+  seedFinalizedAttendance(app.locals.db, studentId, 8);
 
   await request(app).post('/api/v1/scholarship-evaluations').set('Cookie', cookie).send({
     studentId,
@@ -86,6 +106,54 @@ test('scholarship and promotion evaluations require candidate rules plus evaluat
   }).expect(201);
 
   expect(app.locals.db.students.findById(studentId).level).toBe('B2');
+});
+
+test('concurrent academic decisions produce only one scholarship approval and one level promotion', async () => {
+  const app = createApp();
+  const { cookie } = await login(app);
+  const studentId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+  seedFinalizedAttendance(app.locals.db, studentId, 8);
+
+  const scholarshipRequest = () => request(app)
+    .post('/api/v1/scholarship-evaluations')
+    .set('Cookie', cookie)
+    .send({
+      studentId,
+      percentage:50,
+      theoryScore:88,
+      practiceScore:91,
+      approved:true,
+    });
+  const scholarshipResponses = await Promise.all([scholarshipRequest(), scholarshipRequest()]);
+  expect(scholarshipResponses.map((response) => response.status).sort()).toEqual([201, 409]);
+  expect(scholarshipResponses.find((response) => response.status === 409).body.details.code)
+    .toBe('SCHOLARSHIP_ALREADY_APPROVED');
+  expect(app.locals.db.scholarshipEvaluations.all().filter((row) => row.approved)).toHaveLength(1);
+
+  const promotionRequest = () => request(app)
+    .post('/api/v1/level-promotion-evaluations')
+    .set('Cookie', cookie)
+    .send({
+      studentId,
+      consistencyScore:92,
+      theoryScore:89,
+      practiceScore:94,
+      approved:true,
+    });
+  const promotionResponses = await Promise.all([promotionRequest(), promotionRequest()]);
+  expect(promotionResponses.map((response) => response.status).sort()).toEqual([201, 409]);
+  expect(promotionResponses.find((response) => response.status === 409).body.details.code)
+    .toBe('LEVEL_PROMOTION_ALREADY_APPROVED');
+  expect(app.locals.db.levelPromotionEvaluations.all().filter((row) => row.approved)).toHaveLength(1);
+  expect(app.locals.db.students.findById(studentId).level).toBe('B2');
+
+  const decisionAudits = app.locals.db.auditLogs.all().filter((row) => (
+    ['SCHOLARSHIP_EVALUATION_REGISTERED', 'LEVEL_PROMOTION_EVALUATION_REGISTERED'].includes(row.action)
+  ));
+  expect(decisionAudits.map((row) => row.action).sort()).toEqual([
+    'LEVEL_PROMOTION_EVALUATION_REGISTERED',
+    'SCHOLARSHIP_EVALUATION_REGISTERED',
+  ]);
 });
 
 test('branch director manages only assigned branch resources', async () => {
@@ -132,6 +200,11 @@ test('branch director manages only assigned branch resources', async () => {
 
 test('teacher cannot check in using another teacher profile', async () => {
   const app = createApp();
+  app.locals.db.classSessions.update('eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', {
+    startsAt:new Date(Date.now() - 5 * 60 * 1000).toISOString(),
+    endsAt:new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+    status:'scheduled',
+  });
   const teacherToken = jwt.sign({
     sub:'test-teacher',
     email:'teacher@alc.edu',
@@ -155,7 +228,7 @@ test('teacher cannot check in using another teacher profile', async () => {
   await request(app)
     .post('/api/v1/teacher-attendance/check-in')
     .set('Cookie', loginResponse.headers['set-cookie'][0])
-    .send({ teacherId:otherTeacher.id })
+    .send({ teacherId:otherTeacher.id, classSessionId:'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee' })
     .expect(403);
 });
 
@@ -230,7 +303,18 @@ test('general report includes finance, pending payments, retired students and sh
   app.locals.db.students.create({ branchId, fullName:'Retired Student', level:'B2', active:false });
   app.locals.db.studentPayments.create({ studentId, branchId, amount:45, concept:'Mensualidad', period:'2026-07', status:'paid' });
   app.locals.db.studentPayments.create({ studentId, branchId, amount:45, concept:'Uniforme', period:'2026-07', status:'pending' });
-  app.locals.db.academyEvents.create({ branchId, title:'Noche ALC', level:'ALL', startsAt:'2026-07-30T20:00:00.000Z', showIncome:150, active:true });
+  app.locals.db.academyEvents.create({
+    branchId,
+    title:'Noche ALC',
+    level:'ALL',
+    startsAt:new Date(Date.now() - 86400000).toISOString(),
+    showIncome:150,
+    active:true,
+  });
+  app.locals.db.classSessions.update('eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', {
+    status:'completed',
+    attendanceState:'finalized',
+  });
   app.locals.db.studentAttendance.create({ studentId, classSessionId:'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', status:'present' });
 
   const report = await request(app).get('/api/v1/reports/general').set('Cookie', cookie).expect(200);

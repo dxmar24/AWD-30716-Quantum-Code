@@ -28,7 +28,7 @@ The Python API does not create users or sessions. Instead, it validates the exis
 2. The Node API returns `data.sessionToken`.
 3. Postman stores that token in `{{session_token}}`.
 4. Python analytics requests send `Authorization: Bearer {{session_token}}`.
-5. The Python API validates the JWT signature with the same `SESSION_SECRET`.
+5. The Python API validates HS256, issuer, audience, required claims and signature with the same `SESSION_SECRET`.
 6. The Python API hashes the token and verifies that the session exists in PostgreSQL, is not revoked and has not expired.
 7. The requested student, branch or teacher resource is checked against the user's role and scope.
 8. After `POST /api/v1/auth/logout`, the same token is rejected by both Node and Python APIs.
@@ -114,10 +114,12 @@ Recommended order:
 ## Environment Variables
 
 ```text
-DATABASE_URL=postgres://alc_user:<password>@american-latin-class.c38uoym8e77j.us-east-2.rds.amazonaws.com:5432/american_latin_class
+DATABASE_URL=<injected-private-database-url>
 SESSION_SECRET=<same value used by the Node Auth API>
 ANALYTICS_AUTH_REQUIRED=true
-ANALYTICS_CORS_ORIGINS=https://18-217-255-109.sslip.io
+ANALYTICS_CORS_ORIGINS=https://academy.example.invalid
+JWT_ISSUER=american-latin-class-auth
+JWT_AUDIENCE=american-latin-class-services
 ANALYTICS_SERVICE_NAME=American Latin Class Analytics API
 ```
 
@@ -140,7 +142,7 @@ Recommended infrastructure:
 Frontend Nginx can expose it as:
 
 ```text
-https://18-217-255-109.sslip.io/api/analytics/v1
+https://academy.example.invalid/api/analytics/v1
 ```
 
 and proxy internally to:

@@ -5,7 +5,7 @@ Date: 2026-07-03
 Public base URL:
 
 ```text
-https://18-217-255-109.sslip.io/api/analytics/v1
+https://academy.example.invalid/api/analytics/v1
 ```
 
 Postman collection:
@@ -308,7 +308,7 @@ This evidence demonstrates that the Python API:
 
 - Is deployed and reachable through the public HTTPS domain.
 - Uses FastAPI as a separate backend API.
-- Reads real PostgreSQL/RDS records.
+- Reads PostgreSQL records from the configured private database; no infrastructure endpoint is published here.
 - Performs domain-specific calculations.
 - Protects private analytics with the same JWT session system as the Node backend.
 - Rejects revoked tokens after logout.

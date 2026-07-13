@@ -1,6 +1,8 @@
 const request = require('supertest');
+const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const { createApp } = require('../../src/app');
+const { env } = require('../../src/config/env');
 const { Roles } = require('../../src/models/constants');
 const { hashPassword } = require('../../src/utils/passwordHasher');
 
@@ -176,7 +178,11 @@ describe('auth/session', () => {
       .expect(200);
 
     expect(changed.body.data.user.mustChangePassword).toBe(false);
-    await request(app).get('/api/v1/roles').set('Authorization', `Bearer ${sessionToken}`).expect(200);
+    const rotatedToken = changed.body.data.sessionToken;
+    expect(rotatedToken).toMatch(/^[^.]+\.[^.]+\.[^.]+$/);
+    expect(rotatedToken).not.toBe(sessionToken);
+    await request(app).get('/api/v1/roles').set('Authorization', `Bearer ${sessionToken}`).expect(401);
+    await request(app).get('/api/v1/roles').set('Authorization', `Bearer ${rotatedToken}`).expect(200);
     await request(app).post('/api/v1/auth/login').send({ email:'firstlogin@alc.edu', password:'temporaryALC2026*' }).expect(401);
     await request(app).post('/api/v1/auth/login').send({ email:'firstlogin@alc.edu', password:'studentALC2027*' }).expect(200);
   });
@@ -246,6 +252,50 @@ describe('auth/session', () => {
     app.locals.db.sessions.update(session.id, { expiresAt:'2000-01-01T00:00:00.000Z' });
 
     await request(app).get('/api/v1/auth/me').set('Cookie', login.headers['set-cookie'][0]).expect(401);
+  });
+
+  test('deactivating a user immediately rejects and revokes an existing session', async () => {
+    const app = createApp();
+    const login = await request(app)
+      .post('/api/v1/auth/login')
+      .send({ email:'admin@alc.edu', password:'AmericanLatin2026!' })
+      .expect(200);
+    const sessionToken = login.body.data.sessionToken;
+    const session = app.locals.db.sessions.findBy(
+      'tokenHash',
+      crypto.createHash('sha256').update(sessionToken).digest('hex'),
+    );
+    const admin = app.locals.db.users.findBy('email', 'admin@alc.edu');
+
+    app.locals.db.users.update(admin.id, { active:false });
+
+    await request(app).get('/api/v1/auth/me').set('Authorization', `Bearer ${sessionToken}`).expect(401);
+    expect(app.locals.db.sessions.findById(session.id).revoked).toBe(true);
+  });
+
+  test('JWT claims must match the user bound to the persisted session', async () => {
+    const app = createApp();
+    const admin = app.locals.db.users.findBy('email', 'admin@alc.edu');
+    const student = app.locals.db.users.findBy('email', 'student@alc.edu');
+    const token = jwt.sign(
+      { sid:crypto.randomUUID(), userId:student.id },
+      env.sessionSecret,
+      {
+        algorithm:'HS256',
+        audience:env.jwtAudience,
+        expiresIn:'10m',
+        issuer:env.jwtIssuer,
+        subject:student.id,
+      },
+    );
+    app.locals.db.sessions.create({
+      tokenHash:crypto.createHash('sha256').update(token).digest('hex'),
+      userId:admin.id,
+      revoked:false,
+      expiresAt:new Date(Date.now() + 600000).toISOString(),
+    });
+
+    await request(app).get('/api/v1/auth/me').set('Authorization', `Bearer ${token}`).expect(401);
   });
 
   test('private paths redirect without a session and send no-store headers', async () => {

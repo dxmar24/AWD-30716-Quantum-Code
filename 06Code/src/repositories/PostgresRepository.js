@@ -1,4 +1,12 @@
 const { Pool } = require('pg');
+const { AppError } = require('../exceptions/AppError');
+
+function mapPostgresError(error) {
+  if (error?.code === '23505') throw new AppError('Record already exists', 409, { code:'UNIQUE_CONSTRAINT', constraint:error.constraint || null });
+  if (error?.code === '23503') throw new AppError('Related record does not exist or is still in use', 422, { code:'FOREIGN_KEY_CONSTRAINT', constraint:error.constraint || null });
+  if (['23502', '23514', '22P02'].includes(error?.code)) throw new AppError('Data violates a database integrity rule', 422, { code:'DATABASE_CONSTRAINT', constraint:error.constraint || null });
+  throw error;
+}
 
 function toSnake(value) {
   return value.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
@@ -35,16 +43,31 @@ class PostgresRepository {
     return camelizeRow(result.rows[0]);
   }
 
+  async findByFields(fields) {
+    const entries = Object.entries(fields);
+    if (!entries.length) return null;
+    const where = entries.map(([field], index) => `${toSnake(field)} = $${index + 1}`).join(' AND ');
+    const result = await this.pool.query(
+      `SELECT * FROM ${this.tableName} WHERE ${where} LIMIT 1`,
+      entries.map(([, value]) => value),
+    );
+    return camelizeRow(result.rows[0]);
+  }
+
   async create(data) {
     const entries = Object.entries(data).filter(([, value]) => value !== undefined);
     const columns = entries.map(([key]) => toSnake(key));
     const values = entries.map(([, value]) => value);
     const placeholders = values.map((_, index) => `$${index + 1}`);
-    const result = await this.pool.query(
-      `INSERT INTO ${this.tableName} (${columns.join(', ')}) VALUES (${placeholders.join(', ')}) RETURNING *`,
-      values,
-    );
-    return camelizeRow(result.rows[0]);
+    try {
+      const result = await this.pool.query(
+        `INSERT INTO ${this.tableName} (${columns.join(', ')}) VALUES (${placeholders.join(', ')}) RETURNING *`,
+        values,
+      );
+      return camelizeRow(result.rows[0]);
+    } catch (error) {
+      return mapPostgresError(error);
+    }
   }
 
   async update(id, data) {
@@ -52,11 +75,15 @@ class PostgresRepository {
     if (!entries.length) return this.findById(id);
     const assignments = entries.map(([key], index) => `${toSnake(key)} = $${index + 2}`);
     const values = [id, ...entries.map(([, value]) => value)];
-    const result = await this.pool.query(
-      `UPDATE ${this.tableName} SET ${assignments.join(', ')} WHERE id = $1 RETURNING *`,
-      values,
-    );
-    return camelizeRow(result.rows[0]);
+    try {
+      const result = await this.pool.query(
+        `UPDATE ${this.tableName} SET ${assignments.join(', ')} WHERE id = $1 RETURNING *`,
+        values,
+      );
+      return camelizeRow(result.rows[0]);
+    } catch (error) {
+      return mapPostgresError(error);
+    }
   }
 }
 
@@ -109,12 +136,16 @@ class PostgresUserRepository {
   }
 
   async create(data) {
-    const roleId = await this.roleId(data.role);
-    const result = await this.pool.query(
-      'INSERT INTO users (google_sub, email, name, password_hash, must_change_password, password_changed_at, role_id, active) VALUES ($1, $2, $3, $4, COALESCE($5, FALSE), $6, $7, COALESCE($8, TRUE)) RETURNING id',
-      [data.googleSub || null, data.email, data.name, data.passwordHash || null, data.mustChangePassword, data.passwordChangedAt || null, roleId, data.active],
-    );
-    return this.findById(result.rows[0].id);
+    try {
+      const roleId = await this.roleId(data.role);
+      const result = await this.pool.query(
+        'INSERT INTO users (google_sub, email, name, password_hash, must_change_password, password_changed_at, role_id, active) VALUES ($1, $2, $3, $4, COALESCE($5, FALSE), $6, $7, COALESCE($8, TRUE)) RETURNING id',
+        [data.googleSub || null, data.email, data.name, data.passwordHash || null, data.mustChangePassword, data.passwordChangedAt || null, roleId, data.active],
+      );
+      return this.findById(result.rows[0].id);
+    } catch (error) {
+      return mapPostgresError(error);
+    }
   }
 
   async update(id, data) {
@@ -128,8 +159,12 @@ class PostgresUserRepository {
     if (data.passwordChangedAt !== undefined) { values.push(data.passwordChangedAt); updates.push(`password_changed_at = $${values.length}`); }
     if (data.active !== undefined) { values.push(data.active); updates.push(`active = $${values.length}`); }
     if (data.role !== undefined) { values.push(await this.roleId(data.role)); updates.push(`role_id = $${values.length}`); }
-    if (updates.length) await this.pool.query(`UPDATE users SET ${updates.join(', ')} WHERE id = $1`, values);
-    return this.findById(id);
+    try {
+      if (updates.length) await this.pool.query(`UPDATE users SET ${updates.join(', ')} WHERE id = $1`, values);
+      return this.findById(id);
+    } catch (error) {
+      return mapPostgresError(error);
+    }
   }
 }
 
@@ -144,9 +179,10 @@ class PostgresUserBranchAccessRepository extends PostgresRepository {
   }
 
   async replaceForUser(userId, branchIds) {
-    const client = await this.pool.connect();
+    const ownsTransaction = typeof this.pool.release !== 'function';
+    const client = ownsTransaction ? await this.pool.connect() : this.pool;
     try {
-      await client.query('BEGIN');
+      if (ownsTransaction) await client.query('BEGIN');
       await client.query('DELETE FROM user_branch_access WHERE user_id = $1', [userId]);
       const rows = [];
       for (const branchId of branchIds) {
@@ -156,13 +192,13 @@ class PostgresUserBranchAccessRepository extends PostgresRepository {
         );
         rows.push(camelizeRow(result.rows[0]));
       }
-      await client.query('COMMIT');
+      if (ownsTransaction) await client.query('COMMIT');
       return rows;
     } catch (error) {
-      await client.query('ROLLBACK');
-      throw error;
+      if (ownsTransaction) await client.query('ROLLBACK');
+      return mapPostgresError(error);
     } finally {
-      client.release();
+      if (ownsTransaction) client.release();
     }
   }
 }
@@ -171,4 +207,4 @@ function createPool(databaseUrl) {
   return new Pool({ connectionString: databaseUrl });
 }
 
-module.exports = { PostgresRepository, PostgresUserRepository, PostgresUserBranchAccessRepository, createPool, camelizeRow };
+module.exports = { PostgresRepository, PostgresUserRepository, PostgresUserBranchAccessRepository, createPool, camelizeRow, mapPostgresError };

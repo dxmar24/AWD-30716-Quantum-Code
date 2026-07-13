@@ -1,4 +1,9 @@
+import os
 import unittest
+
+os.environ.setdefault("NODE_ENV", "test")
+os.environ.setdefault("SESSION_SECRET", "test-only-session-secret-32-characters-minimum")
+os.environ.setdefault("ANALYTICS_AUTH_REQUIRED", "true")
 
 from fastapi.testclient import TestClient
 

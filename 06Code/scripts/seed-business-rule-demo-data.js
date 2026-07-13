@@ -1,6 +1,8 @@
 require('dotenv').config();
 
 const { PrismaClient } = require('@prisma/client');
+const { hashPassword } = require('../src/utils/passwordHasher');
+const { assertLocalDevelopmentSeed, requiredSeedValue } = require('./seed-safety');
 
 const prisma = new PrismaClient();
 
@@ -62,19 +64,25 @@ async function getOrCreateReferenceData(prefix) {
   });
 
   const admin = await prisma.user.upsert({
-    where: { email: 'business-rule-demo-admin@alc.test' },
+    where: { email: 'business-rule-demo-admin@example.invalid' },
     update: {
       name: 'Business Rule Demo Admin',
       active: true,
       roleId: adminRole.id,
       googleSub: 'business-rule-demo-admin',
+      passwordHash: hashPassword(requiredSeedValue('SEED_VERIFICATION_ADMIN_PASSWORD', 12)),
+      mustChangePassword: true,
+      passwordChangedAt: null,
     },
     create: {
-      email: 'business-rule-demo-admin@alc.test',
+      email: 'business-rule-demo-admin@example.invalid',
       name: 'Business Rule Demo Admin',
       active: true,
       roleId: adminRole.id,
       googleSub: 'business-rule-demo-admin',
+      passwordHash: hashPassword(requiredSeedValue('SEED_VERIFICATION_ADMIN_PASSWORD', 12)),
+      mustChangePassword: true,
+      passwordChangedAt: null,
     },
   });
 
@@ -87,7 +95,7 @@ async function createEnrollmentRequests(prefix, branch) {
       prisma.enrollmentRequest.create({
         data: {
           fullName: `${prefix} Enrollment ${index + 1}`,
-          email: `${prefix.toLowerCase()}-enrollment-${index + 1}@alc.test`,
+          email: `${prefix.toLowerCase()}-enrollment-${index + 1}@example.invalid`,
           phone: `809-555-${String(2100 + index).padStart(4, '0')}`,
           branchId: branch.id,
           preferredBranch: branch.name,
@@ -395,9 +403,7 @@ async function getTableCounts() {
 }
 
 async function main() {
-  if (!process.env.DATABASE_URL) {
-    throw new Error('DATABASE_URL is required to seed business rule demo data.');
-  }
+  assertLocalDevelopmentSeed('Business-rule demo seed');
 
   const startedAt = new Date();
   const prefix = `BRDEMO-${compactTimestamp(startedAt)}`;

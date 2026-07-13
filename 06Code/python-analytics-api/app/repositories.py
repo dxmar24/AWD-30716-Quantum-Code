@@ -205,9 +205,12 @@ class SessionRepository:
                 SELECT
                   s.revoked,
                   s.expires_at,
+                  s.user_id AS session_user_id,
                   u.id,
                   u.email,
                   u.name,
+                  u.active,
+                  u.must_change_password,
                   COALESCE(r.name, 'Student') AS role
                 FROM sessions s
                 JOIN users u ON u.id = s.user_id

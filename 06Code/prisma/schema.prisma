@@ -72,6 +72,12 @@ model User {
   levelPromotionEvaluations LevelPromotionEvaluation[]
   auditLogs                 AuditLog[]
   branchAccess              UserBranchAccess[]
+  createdGroupEnrollments   ClassGroupEnrollment[]     @relation("EnrollmentCreator")
+  recordedAttendance        StudentAttendanceRecord[]  @relation("AttendanceRecorder")
+  updatedAttendance         StudentAttendanceRecord[]  @relation("AttendanceUpdater")
+  finalizedAttendance       ClassSession[]              @relation("AttendanceFinalizer")
+  cancelledClassSessions    ClassSession[]              @relation("SessionCanceller")
+  completedClassSessions    ClassSession[]              @relation("SessionCompleter")
 
   @@map("users")
 }
@@ -104,6 +110,7 @@ model Student {
   scholarshipEvaluations    ScholarshipEvaluation[]
   levelPromotionEvaluations LevelPromotionEvaluation[]
   payments                  StudentPayment[]
+  classGroupEnrollments     ClassGroupEnrollment[]
 
   @@index([branchId])
   @@map("students")
@@ -162,12 +169,35 @@ model ClassGroup {
   name          String         @db.VarChar(120)
   level         String?        @db.VarChar(2)
   active        Boolean        @default(true)
+  capacity      Int            @default(30)
   branch        Branch?        @relation(fields: [branchId], references: [id])
   style         DanceStyle?    @relation(fields: [styleId], references: [id])
   teacher       Teacher?       @relation(fields: [teacherId], references: [id])
   classSessions ClassSession[]
+  enrollments   ClassGroupEnrollment[]
 
   @@map("class_groups")
+}
+
+model ClassGroupEnrollment {
+  id               String     @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  studentId        String     @map("student_id") @db.Uuid
+  classGroupId     String     @map("class_group_id") @db.Uuid
+  status           String     @default("active") @db.VarChar(20)
+  startsAt         DateTime   @default(now()) @map("starts_at") @db.Timestamptz
+  endsAt           DateTime?  @map("ends_at") @db.Timestamptz
+  enrolledAt       DateTime   @default(now()) @map("enrolled_at") @db.Timestamptz
+  withdrawalReason String?    @map("withdrawal_reason")
+  createdBy        String?    @map("created_by") @db.Uuid
+  createdAt        DateTime   @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt        DateTime   @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+  student          Student    @relation(fields: [studentId], references: [id])
+  classGroup       ClassGroup @relation(fields: [classGroupId], references: [id])
+  creator          User?      @relation("EnrollmentCreator", fields: [createdBy], references: [id])
+
+  @@index([classGroupId, status])
+  @@index([studentId, status])
+  @@map("class_group_enrollments")
 }
 
 model ClassSession {
@@ -177,7 +207,18 @@ model ClassSession {
   endsAt                   DateTime                  @map("ends_at") @db.Timestamptz
   name                     String?                   @db.VarChar(120)
   status                   String?                   @default("scheduled") @db.VarChar(20)
+  attendanceState          String                    @default("draft") @map("attendance_state") @db.VarChar(20)
+  attendanceFinalizedAt    DateTime?                 @map("attendance_finalized_at") @db.Timestamptz
+  attendanceFinalizedBy    String?                   @map("attendance_finalized_by") @db.Uuid
+  cancellationReason       String?                   @map("cancellation_reason")
+  cancelledAt              DateTime?                 @map("cancelled_at") @db.Timestamptz
+  cancelledBy              String?                   @map("cancelled_by") @db.Uuid
+  completedAt              DateTime?                 @map("completed_at") @db.Timestamptz
+  completedBy              String?                   @map("completed_by") @db.Uuid
   classGroup               ClassGroup?               @relation(fields: [classGroupId], references: [id])
+  attendanceFinalizer      User?                     @relation("AttendanceFinalizer", fields: [attendanceFinalizedBy], references: [id])
+  sessionCanceller         User?                     @relation("SessionCanceller", fields: [cancelledBy], references: [id])
+  sessionCompleter         User?                     @relation("SessionCompleter", fields: [completedBy], references: [id])
   studentAttendanceRecords StudentAttendanceRecord[]
   teacherAttendanceRecords TeacherAttendanceRecord[]
 
@@ -188,11 +229,18 @@ model StudentAttendanceRecord {
   id                    String                 @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   studentId             String?                @map("student_id") @db.Uuid
   classSessionId        String?                @map("class_session_id") @db.Uuid
-  status                String?                @db.VarChar(20)
+  status                String                 @db.VarChar(20)
   notes                 String?
+  recordedBy            String?                @map("recorded_by") @db.Uuid
+  updatedBy             String?                @map("updated_by") @db.Uuid
+  correctionReason      String?                @map("correction_reason")
+  version               Int                    @default(1)
   createdAt             DateTime               @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt             DateTime               @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
   student               Student?               @relation(fields: [studentId], references: [id])
   classSession          ClassSession?          @relation(fields: [classSessionId], references: [id])
+  recorder              User?                  @relation("AttendanceRecorder", fields: [recordedBy], references: [id])
+  updater               User?                  @relation("AttendanceUpdater", fields: [updatedBy], references: [id])
   absenceJustifications AbsenceJustification[]
 
   @@unique([studentId, classSessionId])
@@ -206,6 +254,8 @@ model TeacherAttendanceRecord {
   classSessionId String?       @map("class_session_id") @db.Uuid
   checkInAt      DateTime      @map("check_in_at") @db.Timestamptz
   checkOutAt     DateTime?     @map("check_out_at") @db.Timestamptz
+  hourlyRateSnapshot Decimal?  @map("hourly_rate_snapshot") @db.Decimal(10, 2)
+  payableMinutes Int?          @map("payable_minutes")
   teacher        Teacher?      @relation(fields: [teacherId], references: [id])
   classSession   ClassSession? @relation(fields: [classSessionId], references: [id])
 
@@ -232,6 +282,7 @@ model ScholarshipRule {
   id                   String  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   minAttendancePercent Decimal @default(90.00) @map("min_attendance_percent") @db.Decimal(5, 2)
   periodMonths         Int     @default(2) @map("period_months")
+  minimumSessions      Int     @default(8) @map("minimum_sessions")
   active               Boolean @default(true)
 
   @@map("scholarship_rules")
@@ -241,6 +292,8 @@ model ScholarshipEvaluation {
   id             String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   studentId      String?   @map("student_id") @db.Uuid
   percentage     Int?
+  evaluationFrom DateTime? @map("evaluation_from") @db.Timestamptz
+  evaluationTo   DateTime? @map("evaluation_to") @db.Timestamptz
   attendanceRate Decimal?  @map("attendance_rate") @db.Decimal(5, 2)
   theoryScore    Decimal?  @map("theory_score") @db.Decimal(5, 2)
   practiceScore  Decimal?  @map("practice_score") @db.Decimal(5, 2)
@@ -258,6 +311,8 @@ model LevelPromotionEvaluation {
   studentId        String?   @map("student_id") @db.Uuid
   fromLevel        String?   @map("from_level") @db.VarChar(2)
   toLevel          String?   @map("to_level") @db.VarChar(2)
+  evaluationFrom   DateTime? @map("evaluation_from") @db.Timestamptz
+  evaluationTo     DateTime? @map("evaluation_to") @db.Timestamptz
   attendanceRate   Decimal?  @map("attendance_rate") @db.Decimal(5, 2)
   consistencyScore Decimal?  @map("consistency_score") @db.Decimal(5, 2)
   theoryScore      Decimal?  @map("theory_score") @db.Decimal(5, 2)
@@ -281,7 +336,12 @@ model EnrollmentRequest {
   styleInterest   String?  @map("style_interest") @db.VarChar(120)
   message         String?
   status          String?  @default("pending") @db.VarChar(20)
+  statusNotes     String?  @map("status_notes")
+  followUpAt      DateTime? @map("follow_up_at") @db.Timestamptz
+  convertedStudentId String? @map("converted_student_id") @db.Uuid
+  updatedBy       String?  @map("updated_by") @db.Uuid
   createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
   branch          Branch?  @relation(fields: [branchId], references: [id])
 
   @@map("enrollment_requests")
@@ -318,11 +378,17 @@ model StudentPayment {
   paidAt    DateTime? @map("paid_at") @db.Timestamptz
   dueAt     DateTime? @map("due_at") @db.Timestamptz
   notes     String?
+  transactionType String   @default("charge") @map("transaction_type") @db.VarChar(20)
+  reversalOfId String?     @map("reversal_of_id") @db.Uuid
+  reversalReason String?   @map("reversal_reason")
+  createdBy String?        @map("created_by") @db.Uuid
+  updatedBy String?        @map("updated_by") @db.Uuid
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
   student   Student?  @relation(fields: [studentId], references: [id])
   branch    Branch?   @relation(fields: [branchId], references: [id])
 
-  @@unique([studentId, period, concept])
+  @@unique([reversalOfId])
   @@index([studentId])
   @@index([branchId])
   @@index([status])

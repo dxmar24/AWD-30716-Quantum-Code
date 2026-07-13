@@ -6,9 +6,9 @@ services:
     environment:
       POSTGRES_DB: american_latin_class
       POSTGRES_USER: alc_user
-      POSTGRES_PASSWORD: change_me
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in your local secret environment}
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - alc-postgres-data:/var/lib/postgresql/data
     healthcheck:

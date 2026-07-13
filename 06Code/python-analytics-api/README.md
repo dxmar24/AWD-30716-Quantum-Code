@@ -55,13 +55,15 @@ source .venv/bin/activate
 ## Required Environment
 
 ```text
-DATABASE_URL=postgres://alc_user:change_me@localhost:5432/american_latin_class
-SESSION_SECRET=same_secret_used_by_node_auth_api
+DATABASE_URL=<local-private-database-url>
+SESSION_SECRET=<same-32+-character-secret-used-by-node-auth-api>
+JWT_ISSUER=american-latin-class-auth
+JWT_AUDIENCE=american-latin-class-services
 ANALYTICS_AUTH_REQUIRED=true
-ANALYTICS_CORS_ORIGINS=https://18-217-255-109.sslip.io
+ANALYTICS_CORS_ORIGINS=http://localhost:3000,http://localhost:5173
 ```
 
-For isolated local development without database authentication, `ANALYTICS_AUTH_REQUIRED=false` can be used, but AWS deployment should keep authentication enabled.
+`ANALYTICS_AUTH_REQUIRED=false` is accepted only when `NODE_ENV=test`; all other environments fail startup.
 
 ## Tests
 
@@ -83,7 +85,7 @@ Process: uvicorn app.main:app --host 0.0.0.0 --port 8000
 Nginx can proxy:
 
 ```text
-https://18-217-255-109.sslip.io/api/analytics/v1/*
+https://academy.example.invalid/api/analytics/v1/*
 ```
 
 to:

@@ -4,17 +4,21 @@ const { OAuth2Client } = require('google-auth-library');
 const { AppError } = require('../exceptions/AppError');
 const { env } = require('../config/env');
 const { hashPassword, verifyPassword } = require('../utils/passwordHasher');
+const { withRequestAuditContext } = require('../utils/requestAuditContext');
 class AuthService {
-  constructor(db, googleClient = new OAuth2Client(env.googleClientId)) { this.db = db; this.googleClient = googleClient; }
+  constructor(db, googleClient = new OAuth2Client(env.googleClientId), auditService = null) { this.db = db; this.googleClient = googleClient; this.audit = auditService; }
+  async auditEvent(actorUserId, action, entityId = null, metadata = {}) {
+    if (this.audit) await this.audit.log(actorUserId, action, 'authentication', entityId, metadata);
+  }
   hashToken(token) { return crypto.createHash('sha256').update(token).digest('hex'); }
   publicUser(user) {
     if (!user) return null;
     const { passwordHash, ...safeUser } = user;
     return safeUser;
   }
-  async findAuthUserByEmail(email) {
-    if (typeof this.db.users.findAuthByEmail === 'function') return this.db.users.findAuthByEmail(email);
-    return this.db.users.findBy('email', email);
+  async findAuthUserByEmail(email, db = this.db) {
+    if (typeof db.users.findAuthByEmail === 'function') return db.users.findAuthByEmail(email);
+    return db.users.findBy('email', email);
   }
   safeCompare(left, right) {
     const leftBuffer = Buffer.from(String(left || ''), 'utf8');
@@ -22,14 +26,25 @@ class AuthService {
     if (leftBuffer.length !== rightBuffer.length) return false;
     return crypto.timingSafeEqual(leftBuffer, rightBuffer);
   }
-  async createSession(user) {
+  async createSession(user, db = this.db) {
+    if (!user || user.active === false) throw new AppError('Account is not available', 401);
     const ttlMs = env.sessionTtlMinutes * 60 * 1000;
-    const token = jwt.sign({ sid: crypto.randomUUID(), userId: user.id }, env.sessionSecret, { expiresIn: `${env.sessionTtlMinutes}m` });
-    await this.db.sessions.create({ tokenHash: this.hashToken(token), userId: user.id, revoked:false, expiresAt: new Date(Date.now()+ttlMs).toISOString() });
+    const token = jwt.sign(
+      { sid:crypto.randomUUID(), userId:user.id },
+      env.sessionSecret,
+      {
+        algorithm:'HS256',
+        audience:env.jwtAudience,
+        expiresIn:`${env.sessionTtlMinutes}m`,
+        issuer:env.jwtIssuer,
+        subject:user.id,
+      },
+    );
+    await db.sessions.create({ tokenHash: this.hashToken(token), userId: user.id, revoked:false, expiresAt: new Date(Date.now()+ttlMs).toISOString() });
     return token;
   }
   async verifyGoogleIdToken(idToken) {
-    if (env.allowMockGoogleTokens) {
+    if (env.nodeEnv === 'test' && env.allowMockGoogleTokens) {
       const decoded = jwt.decode(idToken) || {};
       if (!decoded.sub || !decoded.email) throw new AppError('Invalid Google ID token', 401);
       if (decoded.aud && decoded.aud !== env.googleClientId) throw new AppError('Invalid Google audience', 401);
@@ -64,6 +79,7 @@ class AuthService {
     }
     if (user.active === false) throw new AppError('Invalid email or password', 401);
     const token = await this.createSession(user);
+    await this.auditEvent(user.id, 'AUTH_LOGIN_GOOGLE', user.id);
     return { token, user:this.publicUser(user) };
   }
   async loginWithPassword(email, password) {
@@ -73,15 +89,17 @@ class AuthService {
       if (authUser.active === false) throw new AppError('Invalid email or password', 401);
       const user = this.publicUser(await this.db.users.findById(authUser.id) || authUser);
       const token = await this.createSession(user);
+      await this.auditEvent(user.id, 'AUTH_LOGIN_PASSWORD', user.id);
       return { token, user };
     }
 
-    if (env.postmanLoginEnabled) {
+    if (env.nodeEnv === 'test' && env.postmanLoginEnabled) {
       const expectedEmail = String(env.postmanLoginEmail || '').trim().toLowerCase();
       if (normalizedEmail === expectedEmail && this.safeCompare(password, env.postmanLoginPassword)) {
         const user = await this.db.users.findBy('email', normalizedEmail);
         if (!user || user.active === false) throw new AppError('Invalid email or password', 401);
         const token = await this.createSession(user);
+        await this.auditEvent(user.id, 'AUTH_LOGIN_TEST_HELPER', user.id);
         return { token, user:this.publicUser(user) };
       }
     }
@@ -94,22 +112,78 @@ class AuthService {
     if (!verifyPassword(currentPassword, authUser.passwordHash)) throw new AppError('Current password is incorrect', 401);
     if (verifyPassword(newPassword, authUser.passwordHash)) throw new AppError('New password must be different from the current password', 422);
 
-    const updated = await this.db.users.update(authUser.id, {
-      passwordHash:hashPassword(newPassword),
-      mustChangePassword:false,
-      passwordChangedAt:new Date().toISOString(),
-    });
-    return this.publicUser(updated);
+    const work = async (db) => {
+      const current = await this.findAuthUserByEmail(sessionUser.email, db);
+      if (!current || !verifyPassword(currentPassword, current.passwordHash)) throw new AppError('Current password is incorrect', 401);
+      const sessions = await db.sessions.all();
+      await Promise.all(sessions.filter((session) => session.userId === current.id && !session.revoked).map((session) => db.sessions.update(session.id, { revoked:true })));
+      const updated = await db.users.update(current.id, {
+        passwordHash:hashPassword(newPassword),
+        mustChangePassword:false,
+        passwordChangedAt:new Date().toISOString(),
+      });
+      const user = this.publicUser(updated);
+      const token = await this.createSession(user, db);
+      await db.auditLogs.create({
+        actorUserId:user.id,
+        action:'AUTH_PASSWORD_CHANGED',
+        entity:'authentication',
+        entityId:user.id,
+        metadata:withRequestAuditContext({ allPreviousSessionsRevoked:true }),
+      });
+      return { user, token };
+    };
+    return this.db.transaction ? this.db.transaction(work) : work(this.db);
+  }
+  async revokeSessionsForUser(userId, db = this.db) {
+    const sessions = await db.sessions.all();
+    await Promise.all(
+      sessions
+        .filter((session) => session.userId === userId && !session.revoked)
+        .map((session) => db.sessions.update(session.id, { revoked:true })),
+    );
   }
   async resolveSession(token) {
-    try { jwt.verify(token, env.sessionSecret); } catch { return null; }
+    let claims;
+    try {
+      claims = jwt.verify(token, env.sessionSecret, {
+        algorithms:['HS256'],
+        audience:env.jwtAudience,
+        issuer:env.jwtIssuer,
+      });
+    } catch {
+      return null;
+    }
+    if (
+      !claims
+      || typeof claims.sid !== 'string'
+      || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(claims.sid)
+      || typeof claims.userId !== 'string'
+      || claims.sub !== claims.userId
+      || !Number.isInteger(claims.iat)
+      || !Number.isInteger(claims.exp)
+    ) return null;
     const session = await this.db.sessions.findBy('tokenHash', this.hashToken(token));
-    if (!session || session.revoked || new Date(session.expiresAt) < new Date()) return null;
-    return this.publicUser(await this.db.users.findById(session.userId));
+    if (
+      !session
+      || session.revoked
+      || session.userId !== claims.userId
+      || Number.isNaN(Date.parse(session.expiresAt))
+      || Date.parse(session.expiresAt) <= Date.now()
+    ) return null;
+    const user = await this.db.users.findById(session.userId);
+    if (!user || user.active === false) {
+      try { await this.db.sessions.update(session.id, { revoked:true }); } catch { /* Access still fails closed. */ }
+      return null;
+    }
+    return this.publicUser(user);
   }
   async logout(token) {
     const session = await this.db.sessions.findBy('tokenHash', this.hashToken(token));
-    if (session) await this.db.sessions.update(session.id, { revoked:true });
+    if (session) {
+      await this.db.sessions.update(session.id, { revoked:true });
+      await this.auditEvent(session.userId, 'AUTH_LOGOUT', session.userId, { sessionId:session.id });
+    }
   }
 }
 module.exports = { AuthService };

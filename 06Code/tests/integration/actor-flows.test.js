@@ -93,11 +93,12 @@ describe('actor flow verification', () => {
       .set('Authorization', `Bearer ${firstLogin.token}`)
       .expect(403);
 
-    await request(app)
+    const changedPassword = await request(app)
       .post('/api/v1/auth/change-password')
       .set('Authorization', `Bearer ${firstLogin.token}`)
       .send({ currentPassword:'studentTempALC2026*', newPassword:'studentPrivateALC2027*' })
       .expect(200);
+    firstLogin.token = changedPassword.body.data.sessionToken;
 
     const ownStudents = await request(app)
       .get('/api/v1/students')
@@ -151,6 +152,11 @@ describe('actor flow verification', () => {
 
   test('Teacher flow: own classes, attendance work and restricted administration', async () => {
     const app = createApp();
+    app.locals.db.classSessions.update(ids.classSession, {
+      startsAt:new Date(Date.now() - 5 * 60 * 1000).toISOString(),
+      endsAt:new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+      status:'scheduled',
+    });
     const teacher = await loginWithGoogle(app, {
       sub:'test-teacher',
       email:'teacher@alc.edu',
@@ -200,7 +206,7 @@ describe('actor flow verification', () => {
     await request(app)
       .post('/api/v1/teacher-attendance/check-in')
       .set('Cookie', teacher.cookie)
-      .send({ teacherId:otherTeacher.id })
+      .send({ teacherId:otherTeacher.id, classSessionId:ids.classSession })
       .expect(403);
 
     await request(app).get('/api/v1/reports/branches/summary').set('Cookie', teacher.cookie).expect(403);
@@ -241,6 +247,41 @@ describe('actor flow verification', () => {
       .send({ branchId:ids.centralBranch, fullName:'Wrong Branch Student', level:'B1', active:true })
       .expect(403);
 
+    await request(app)
+      .post('/api/v1/teachers')
+      .set('Cookie', director.cookie)
+      .send({ branchId:ids.northBranch, fullName:'Rate Override Attempt', hourlyRate:999, active:true })
+      .expect(403);
+    const branchTeacher = await request(app)
+      .post('/api/v1/teachers')
+      .set('Cookie', director.cookie)
+      .send({ branchId:ids.northBranch, fullName:'Branch Managed Teacher', active:true })
+      .expect(201);
+    expect(Number(branchTeacher.body.data.hourlyRate)).toBe(12.5);
+
+    const [danceStyle, teacherSpecialty] = app.locals.db.danceStyles.all();
+    app.locals.db.teacherStyles.create({ teacherId:ids.teacher, styleId:teacherSpecialty.id });
+    await request(app)
+      .patch(`/api/v1/dance-styles/${danceStyle.id}`)
+      .set('Cookie', director.cookie)
+      .send({ name:'Unauthorized global catalog edit' })
+      .expect(403);
+
+    const unqualifiedGroup = await request(app)
+      .post('/api/v1/class-groups')
+      .set('Cookie', director.cookie)
+      .send({
+        branchId:ids.northBranch,
+        styleId:danceStyle.id,
+        teacherId:ids.teacher,
+        name:'Unqualified style assignment',
+        level:'B1',
+        capacity:20,
+        active:true,
+      })
+      .expect(422);
+    expect(unqualifiedGroup.body.details.code).toBe('TEACHER_STYLE_MISMATCH');
+
     const summary = await request(app).get('/api/v1/reports/branches/summary').set('Cookie', director.cookie).expect(200);
     expect(summary.body.data.branches.map((branch) => branch.id)).toEqual([ids.northBranch]);
 
@@ -260,7 +301,8 @@ describe('actor flow verification', () => {
       .set('Cookie', director.cookie)
       .send({ status:'approved', reviewNotes:'Accepted by branch.' })
       .expect(200);
-    expect(app.locals.db.studentAttendance.findById(attendance.id).status).toBe('justified');
+    expect(app.locals.db.studentAttendance.findById(attendance.id).status).toBe('absent');
+    expect(app.locals.db.absenceJustifications.findById(justification.body.data.id).status).toBe('approved');
 
     await request(app).get('/api/v1/users').set('Cookie', director.cookie).expect(403);
     await request(app).get('/api/v1/audit-logs').set('Cookie', director.cookie).expect(403);
@@ -300,11 +342,12 @@ describe('actor flow verification', () => {
     expect(createdStudent.body.data.profile).toMatchObject({ userId:createdStudent.body.data.user.id, branchId:ids.northBranch });
 
     const studentLogin = await loginWithPassword(app, 'student.created.by.gd@alc.test', createdStudent.body.data.temporaryPassword);
-    await request(app)
+    const changedStudentPassword = await request(app)
       .post('/api/v1/auth/change-password')
       .set('Authorization', `Bearer ${studentLogin.token}`)
       .send({ currentPassword:createdStudent.body.data.temporaryPassword, newPassword:'studentCreatedALC2027*' })
       .expect(200);
+    studentLogin.token = changedStudentPassword.body.data.sessionToken;
     const ownProfile = await request(app)
       .get('/api/v1/students')
       .set('Authorization', `Bearer ${studentLogin.token}`)

@@ -1,32 +1,53 @@
 const { PrismaClient } = require('@prisma/client');
 const { PrismaRepository, PrismaUserRepository, PrismaUserBranchAccessRepository } = require('./PrismaRepository');
 
+function bindRepositories(target, prisma) {
+  target.users = new PrismaUserRepository(prisma);
+  target.userBranchAccess = new PrismaUserBranchAccessRepository(prisma);
+  target.roles = new PrismaRepository(prisma.role);
+  target.permissions = new PrismaRepository(prisma.permission);
+  target.branches = new PrismaRepository(prisma.branch);
+  target.students = new PrismaRepository(prisma.student);
+  target.teachers = new PrismaRepository(prisma.teacher);
+  target.danceCategories = new PrismaRepository(prisma.danceCategory);
+  target.danceStyles = new PrismaRepository(prisma.danceStyle);
+  target.teacherStyles = new PrismaRepository(prisma.teacherStyle);
+  target.classGroups = new PrismaRepository(prisma.classGroup);
+  target.classSessions = new PrismaRepository(prisma.classSession);
+  target.classGroupEnrollments = new PrismaRepository(prisma.classGroupEnrollment);
+  target.academyEvents = new PrismaRepository(prisma.academyEvent);
+  target.studentPayments = new PrismaRepository(prisma.studentPayment);
+  target.studentAttendance = new PrismaRepository(prisma.studentAttendanceRecord);
+  target.teacherAttendance = new PrismaRepository(prisma.teacherAttendanceRecord);
+  target.absenceJustifications = new PrismaRepository(prisma.absenceJustification);
+  target.scholarshipRules = new PrismaRepository(prisma.scholarshipRule);
+  target.scholarshipEvaluations = new PrismaRepository(prisma.scholarshipEvaluation);
+  target.levelPromotionEvaluations = new PrismaRepository(prisma.levelPromotionEvaluation);
+  target.enrollmentRequests = new PrismaRepository(prisma.enrollmentRequest);
+  target.sessions = new PrismaRepository(prisma.session);
+  target.auditLogs = new PrismaRepository(prisma.auditLog);
+  return target;
+}
+
 class PrismaDatabaseContext {
   constructor() {
     this.prisma = new PrismaClient();
-    this.users = new PrismaUserRepository(this.prisma);
-    this.userBranchAccess = new PrismaUserBranchAccessRepository(this.prisma);
-    this.roles = new PrismaRepository(this.prisma.role);
-    this.permissions = new PrismaRepository(this.prisma.permission);
-    this.branches = new PrismaRepository(this.prisma.branch);
-    this.students = new PrismaRepository(this.prisma.student);
-    this.teachers = new PrismaRepository(this.prisma.teacher);
-    this.danceCategories = new PrismaRepository(this.prisma.danceCategory);
-    this.danceStyles = new PrismaRepository(this.prisma.danceStyle);
-    this.teacherStyles = new PrismaRepository(this.prisma.teacherStyle);
-    this.classGroups = new PrismaRepository(this.prisma.classGroup);
-    this.classSessions = new PrismaRepository(this.prisma.classSession);
-    this.academyEvents = new PrismaRepository(this.prisma.academyEvent);
-    this.studentPayments = new PrismaRepository(this.prisma.studentPayment);
-    this.studentAttendance = new PrismaRepository(this.prisma.studentAttendanceRecord);
-    this.teacherAttendance = new PrismaRepository(this.prisma.teacherAttendanceRecord);
-    this.absenceJustifications = new PrismaRepository(this.prisma.absenceJustification);
-    this.scholarshipRules = new PrismaRepository(this.prisma.scholarshipRule);
-    this.scholarshipEvaluations = new PrismaRepository(this.prisma.scholarshipEvaluation);
-    this.levelPromotionEvaluations = new PrismaRepository(this.prisma.levelPromotionEvaluation);
-    this.enrollmentRequests = new PrismaRepository(this.prisma.enrollmentRequest);
-    this.sessions = new PrismaRepository(this.prisma.session);
-    this.auditLogs = new PrismaRepository(this.prisma.auditLog);
+    bindRepositories(this, this.prisma);
+  }
+
+  async transaction(work) {
+    const maxAttempts = 3;
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+      try {
+        return await this.prisma.$transaction(
+          async (transactionClient) => work(bindRepositories({}, transactionClient)),
+          { isolationLevel:'Serializable' },
+        );
+      } catch (error) {
+        if (error?.code !== 'P2034' || attempt === maxAttempts) throw error;
+      }
+    }
+    throw new Error('Serializable transaction retry limit reached');
   }
 
   async close() {

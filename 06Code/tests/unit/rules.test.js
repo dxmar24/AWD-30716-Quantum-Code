@@ -3,63 +3,103 @@ const { AuditService } = require('../../src/services/AuditService');
 const { AttendanceService } = require('../../src/services/AttendanceService');
 const { RulesService } = require('../../src/services/RulesService');
 
+const STUDENT_ID = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+const GROUP_ID = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+
 function buildRules() {
   const db = new DatabaseContext();
   const attendance = new AttendanceService(db, new AuditService(db));
-  return { db, rules: new RulesService(db, attendance) };
+  return { db, attendance, rules:new RulesService(db, attendance) };
 }
 
-test('scholarship candidate requires at least 90 percent attendance', async () => {
+function finalizedAttendance(db, statuses, firstDay = 1) {
+  return statuses.map((status, index) => {
+    const startsAt = new Date(Date.UTC(2026, 5, firstDay + index, 18, 0, 0));
+    const session = db.classSessions.create({
+      classGroupId:GROUP_ID,
+      startsAt:startsAt.toISOString(),
+      endsAt:new Date(startsAt.getTime() + 3600000).toISOString(),
+      status:'completed',
+      attendanceState:'finalized',
+    });
+    const record = db.studentAttendance.create({ studentId:STUDENT_ID, classSessionId:session.id, status, version:1 });
+    return { session, record };
+  });
+}
+
+test('scholarship candidate uses the active rule and requires its minimum finalized sessions', async () => {
   const { db, rules } = buildRules();
-  const studentId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+  const rows = finalizedAttendance(db, ['present','present','present','present','present','present','present','absent']);
 
-  db.studentAttendance.create({ studentId, classSessionId:'11111111-2222-4333-8444-555555555555', status:'present' });
-  db.studentAttendance.create({ studentId, classSessionId:'11111111-2222-4333-8444-666666666666', status:'present' });
-  db.studentAttendance.create({ studentId, classSessionId:'11111111-2222-4333-8444-777777777777', status:'absent' });
-
-  await expect(rules.scholarshipCandidate(studentId)).resolves.toMatchObject({ candidate:false });
-
-  db.studentAttendance.update(db.studentAttendance.all()[2].id, { status:'present' });
-  await expect(rules.scholarshipCandidate(studentId)).resolves.toMatchObject({ candidate:true });
-});
-
-test('promotion candidate requires B1 student and attendance evidence', async () => {
-  const { db, rules } = buildRules();
-  const studentId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
-
-  db.studentAttendance.create({ studentId, classSessionId:'11111111-2222-4333-8444-555555555555', status:'present' });
-  db.studentAttendance.create({ studentId, classSessionId:'11111111-2222-4333-8444-666666666666', status:'late' });
-
-  await expect(rules.promotionCandidate(studentId)).resolves.toMatchObject({ candidate:true });
-  db.students.update(studentId, { level:'B2' });
-  await expect(rules.promotionCandidate(studentId)).resolves.toMatchObject({ candidate:false });
-});
-
-test('teacher payment uses checked out worked hours', async () => {
-  const { db, rules } = buildRules();
-  const teacherId = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
-
-  db.teacherAttendance.create({ teacherId, checkInAt:'2026-06-01T10:00:00.000Z', checkOutAt:'2026-06-01T12:00:00.000Z' });
-  await expect(rules.teacherPayment(teacherId)).resolves.toMatchObject({ hours:2, amount:25 });
-});
-
-test('attendance rate uses class session date instead of entry creation date', async () => {
-  const { db, rules } = buildRules();
-  const studentId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
-  const historicalSession = db.classSessions.create({
-    classGroupId:'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
-    startsAt:'2026-05-01T18:00:00.000Z',
-    endsAt:'2026-05-01T20:00:00.000Z',
-    status:'completed',
+  await expect(rules.scholarshipCandidate(STUDENT_ID)).resolves.toMatchObject({
+    candidate:false,
+    countedSessions:8,
+    minimumSessions:8,
+    attendanceRate:0.875,
   });
 
+  db.studentAttendance.update(rows[7].record.id, { status:'present' });
+  await expect(rules.scholarshipCandidate(STUDENT_ID)).resolves.toMatchObject({
+    candidate:true,
+    countedSessions:8,
+    attendanceRate:1,
+  });
+});
+
+test('promotion candidate requires active B1 student and at least eight counted finalized sessions', async () => {
+  const { db, rules } = buildRules();
+  finalizedAttendance(db, ['present','late','present','present','present','present','present']);
+  await expect(rules.promotionCandidate(STUDENT_ID)).resolves.toMatchObject({ candidate:false, countedSessions:7 });
+
+  finalizedAttendance(db, ['present'], 10);
+  await expect(rules.promotionCandidate(STUDENT_ID)).resolves.toMatchObject({ candidate:true, countedSessions:8 });
+  db.students.update(STUDENT_ID, { level:'B2' });
+  await expect(rules.promotionCandidate(STUDENT_ID)).resolves.toMatchObject({ candidate:false });
+});
+
+test('approved absence justification excludes the absence from the attendance denominator without changing status', async () => {
+  const { db, attendance } = buildRules();
+  const rows = finalizedAttendance(db, ['present','absent','late']);
+  db.absenceJustifications.create({ attendanceRecordId:rows[1].record.id, reason:'Medical leave', status:'approved' });
+
+  await expect(attendance.attendanceMetrics(STUDENT_ID)).resolves.toMatchObject({
+    totalFinalizedSessions:3,
+    countedSessions:2,
+    excusedSessions:1,
+    attendedSessions:2,
+    attendanceRate:1,
+  });
+  expect(db.studentAttendance.findById(rows[1].record.id).status).toBe('absent');
+});
+
+test('teacher payment uses checked out worked hours and preserves a zero hourly rate', async () => {
+  const { db, rules } = buildRules();
+  const teacherId = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+  db.teachers.update(teacherId, { hourlyRate:0 });
+  db.teacherAttendance.create({ teacherId, checkInAt:'2026-06-01T10:00:00.000Z', checkOutAt:'2026-06-01T12:00:00.000Z' });
+  await expect(rules.teacherPayment(teacherId)).resolves.toMatchObject({ hours:2, hourlyRate:0, amount:0 });
+});
+
+test('attendance metrics use finalized class session dates instead of entry creation dates', async () => {
+  const { db, attendance } = buildRules();
+  const startsAt = '2026-05-01T18:00:00.000Z';
+  const session = db.classSessions.create({
+    classGroupId:GROUP_ID,
+    startsAt,
+    endsAt:'2026-05-01T20:00:00.000Z',
+    status:'completed',
+    attendanceState:'finalized',
+  });
   db.studentAttendance.create({
-    studentId,
-    classSessionId:historicalSession.id,
+    studentId:STUDENT_ID,
+    classSessionId:session.id,
     status:'present',
     createdAt:'2026-07-01T10:00:00.000Z',
   });
 
-  const candidate = await rules.scholarshipCandidate(studentId, '2026-06-01T00:00:00.000Z', '2026-08-01T00:00:00.000Z');
-  expect(candidate).toMatchObject({ attendanceRate:0, candidate:false });
+  await expect(attendance.attendanceMetrics(
+    STUDENT_ID,
+    '2026-06-01T00:00:00.000Z',
+    '2026-08-01T00:00:00.000Z',
+  )).resolves.toMatchObject({ totalFinalizedSessions:0, attendanceRate:0 });
 });

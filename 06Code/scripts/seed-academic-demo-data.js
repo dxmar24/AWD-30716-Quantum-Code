@@ -3,15 +3,23 @@ require('dotenv').config();
 const { PrismaClient } = require('@prisma/client');
 const { Roles } = require('../src/models/constants');
 const { hashPassword } = require('../src/utils/passwordHasher');
+const { assertLocalDevelopmentSeed, requiredSeedValue } = require('./seed-safety');
 
 const prisma = new PrismaClient();
 
 const passwords = {
-  admin: process.env.SEED_ADMIN_PASSWORD || 'adminALC2026*',
-  generalDirector: process.env.SEED_GENERAL_DIRECTOR_PASSWORD || 'generaldirectorALC2026*',
-  branchDirector: process.env.SEED_BRANCH_DIRECTOR_PASSWORD || 'branchdirectorALC2026*',
-  teacher: process.env.SEED_TEACHER_PASSWORD || 'teacherALC2026*',
-  student: process.env.SEED_STUDENT_PASSWORD || 'studentALC2026*',
+  admin: requiredSeedValue('SEED_ADMIN_PASSWORD', 12),
+  generalDirector: requiredSeedValue('SEED_GENERAL_DIRECTOR_PASSWORD', 12),
+  branchDirector: requiredSeedValue('SEED_BRANCH_DIRECTOR_PASSWORD', 12),
+  teacher: requiredSeedValue('SEED_TEACHER_PASSWORD', 12),
+  student: requiredSeedValue('SEED_STUDENT_PASSWORD', 12),
+};
+
+const privilegedEmails = {
+  admin:requiredSeedValue('SEED_ADMIN_EMAIL'),
+  generalDirector:requiredSeedValue('SEED_GENERAL_DIRECTOR_EMAIL'),
+  northDirector:requiredSeedValue('SEED_BRANCH_DIRECTOR_NORTH_EMAIL'),
+  centralDirector:requiredSeedValue('SEED_BRANCH_DIRECTOR_CENTRAL_EMAIL'),
 };
 
 const branches = [
@@ -20,12 +28,12 @@ const branches = [
 ];
 
 const classCatalog = [
-  { name:'Hip Hop Foundation', category:'Urban', level:'B1', teacherEmail:'teacher.hiphop@alc.edu', teacherName:'Mateo Rivera', branchName:branches[0].name, hourlyRate:'18.00' },
-  { name:'Afro Foundation', category:'Urban', level:'B1', teacherEmail:'teacher.afro@alc.edu', teacherName:'Camila Torres', branchName:branches[0].name, hourlyRate:'18.00' },
-  { name:'Dancehall Skanking', category:'Urban', level:'B2', teacherEmail:'teacher.dancehall@alc.edu', teacherName:'Luis Mendoza', branchName:branches[0].name, hourlyRate:'19.50' },
-  { name:'Salsa Level 1', category:'Tropical', level:'B1', teacherEmail:'teacher.salsa@alc.edu', teacherName:'Valeria Cedeño', branchName:branches[1].name, hourlyRate:'18.50' },
-  { name:'Bachata Sensual', category:'Tropical', level:'B2', teacherEmail:'teacher.bachata@alc.edu', teacherName:'Andrés Molina', branchName:branches[1].name, hourlyRate:'19.50' },
-  { name:'Heels Technique', category:'Urban', level:'B2', teacherEmail:'teacher.heels@alc.edu', teacherName:'Daniela Vega', branchName:branches[1].name, hourlyRate:'20.00' },
+  { name:'Hip Hop Foundation', category:'Urban', level:'B1', teacherEmail:'teacher.hiphop@example.invalid', teacherName:'Mateo Rivera', branchName:branches[0].name, hourlyRate:'18.00' },
+  { name:'Afro Foundation', category:'Urban', level:'B1', teacherEmail:'teacher.afro@example.invalid', teacherName:'Camila Torres', branchName:branches[0].name, hourlyRate:'18.00' },
+  { name:'Dancehall Skanking', category:'Urban', level:'B2', teacherEmail:'teacher.dancehall@example.invalid', teacherName:'Luis Mendoza', branchName:branches[0].name, hourlyRate:'19.50' },
+  { name:'Salsa Level 1', category:'Tropical', level:'B1', teacherEmail:'teacher.salsa@example.invalid', teacherName:'Valeria Cedeño', branchName:branches[1].name, hourlyRate:'18.50' },
+  { name:'Bachata Sensual', category:'Tropical', level:'B2', teacherEmail:'teacher.bachata@example.invalid', teacherName:'Andrés Molina', branchName:branches[1].name, hourlyRate:'19.50' },
+  { name:'Heels Technique', category:'Urban', level:'B2', teacherEmail:'teacher.heels@example.invalid', teacherName:'Daniela Vega', branchName:branches[1].name, hourlyRate:'20.00' },
 ];
 
 const studentNames = [
@@ -52,13 +60,7 @@ const studentNames = [
 ];
 
 function assertSafeEnvironment() {
-  const isDeployed = ['production', 'staging'].includes(process.env.NODE_ENV);
-  if (isDeployed && process.env.ALLOW_DEMO_ACADEMIC_SEED !== 'true') {
-    throw new Error('Refusing to seed academic demo data in production/staging without ALLOW_DEMO_ACADEMIC_SEED=true.');
-  }
-  if (!process.env.DATABASE_URL) {
-    throw new Error('DATABASE_URL is required to seed academic demo data.');
-  }
+  assertLocalDevelopmentSeed('Academic demo seed');
 }
 
 async function upsertRole(name) {
@@ -81,7 +83,8 @@ async function upsertUser(roles, { email, name, role, password, active = true })
     update:{
       name,
       passwordHash:hashPassword(password),
-      mustChangePassword:false,
+      mustChangePassword:true,
+      passwordChangedAt:null,
       active,
       roleId:roles[role].id,
     },
@@ -89,7 +92,8 @@ async function upsertUser(roles, { email, name, role, password, active = true })
       email,
       name,
       passwordHash:hashPassword(password),
-      mustChangePassword:false,
+      mustChangePassword:true,
+      passwordChangedAt:null,
       active,
       roleId:roles[role].id,
     },
@@ -192,7 +196,7 @@ async function upsertClassSession(classGroup, weekIndex) {
 
 async function upsertStudent(roles, index, branch) {
   const padded = String(index + 1).padStart(2, '0');
-  const email = `student${padded}@alc.edu`;
+  const email = `student${padded}@example.invalid`;
   const active = ![17, 18, 19].includes(index);
   const user = await upsertUser(roles, {
     email,
@@ -289,10 +293,10 @@ async function main() {
   const branchRows = {};
   for (const branch of branches) branchRows[branch.name] = await upsertBranch(branch);
 
-  const admin = await upsertUser(roles, { email:'admin@alc.edu', name:'Administrador ALC', role:Roles.ADMIN, password:passwords.admin });
-  const generalDirector = await upsertUser(roles, { email:'generaldirector@alc.edu', name:'Director General ALC', role:Roles.GENERAL_DIRECTOR, password:passwords.generalDirector });
-  const northDirector = await upsertUser(roles, { email:'branchdirector.norte@alc.edu', name:'Director Sede Norte', role:Roles.BRANCH_DIRECTOR, password:passwords.branchDirector });
-  const centralDirector = await upsertUser(roles, { email:'branchdirector.central@alc.edu', name:'Director Sede Central', role:Roles.BRANCH_DIRECTOR, password:passwords.branchDirector });
+  const admin = await upsertUser(roles, { email:privilegedEmails.admin, name:'Administrador ALC', role:Roles.ADMIN, password:passwords.admin });
+  const generalDirector = await upsertUser(roles, { email:privilegedEmails.generalDirector, name:'Director General ALC', role:Roles.GENERAL_DIRECTOR, password:passwords.generalDirector });
+  const northDirector = await upsertUser(roles, { email:privilegedEmails.northDirector, name:'Director Sede Norte', role:Roles.BRANCH_DIRECTOR, password:passwords.branchDirector });
+  const centralDirector = await upsertUser(roles, { email:privilegedEmails.centralDirector, name:'Director Sede Central', role:Roles.BRANCH_DIRECTOR, password:passwords.branchDirector });
 
   await replaceBranchAccess(northDirector.id, [branchRows[branches[0].name].id]);
   await replaceBranchAccess(centralDirector.id, [branchRows[branches[1].name].id]);
@@ -348,10 +352,8 @@ async function main() {
     showIncome:'260.00',
   });
 
-  const teacherAccounts = classCatalog.map((item) => ({ email:item.teacherEmail, password:passwords.teacher, role:'Profesor', name:item.teacherName }));
-  const studentAccounts = studentNames.map((name, index) => ({ email:`student${String(index + 1).padStart(2, '0')}@alc.edu`, password:passwords.student, role:'Estudiante', name }));
-
   console.log(JSON.stringify({
+    message:'Local demo seed completed. Credentials were not printed; retrieve them only from your local secret source.',
     summary:{
       branches:Object.values(branchRows).length,
       students:students.length,
@@ -359,14 +361,6 @@ async function main() {
       classSessions:sessions.length,
       events:3,
     },
-    accounts:[
-      { email:admin.email, password:passwords.admin, role:'Administrador', name:admin.name },
-      { email:generalDirector.email, password:passwords.generalDirector, role:'Director general', name:generalDirector.name },
-      { email:northDirector.email, password:passwords.branchDirector, role:'Director de sede', name:northDirector.name },
-      { email:centralDirector.email, password:passwords.branchDirector, role:'Director de sede', name:centralDirector.name },
-      ...teacherAccounts,
-      ...studentAccounts,
-    ],
   }, null, 2));
 }
 

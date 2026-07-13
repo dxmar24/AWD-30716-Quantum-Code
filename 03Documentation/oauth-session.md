@@ -13,13 +13,13 @@
 10. Internal roles are assigned only through the application, mainly `POST /api/v1/users` and `PATCH /api/v1/users/{id}/role`.
 
 ## Google Console Origin Rules
-Google OAuth browser origins must use an allowed web origin. For deployed environments, use an HTTPS origin with a public domain name. Do not use a raw public IP such as `http://18.217.255.109`; Google rejects raw IP origins because they do not end in a public top-level domain. Localhost origins such as `http://localhost:5500` and `http://127.0.0.1:5500` are acceptable for local development.
+Google OAuth browser origins must use an exact allowed web origin. Deployed origins use the organization HTTPS domain; localhost is reserved for development. Never publish infrastructure addresses in the repository.
 
 Recommended production origin:
 - `https://<owned-domain>`
 
 Temporary testing origin, only after DNS and HTTPS are configured:
-- `https://18-217-255-109.sslip.io`
+- `https://academy.example.invalid` (documentation placeholder)
 
 Google documentation reference: https://support.google.com/cloud/answer/15549257
 
@@ -52,14 +52,7 @@ Google documentation reference: https://support.google.com/cloud/answer/15549257
 ## Manual Role-Test Login
 Run `npm run db:seed:role-test` after the database schema is applied to create temporary users for Admin, GeneralDirector, BranchDirector, Teacher and Student. The seed stores only one-way password hashes in `users.password_hash`.
 
-Default local credentials:
-- `admin@alc.edu` / `adminALC2026*`
-- `generaldirector@alc.edu` / `generaldirectorALC2026*`
-- `branchdirector@alc.edu` / `branchdirectorALC2026*`
-- `teacher@alc.edu` / `teacherALC2026*`
-- `student@alc.edu` / `studentALC2026*`
-
-Override defaults with `SEED_*_PASSWORD` variables before running the seed. The legacy `POSTMAN_LOGIN_ENABLED` fallback should stay disabled outside controlled verification windows; seeded user password hashes work through the normal email/password login.
+There are no default credentials. Supply local `SEED_*_EMAIL` and `SEED_*_PASSWORD` secrets explicitly; seeded accounts require a first-login password rotation. Mock Google tokens and the legacy Postman fallback are technically impossible outside tests.
 
 ## Postman Session Verification
 1. Run `Auth & Session / Current Session - No Token`; it must return `401`.

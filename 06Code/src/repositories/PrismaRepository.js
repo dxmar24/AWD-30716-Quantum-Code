@@ -37,6 +37,10 @@ class PrismaRepository {
     return normalizeRow(await this.model.findFirst({ where:{ [field]:value } }));
   }
 
+  async findByFields(fields) {
+    return normalizeRow(await this.model.findFirst({ where:fields }));
+  }
+
   async create(data) {
     try {
       return normalizeRow(await this.model.create({ data }));
