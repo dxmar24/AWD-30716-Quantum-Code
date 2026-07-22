@@ -1,14 +1,65 @@
 @startuml
-actor Teacher
-participant WebApp
-participant "Core API" as API
-participant AttendanceService
-participant Database
-Teacher -> WebApp: Mark student attendance
-WebApp -> API: POST /api/v1/student-attendance
-API -> AttendanceService: validate and record
-AttendanceService -> Database: insert attendance and audit log
-Database --> AttendanceService: record
-AttendanceService --> API: result
-API --> WebApp: 201 Created
+title Attendance Finalization - Main and Alternative Flows
+autonumber
+skinparam backgroundColor #FAFAF7
+skinparam shadowing false
+skinparam ArrowColor #9A8700
+
+actor Profesor as Teacher
+participant "React attendance panel" as UI
+participant "Express middleware\nsession + RBAC + Zod" as Middleware
+participant AttendanceController as Controller
+participant AttendanceService as Service
+participant AccessPolicy as Policy
+participant "DatabaseContext\ntransaction" as Tx
+database PostgreSQL as DB
+participant AuditService as Audit
+participant CacheService as Cache
+
+Teacher -> UI: Open class attendance
+UI -> Middleware: GET /api/v1/class-sessions/{id}/roster
+Middleware -> Controller: authenticated scoped request
+Controller -> Service: getSessionRoster(actor, sessionId)
+Service -> Policy: teacherOwnsSession(actor, sessionId)
+Policy -> DB: session + group + teacher + enrollments
+DB --> Policy: authorized class context
+Service -> DB: active enrollment episodes covering session
+DB --> Service: roster and existing records
+Service --> UI: roster, state and editable flags
+
+Teacher -> UI: Mark present/late/absent and finalize
+UI -> Middleware: PUT .../{id}/attendance\nrecords[], finalize=true, expectedState
+Middleware -> Middleware: validate session, role and body
+Middleware -> Controller: valid command
+Controller -> Service: recordSessionAttendance(actor, id, command)
+Service -> Policy: verify teacher/director resource scope
+Service -> Service: validate unique students and statuses
+Service -> Service: require class ended before finalization
+
+alt valid roster and unchanged attendance state
+  Service -> Tx: begin transaction
+  Tx -> DB: upsert each attendance record\nwith recorder/updater and version
+  Tx -> DB: mark class attendanceState=finalized\nand finalizedBy/finalizedAt
+  Tx -> Audit: log ATTENDANCE_BATCH_RECORDED\nand ATTENDANCE_FINALIZED
+  Audit -> DB: append audit logs
+  Tx --> Service: commit
+  Service -> Cache: invalidate attendance/reports/students tags
+  Service --> Controller: finalized roster result
+  Controller --> UI: 200 success
+  UI --> Teacher: Confirmation and locked roster
+else stale state, invalid student or unauthorized class
+  Service --> Controller: AppError 403/409/422
+  Controller --> UI: consistent error envelope
+  UI --> Teacher: Friendly correction message
+end
+
+opt authorized correction after finalization
+  Teacher -> UI: Enable correction and enter reason
+  UI -> Service: PUT attendance with correctionReason
+  Service -> Policy: allow correction role and scope
+  Service -> DB: update record, increment version, preserve history fields
+  Service -> Audit: log ATTENDANCE_CORRECTED with reason
+  Service -> Cache: invalidate affected report tags
+  Service --> UI: corrected record
+end
 @enduml

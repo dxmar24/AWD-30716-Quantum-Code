@@ -32,7 +32,8 @@
     "postman:evidence:analytics": "node scripts/run-python-analytics-postman-evidence.js",
     "postman:coverage": "node scripts/verify-postman-route-coverage.js",
     "test:api:validation": "node scripts/api-validation-suite.js",
-    "evidence:ui": "node scripts/capture-ui-evidence.js"
+    "evidence:ui": "node scripts/capture-ui-evidence.js",
+    "diagrams:render": "node ../04UMLDiagrams/render-diagrams.js"
   },
   "dependencies": {
     "@prisma/client": "5.22.0",

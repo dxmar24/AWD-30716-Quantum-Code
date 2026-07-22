@@ -1,0 +1,69 @@
+@startuml
+title Enrollment Request to Active Student - Activity Diagram
+skinparam backgroundColor #FAFAF7
+skinparam shadowing false
+skinparam ArrowColor #9A8700
+
+start
+partition Visitor {
+  :Review programs and branches;
+  :Submit enrollment request;
+}
+partition System {
+  :Validate name, email, phone,
+  branch and style interest;
+  if (Valid request?) then (yes)
+    :Store request as pending;
+    :Show confirmation;
+  else (no)
+    :Return field-specific errors;
+    stop
+  endif
+}
+partition "Branch/General Director" {
+  :Filter requests by status and branch;
+  :Contact interested person;
+  if (Interested?) then (yes)
+    :Schedule trial class and follow-up;
+  else (no)
+    :Mark lost with mandatory notes;
+    stop
+  endif
+  :Confirm enrollment decision;
+  if (Accepted?) then (yes)
+    :Create student account and profile;
+  else (no)
+    :Keep in follow-up or mark lost;
+    stop
+  endif
+}
+partition System {
+  :Generate temporary password;
+  :Send branded invitation by email;
+  if (Email delivered?) then (yes)
+    :Activate account with mandatory password change;
+  else (no)
+    :Keep inactive and allow resend;
+    stop
+  endif
+}
+partition Student {
+  :Open invitation and sign in;
+  :Change temporary password;
+}
+partition "Branch/General Director" {
+  :Select compatible group;
+  :Create enrollment;
+}
+partition System {
+  :Validate branch, level, dates and capacity;
+  if (Capacity available?) then (yes)
+    :Set enrollment active;
+  else (no)
+    :Set enrollment waitlisted;
+  endif
+  :Write audit trail and invalidate caches;
+}
+stop
+@enduml
+

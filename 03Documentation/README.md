@@ -17,6 +17,8 @@ This directory is the authoritative documentation map for the American Latin Cla
 | Area | Source of truth |
 | --- | --- |
 | System layers and deployment model | `architecture.md` |
+| Complete UML and architecture diagrams | `../04UMLDiagrams/README.md` |
+| Diagram consistency and rendering evidence | `diagram-validation-report.md` |
 | Technology choices | `technology-stack.md` |
 | REST resources and contracts | `api-documentation.md` |
 | URI conventions | `uri-design.md` |

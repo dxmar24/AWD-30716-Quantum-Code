@@ -1,14 +1,61 @@
 @startuml
-actor User
-participant Browser
-participant "Auth API" as API
-participant Google
-Browser -> Google: Request sign-in
-Google --> Browser: ID token
-Browser -> API: POST /api/v1/auth/google
-API -> Google: Verify ID token and audience
-Google --> API: Token payload sub/email/name
-API -> API: Link internal user and role
-API -> API: Store session token hash
-API --> Browser: HttpOnly Secure SameSite session cookie
+title Authentication - Password and Google Alternatives
+autonumber
+skinparam backgroundColor #FAFAF7
+skinparam shadowing false
+skinparam ArrowColor #9A8700
+
+actor Usuario as User
+participant "React login" as UI
+participant "AuthController" as Controller
+participant "AuthService" as Service
+participant "Google Identity" as Google
+database PostgreSQL as DB
+participant AuditService as Audit
+
+alt email and password
+  User -> UI: Enter academy email and personal password
+  UI -> Controller: POST /api/v1/auth/login
+  Controller -> Service: loginWithPassword(email, password)
+  Service -> DB: find active user + role by normalized email
+  DB --> Service: password hash and account policy
+  Service -> Service: constant-time bcrypt verification
+else Google Sign-In
+  User -> Google: Select verified Google account
+  Google --> UI: signed ID token
+  UI -> Controller: POST /api/v1/auth/google {idToken}
+  Controller -> Service: loginWithGoogle(idToken)
+  Service -> Google: verify signature, audience and email_verified
+  Google --> Service: sub, email, name
+  Service -> DB: find existing active academy account by email
+  alt account exists and email matches
+    Service -> DB: link googleSub if not linked
+  else no provisioned account or mismatched link
+    Service --> UI: 401/403 (Google never self-registers a role)
+  end
+end
+
+Service -> Service: generate random session token
+Service -> DB: store SHA-256 token hash + expiry
+Service -> Audit: log authentication event
+Audit -> DB: append audit row without credential
+Service --> Controller: token + public user
+Controller -> Controller: generate CSRF token
+Controller --> UI: Set-Cookie alc_session\nHttpOnly + Secure + SameSite=Strict
+Controller --> UI: Set-Cookie alc_csrf\nSecure + SameSite=Strict
+UI -> Controller: GET /api/v1/auth/me (cookies included)
+Controller -> DB: resolve session hash and role/profile
+DB --> Controller: current user
+
+alt mustChangePassword = true
+  Controller --> UI: redirect to mandatory password change
+  User -> UI: enter temporary and new password
+  UI -> Controller: POST /api/v1/auth/change-password + CSRF
+  Controller -> Service: changePassword(user, current, next)
+  Service -> DB: update hash, clear policy flag, revoke sessions
+  Service -> DB: create replacement session
+  Controller --> UI: replace secure cookies
+else account ready
+  Controller --> UI: show dashboard allowed for role
+end
 @enduml

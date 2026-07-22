@@ -1,25 +1,281 @@
 erDiagram
-  BRANCHES ||--o{ STUDENTS : has
-  BRANCHES ||--o{ TEACHERS : has
-  BRANCHES ||--o{ CLASS_GROUPS : hosts
-  ROLES ||--o{ USERS : assigns
-  ROLES ||--o{ ROLE_PERMISSIONS : grants
-  PERMISSIONS ||--o{ ROLE_PERMISSIONS : belongs
-  USERS ||--o| STUDENTS : maps
-  USERS ||--o| TEACHERS : maps
-  USERS ||--o{ SESSIONS : owns
-  USERS ||--o{ AUDIT_LOGS : writes
-  DANCE_CATEGORIES ||--o{ DANCE_STYLES : contains
-  TEACHERS ||--o{ TEACHER_STYLES : teaches
-  DANCE_STYLES ||--o{ TEACHER_STYLES : belongs
-  DANCE_STYLES ||--o{ CLASS_GROUPS : uses
-  TEACHERS ||--o{ CLASS_GROUPS : leads
-  CLASS_GROUPS ||--o{ CLASS_SESSIONS : schedules
-  STUDENTS ||--o{ STUDENT_ATTENDANCE_RECORDS : attends
-  CLASS_SESSIONS ||--o{ STUDENT_ATTENDANCE_RECORDS : records
-  TEACHERS ||--o{ TEACHER_ATTENDANCE_RECORDS : works
-  CLASS_SESSIONS ||--o{ TEACHER_ATTENDANCE_RECORDS : includes
-  STUDENT_ATTENDANCE_RECORDS ||--o{ ABSENCE_JUSTIFICATIONS : explains
-  STUDENTS ||--o{ SCHOLARSHIP_EVALUATIONS : evaluated
-  STUDENTS ||--o{ LEVEL_PROMOTION_EVALUATIONS : promoted
-  BRANCHES ||--o{ ENROLLMENT_REQUESTS : requested
+  BRANCH {
+    uuid id PK
+    varchar name UK
+    varchar city
+    boolean active
+    timestamptz created_at
+  }
+  ROLE {
+    uuid id PK
+    varchar name UK
+  }
+  PERMISSION {
+    uuid id PK
+    varchar code UK
+    text description
+  }
+  ROLE_PERMISSION {
+    uuid role_id PK,FK
+    uuid permission_id PK,FK
+  }
+  USER {
+    uuid id PK
+    varchar google_sub UK
+    varchar email UK
+    varchar name
+    text password_hash
+    boolean must_change_password
+    timestamptz password_changed_at
+    uuid role_id FK
+    boolean active
+    timestamptz created_at
+  }
+  USER_BRANCH_ACCESS {
+    uuid id PK
+    uuid user_id FK
+    uuid branch_id FK
+    timestamptz created_at
+  }
+  STUDENT {
+    uuid id PK
+    uuid user_id FK,UK
+    uuid branch_id FK
+    varchar full_name
+    varchar level
+    boolean active
+    text profile_photo_url
+    timestamptz profile_photo_updated_at
+  }
+  TEACHER {
+    uuid id PK
+    uuid user_id FK,UK
+    uuid branch_id FK
+    varchar full_name
+    decimal hourly_rate
+    boolean active
+  }
+  DANCE_CATEGORY {
+    uuid id PK
+    varchar name UK
+  }
+  DANCE_STYLE {
+    uuid id PK
+    uuid category_id FK
+    varchar name UK
+  }
+  TEACHER_STYLE {
+    uuid teacher_id PK,FK
+    uuid style_id PK,FK
+  }
+  CLASS_GROUP {
+    uuid id PK
+    uuid branch_id FK
+    uuid style_id FK
+    uuid teacher_id FK
+    varchar name
+    varchar level
+    boolean active
+    int capacity
+  }
+  CLASS_GROUP_ENROLLMENT {
+    uuid id PK
+    uuid student_id FK
+    uuid class_group_id FK
+    varchar status
+    timestamptz starts_at
+    timestamptz ends_at
+    timestamptz enrolled_at
+    text withdrawal_reason
+    uuid created_by FK
+    timestamptz created_at
+    timestamptz updated_at
+  }
+  CLASS_SESSION {
+    uuid id PK
+    uuid class_group_id FK
+    timestamptz starts_at
+    timestamptz ends_at
+    varchar name
+    varchar status
+    varchar attendance_state
+    timestamptz attendance_finalized_at
+    uuid attendance_finalized_by FK
+    text cancellation_reason
+    timestamptz cancelled_at
+    uuid cancelled_by FK
+    timestamptz completed_at
+    uuid completed_by FK
+  }
+  STUDENT_ATTENDANCE_RECORD {
+    uuid id PK
+    uuid student_id FK
+    uuid class_session_id FK
+    varchar status
+    text notes
+    uuid recorded_by FK
+    uuid updated_by FK
+    text correction_reason
+    int version
+    timestamptz created_at
+    timestamptz updated_at
+  }
+  TEACHER_ATTENDANCE_RECORD {
+    uuid id PK
+    uuid teacher_id FK
+    uuid class_session_id FK
+    timestamptz check_in_at
+    timestamptz check_out_at
+    decimal hourly_rate_snapshot
+    int payable_minutes
+  }
+  ABSENCE_JUSTIFICATION {
+    uuid id PK
+    uuid attendance_record_id FK
+    text reason
+    text evidence_url
+    varchar evidence_file_name
+    varchar evidence_mime_type
+    int evidence_size
+    bytea evidence_data
+    varchar status
+    uuid reviewed_by FK
+    text review_notes
+    timestamptz reviewed_at
+  }
+  SCHOLARSHIP_RULE {
+    uuid id PK
+    decimal min_attendance_percent
+    int period_months
+    int minimum_sessions
+    boolean active
+  }
+  SCHOLARSHIP_EVALUATION {
+    uuid id PK
+    uuid student_id FK
+    int percentage
+    timestamptz evaluation_from
+    timestamptz evaluation_to
+    decimal attendance_rate
+    decimal theory_score
+    decimal practice_score
+    boolean approved
+    uuid evaluated_by FK
+    timestamptz evaluated_at
+  }
+  LEVEL_PROMOTION_EVALUATION {
+    uuid id PK
+    uuid student_id FK
+    varchar from_level
+    varchar to_level
+    timestamptz evaluation_from
+    timestamptz evaluation_to
+    decimal attendance_rate
+    decimal consistency_score
+    decimal theory_score
+    decimal practice_score
+    boolean approved
+    uuid evaluated_by FK
+    timestamptz evaluated_at
+  }
+  ENROLLMENT_REQUEST {
+    uuid id PK
+    varchar full_name
+    varchar email
+    varchar phone
+    uuid branch_id FK
+    varchar preferred_branch
+    varchar style_interest
+    text message
+    varchar status
+    text status_notes
+    timestamptz follow_up_at
+    uuid converted_student_id
+    uuid updated_by
+    timestamptz created_at
+    timestamptz updated_at
+  }
+  ACADEMY_EVENT {
+    uuid id PK
+    uuid branch_id FK
+    varchar title
+    text description
+    varchar level
+    timestamptz starts_at
+    timestamptz ends_at
+    varchar location
+    decimal show_income
+    boolean active
+    timestamptz created_at
+  }
+  STUDENT_PAYMENT {
+    uuid id PK
+    uuid student_id FK
+    uuid branch_id FK
+    decimal amount
+    varchar concept
+    varchar period
+    varchar status
+    timestamptz paid_at
+    timestamptz due_at
+    text notes
+    varchar transaction_type
+    uuid reversal_of_id UK
+    text reversal_reason
+    uuid created_by
+    uuid updated_by
+    timestamptz created_at
+    timestamptz updated_at
+  }
+  SESSION {
+    uuid id PK
+    uuid user_id FK
+    text token_hash
+    timestamptz expires_at
+    boolean revoked
+  }
+  AUDIT_LOG {
+    uuid id PK
+    uuid actor_user_id FK
+    varchar action
+    varchar entity
+    uuid entity_id
+    json metadata
+    timestamptz created_at
+  }
+
+  ROLE ||--o{ USER : assigns
+  ROLE ||--o{ ROLE_PERMISSION : grants
+  PERMISSION ||--o{ ROLE_PERMISSION : contains
+  USER ||--o{ USER_BRANCH_ACCESS : receives
+  BRANCH ||--o{ USER_BRANCH_ACCESS : scopes
+  USER ||--o| STUDENT : links
+  USER ||--o| TEACHER : links
+  USER ||--o{ SESSION : owns
+  USER ||--o{ AUDIT_LOG : writes
+  BRANCH ||--o{ STUDENT : has
+  BRANCH o|--o{ TEACHER : has
+  DANCE_CATEGORY o|--o{ DANCE_STYLE : groups
+  TEACHER ||--o{ TEACHER_STYLE : teaches
+  DANCE_STYLE ||--o{ TEACHER_STYLE : maps
+  BRANCH o|--o{ CLASS_GROUP : hosts
+  DANCE_STYLE o|--o{ CLASS_GROUP : defines
+  TEACHER o|--o{ CLASS_GROUP : leads
+  STUDENT ||--o{ CLASS_GROUP_ENROLLMENT : enrolls
+  CLASS_GROUP ||--o{ CLASS_GROUP_ENROLLMENT : contains
+  USER o|--o{ CLASS_GROUP_ENROLLMENT : creates
+  CLASS_GROUP o|--o{ CLASS_SESSION : schedules
+  STUDENT o|--o{ STUDENT_ATTENDANCE_RECORD : receives
+  CLASS_SESSION o|--o{ STUDENT_ATTENDANCE_RECORD : records
+  TEACHER o|--o{ TEACHER_ATTENDANCE_RECORD : works
+  CLASS_SESSION o|--o{ TEACHER_ATTENDANCE_RECORD : includes
+  STUDENT_ATTENDANCE_RECORD o|--o{ ABSENCE_JUSTIFICATION : explains
+  USER o|--o{ ABSENCE_JUSTIFICATION : reviews
+  STUDENT o|--o{ SCHOLARSHIP_EVALUATION : evaluated
+  STUDENT o|--o{ LEVEL_PROMOTION_EVALUATION : promoted
+  USER o|--o{ SCHOLARSHIP_EVALUATION : evaluates
+  USER o|--o{ LEVEL_PROMOTION_EVALUATION : evaluates
+  BRANCH o|--o{ ENROLLMENT_REQUEST : requested_at
+  BRANCH o|--o{ ACADEMY_EVENT : schedules
+  STUDENT o|--o{ STUDENT_PAYMENT : owes
+  BRANCH o|--o{ STUDENT_PAYMENT : receives

@@ -1,43 +1,145 @@
 @startuml
-package "Frontend EC2 / Nginx" {
-  [Landing Page]
-  [Private Dashboard]
+title American Latin Class - Component Diagram
+left to right direction
+skinparam backgroundColor #FAFAF7
+skinparam shadowing false
+skinparam componentStyle rectangle
+skinparam packageStyle rectangle
+skinparam ArrowColor #9A8700
+
+actor Visitante
+actor "Usuario autenticado" as User
+
+package "React + Vite frontend" {
+  [Landing publica] as Landing
+  [Login] as Login
+  [Panel por rol] as Dashboard
+  [Gestion de cuentas] as AccountsUI
+  [Operacion academica] as OperationsUI
+  [Asistencia] as AttendanceUI
+  [Reportes y exportacion] as ReportsUI
+  [Cliente HTTP + CSRF] as ApiClient
 }
 
-package "Auth & Session API" {
-  [AuthController]
-  [AuthService]
-  [Session Middleware]
-  [RBAC Middleware]
+package "Node.js Express application /api/v1" {
+  [Router REST] as Router
+  [Security middleware\nHelmet, CORS, HTTPS, CSRF, rate limit] as Security
+  [Session resolver] as SessionResolver
+  [RBAC + password-ready] as RBAC
+  [Zod validators] as Validators
+
+  package "Controllers" {
+    [AuthController] as AuthC
+    [CrudController] as CrudC
+    [AcademicController] as AcademicC
+    [AttendanceController] as AttendanceC
+    [FinancialController] as FinancialC
+    [ReportsController] as ReportsC
+    [AuditController] as AuditC
+  }
+
+  package "Domain services" {
+    [AuthService] as AuthS
+    [AcademicService] as AcademicS
+    [AttendanceService] as AttendanceS
+    [FinancialService] as FinancialS
+    [RulesService] as RulesS
+    [AccessPolicy] as AccessPolicy
+    [AuditService] as AuditS
+    [CacheService\nin-process TTL + tags] as CacheS
+    [EmailService] as EmailS
+  }
+
+  package "Persistence adapters" {
+    [DatabaseContext] as DbContext
+    [Prisma repositories] as PrismaRepo
+    [PostgreSQL repositories] as PgRepo
+    [In-memory repositories\ntests only] as MemoryRepo
+  }
 }
 
-package "Core Business API" {
-  [CrudController]
-  [AttendanceController]
-  [AcademicController]
-  [AttendanceService]
-  [AcademicService]
-  [AuditService]
+package "Python FastAPI /api/analytics/v1" {
+  [Analytics endpoints] as AnalyticsApi
+  [JWT + session guard] as AnalyticsGuard
+  [AnalyticsService] as AnalyticsS
+  [AnalyticsRepository] as AnalyticsRepo
 }
 
-package "Reports & Rules API" {
-  [ReportsController]
-  [RulesService]
-}
+database "PostgreSQL / Amazon RDS\ntransactional source of truth" as PostgreSQL
+cloud "Google Identity Services" as Google
+cloud "Google Maps" as Maps
+cloud "SMTP provider\nMailpit in staging" as SMTP
 
-database "PostgreSQL RDS" as DB
-cloud "Google OAuth" as Google
+Visitante --> Landing
+Visitante --> Login
+User --> Dashboard
+Landing --> Maps : map/search/directions
+Landing --> ApiClient : public branches + enrollment request
+Login --> ApiClient
+Dashboard --> AccountsUI
+Dashboard --> OperationsUI
+Dashboard --> AttendanceUI
+Dashboard --> ReportsUI
+AccountsUI --> ApiClient
+OperationsUI --> ApiClient
+AttendanceUI --> ApiClient
+ReportsUI --> ApiClient
 
-[Landing Page] --> [AcademicController]
-[Private Dashboard] --> [AuthController]
-[Private Dashboard] --> [AttendanceController]
-[Private Dashboard] --> [ReportsController]
-[AuthController] --> [AuthService]
-[AuthService] --> Google
-[AuthService] --> DB
-[CrudController] --> DB
-[AttendanceService] --> DB
-[AcademicService] --> DB
-[AuditService] --> DB
-[RulesService] --> DB
+ApiClient --> Security : HTTPS JSON + cookie + CSRF
+Security --> Router
+Router --> SessionResolver
+SessionResolver --> RBAC
+RBAC --> Validators
+Validators --> AuthC
+Validators --> CrudC
+Validators --> AcademicC
+Validators --> AttendanceC
+Validators --> FinancialC
+Validators --> ReportsC
+Validators --> AuditC
+
+AuthC --> AuthS
+CrudC --> AccessPolicy
+CrudC --> DbContext
+AcademicC --> AcademicS
+AttendanceC --> AttendanceS
+FinancialC --> FinancialS
+ReportsC --> RulesS
+ReportsC --> CacheS
+AuditC --> DbContext
+
+AuthS --> Google : verify ID token
+AuthS --> DbContext
+AcademicS --> AccessPolicy
+AcademicS --> AuditS
+AcademicS --> RulesS
+AcademicS --> CacheS
+AcademicS --> EmailS
+AttendanceS --> AccessPolicy
+AttendanceS --> AuditS
+AttendanceS --> CacheS
+FinancialS --> AccessPolicy
+FinancialS --> AuditS
+FinancialS --> CacheS
+RulesS --> AttendanceS
+EmailS --> SMTP
+
+DbContext --> PrismaRepo : production default
+DbContext --> PgRepo : supported adapter
+DbContext --> MemoryRepo : unit/integration tests
+PrismaRepo --> PostgreSQL
+PgRepo --> PostgreSQL
+
+ApiClient --> AnalyticsApi : protected analytics reads
+AnalyticsApi --> AnalyticsGuard
+AnalyticsGuard --> PostgreSQL : validate session hash
+AnalyticsGuard --> AnalyticsS
+AnalyticsS --> AnalyticsRepo
+AnalyticsRepo --> PostgreSQL : read-only analytics
+
+note bottom of Router
+One Express deployable application.
+Route groups may be proxied to identical Node instances,
+but they are not independently implemented microservices.
+end note
 @enduml
