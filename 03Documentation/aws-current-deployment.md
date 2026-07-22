@@ -26,7 +26,7 @@ The three Node instances run the same deployable backend. Nginx separates route 
 ## Verification Completed
 
 - Frontend build: 32 Vite modules built successfully.
-- Node tests: 94 of 94 passed locally before deployment.
+- Node tests: 98 of 98 passed locally, including the guarded defense-data reset checks.
 - API validation scenarios: 134 of 134 passed.
 - Postman route coverage: 89 of 89 route contracts represented by 110 requests.
 - Python tests: 15 of 15 passed locally and again on the Analytics instance.
