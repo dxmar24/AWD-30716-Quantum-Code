@@ -4,7 +4,7 @@
 
 Import these files:
 
-1. `American-Latin-Class.postman_environment.json`
+1. One environment: `American-Latin-Class.postman_environment.json` for local work or `American-Latin-Class-AWS.postman_environment.json` for the current defense deployment.
 2. `American-Latin-Class-API.postman_collection.json`
 3. `American-Latin-Class-Analytics-API.postman_collection.json`
 
@@ -14,13 +14,21 @@ The committed environment targets the local defense services:
 - Node API: `http://127.0.0.1:3005/api/v1`
 - Python analytics: `http://127.0.0.1:8005/api/analytics/v1`
 
+The AWS defense environment targets:
+
+- Site: `https://3-19-30-6.sslip.io`
+- Node API: `https://3-19-30-6.sslip.io/api/v1`
+- Python analytics: `https://3-19-30-6.sslip.io/api/analytics/v1`
+
+The AWS hostname is tied to the current temporary EC2 public IP. Update or recreate that environment after the instance receives a different public IP.
+
 Secrets and generated IDs are intentionally blank. Put the General Director email and password in Postman's **Current value**, never Initial/shared value.
 
 Start the local Mailpit service with `npm run db:local:up`. The environment already points `mailpit_url` to `http://127.0.0.1:8025`. The account lifecycle folder reads the captured invitation from Mailpit to test first login while also asserting that `/users` never returns the temporary password.
 
 ## Main Collection
 
-The collection contains 105 requests organized in execution order and covers all 86 declared Express route contracts:
+The collection contains 110 requests organized in execution order and covers all 89 declared Express route contracts:
 
 1. Health And Public
 2. Authentication And Session
@@ -36,9 +44,9 @@ The collection contains 105 requests organized in execution order and covers all
 
 Login saves `data.sessionToken` as `session_token`. Collection-level Bearer authorization then protects subsequent requests. Dynamic dates and generated IDs allow a complete academic flow without hard-coded fixture identifiers.
 
-Run the complete collection to show 105 requests and 135 assertions without failures. The last requests log out and prove that the revoked token returns `401`.
+Run the complete collection to exercise the end-to-end academic workflow. The last requests log out and prove that the revoked token returns `401`.
 
-From `06Code`, run `npm run postman:coverage` to compare the collection against the Express router automatically. The current result is 86/86 declared route contracts represented.
+From `06Code`, run `npm run postman:coverage` to compare the collection against the Express router automatically. The current result is 89/89 declared route contracts represented by 110 requests.
 
 ## Python Analytics Collection
 
