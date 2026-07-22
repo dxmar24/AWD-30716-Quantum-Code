@@ -28,4 +28,32 @@ function assertLocalDevelopmentSeed(seedName) {
   }
 }
 
-module.exports = { assertLocalDevelopmentSeed, requiredSeedValue };
+function assertAcademicDemoSeed(seedName) {
+  const nodeEnv = String(process.env.NODE_ENV || '').toLowerCase();
+  if (nodeEnv === 'development') {
+    assertLocalDevelopmentSeed(seedName);
+    return;
+  }
+
+  if (!['staging', 'production'].includes(nodeEnv)) {
+    throw new Error(`${seedName} requires development, staging, or production with explicit safeguards.`);
+  }
+  if (process.env.ALLOW_REMOTE_DEMO_SEEDS !== 'true') {
+    throw new Error('Set ALLOW_REMOTE_DEMO_SEEDS=true explicitly for the controlled defense dataset.');
+  }
+  if (process.env.REMOTE_DEMO_SEED_CONFIRM !== 'RESET_ALC_DEFENSE_DATA') {
+    throw new Error('REMOTE_DEMO_SEED_CONFIRM must exactly match RESET_ALC_DEFENSE_DATA.');
+  }
+
+  const databaseUrl = requiredSeedValue('DATABASE_URL');
+  const parsed = new URL(databaseUrl);
+  const databaseName = decodeURIComponent(parsed.pathname.replace(/^\//, ''));
+  if (!parsed.hostname.endsWith('.rds.amazonaws.com')) {
+    throw new Error('Remote defense seeds are restricted to an explicitly confirmed AWS RDS target.');
+  }
+  if (requiredSeedValue('REMOTE_DEMO_SEED_DATABASE') !== databaseName) {
+    throw new Error('REMOTE_DEMO_SEED_DATABASE does not match DATABASE_URL.');
+  }
+}
+
+module.exports = { assertAcademicDemoSeed, assertLocalDevelopmentSeed, requiredSeedValue };

@@ -2,6 +2,18 @@
 
 Production uses normalized PostgreSQL. Versioned SQL files in `06Code/persistence/migrations` are the schema change source of truth; `06Code/persistence/prisma/schema.prisma` is the application mapping used by Prisma. Database-specific partial/expression indexes, checks, the migration ledger and some referential details intentionally live only in SQL, so an unreviewed Prisma schema push is not an approved deployment mechanism.
 
+## Controlled Defense Dataset
+
+`npm run db:reset:defense` is a destructive, defense-only dataset reset. It truncates transactional academy data but preserves the migration ledger and permission catalog, then loads the coherent five-branch academic dataset. The command refuses to run remotely unless all of these conditions are true:
+
+- `NODE_ENV` is `staging` or `production`.
+- `ALLOW_REMOTE_DEMO_SEEDS=true` is supplied for that process only.
+- `REMOTE_DEMO_SEED_CONFIRM=RESET_ALC_DEFENSE_DATA` matches exactly.
+- `DATABASE_URL` targets AWS RDS.
+- `REMOTE_DEMO_SEED_DATABASE` exactly matches the database name in `DATABASE_URL`.
+
+Create and verify a database backup before running it. Never leave the remote reset variables in a service `.env`, and never use this command for real academy records.
+
 ## Main Tables
 
 | Table | Purpose and relevant integrity |

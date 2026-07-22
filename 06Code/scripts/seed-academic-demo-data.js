@@ -3,7 +3,7 @@ require('dotenv').config();
 const { PrismaClient } = require('@prisma/client');
 const { Roles } = require('../backend/src/models/constants');
 const { hashPassword } = require('../backend/src/utils/passwordHasher');
-const { assertLocalDevelopmentSeed, requiredSeedValue } = require('./seed-safety');
+const { assertAcademicDemoSeed, requiredSeedValue } = require('./seed-safety');
 
 const prisma = new PrismaClient();
 
@@ -367,7 +367,7 @@ async function seedProspects(branchRows) {
 }
 
 async function main() {
-  assertLocalDevelopmentSeed('Academic defense seed');
+  assertAcademicDemoSeed('Academic defense seed');
   await removeAccidentalTestAccounts();
   const roles = await rolesByName();
   const branchRows = {};
