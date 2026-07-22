@@ -6,13 +6,15 @@ process.env.CORS_ORIGINS = 'http://localhost:8080';
 process.env.POSTMAN_LOGIN_ENABLED = 'true';
 process.env.POSTMAN_LOGIN_EMAIL = 'admin@alc.edu';
 process.env.POSTMAN_LOGIN_PASSWORD = 'AmericanLatin2026!';
+process.env.EMAIL_TRANSPORT = 'capture';
+process.env.APP_PUBLIC_URL = 'http://127.0.0.1:3005';
 
 const fs = require('fs');
 const path = require('path');
 const request = require('supertest');
 const jwt = require('jsonwebtoken');
-const { createApp } = require('../src/app');
-const { Roles } = require('../src/models/constants');
+const { createApp } = require('../backend/src/app');
+const { Roles } = require('../backend/src/models/constants');
 
 const apiPrefix = '/api/v1';
 const rootDir = path.join(__dirname, '..', '..');
@@ -22,6 +24,7 @@ const jsonPath = path.join(rootDir, '07Other', 'api-validation-results.json');
 const seed = {
   adminUserId: 'd8c025f6-bcd0-4f25-a6b1-1486338678e7',
   northBranchId: '11111111-1111-4111-8111-111111111111',
+  matrizBranchId: '22222222-2222-4222-8222-222222222222',
   branchId: '0c8675f1-9c30-430a-8b2c-c4dd1ec88b09',
   studentId: '85f4bbe9-5d5f-4126-89b6-ddd9de432885',
   teacherId: '01c99342-ad47-4c4e-a094-6cab138d98e5',
@@ -93,7 +96,10 @@ async function main() {
 
   function requireSuccess(response, label) {
     if (!response || response.status >= 400) {
-      throw new Error(`${label} failed; cannot continue dependent API validation.`);
+      const details = response
+        ? `HTTP ${response.status}: ${response.body?.message || JSON.stringify(response.body)}`
+        : 'no HTTP response';
+      throw new Error(`${label} failed (${details}); cannot continue dependent API validation.`);
     }
     return response.body.data;
   }
@@ -439,7 +445,7 @@ async function main() {
   await runCase({ name: 'Admin lists enrollment requests', method: 'get', route: `${apiPrefix}/enrollment-requests`, client: admin.agent, expectedStatus: 200 });
   await runCase({ name: 'Admin lists users', method: 'get', route: `${apiPrefix}/users`, client: admin.agent, expectedStatus: 200 });
   const createdAccount = requireSuccess(await runCase({
-    name: 'Admin creates academy account with a temporary password',
+    name: 'Admin creates academy account and sends the temporary password by email',
     method: 'post',
     route: `${apiPrefix}/users`,
     client: admin.agent,
@@ -451,17 +457,20 @@ async function main() {
     },
     expectedStatus: 201,
     assert: (res) => {
-      if (!res.body.data.temporaryPassword) throw new Error('Temporary password was not returned.');
+      if (res.body.data.temporaryPassword) throw new Error('Temporary password must not be returned by the API.');
+      if (res.body.data.invitation?.status !== 'sent') throw new Error('Invitation delivery was not confirmed.');
       if (res.body.data.user.mustChangePassword !== true) throw new Error('Created account should require password change.');
       if (res.body.data.profile?.userId !== res.body.data.user.id) throw new Error('Created student profile was not linked to the user.');
     },
   }), 'Account create');
+  const createdInvitation = app.locals.emailService.latestInvitationFor(createdAccount.user.email);
+  if (!createdInvitation?.temporaryPassword) throw new Error('The test mailbox did not capture the account invitation.');
 
   const temporaryLogin = requireSuccess(await runCase({
     name: 'Temporary password login requires first password change',
     method: 'post',
     route: `${apiPrefix}/auth/login`,
-    body: { email:createdAccount.user.email, password:createdAccount.temporaryPassword },
+    body: { email:createdAccount.user.email, password:createdInvitation.temporaryPassword },
     expectedStatus: 200,
     assert: (res) => {
       if (res.body.data.user.mustChangePassword !== true) throw new Error('Temporary login should require password change.');
@@ -479,23 +488,24 @@ async function main() {
     },
   });
 
-  await runCase({
+  const changedPasswordSession = requireSuccess(await runCase({
     name: 'Temporary-password user changes password',
     method: 'post',
     route: `${apiPrefix}/auth/change-password`,
     headers: { Authorization: `Bearer ${temporaryLogin.sessionToken}` },
-    body: { currentPassword:createdAccount.temporaryPassword, newPassword:'createdAccountALC2027*' },
+    body: { currentPassword:createdInvitation.temporaryPassword, newPassword:'createdAccountALC2027*' },
     expectedStatus: 200,
     assert: (res) => {
       if (res.body.data.user.mustChangePassword !== false) throw new Error('Password change flag was not cleared.');
+      if (!res.body.data.sessionToken) throw new Error('Password change did not issue a replacement session token.');
     },
-  });
+  }), 'Password change');
 
   await runCase({
     name: 'Password-changed session can read academic branch catalog',
     method: 'get',
     route: `${apiPrefix}/branches`,
-    headers: { Authorization: `Bearer ${temporaryLogin.sessionToken}` },
+    headers: { Authorization: `Bearer ${changedPasswordSession.sessionToken}` },
     expectedStatus: 200,
   });
 
@@ -642,7 +652,7 @@ async function main() {
     method: 'post',
     route: `${apiPrefix}/students`,
     client: branchDirector.agent,
-    body: { branchId:seed.branchId, fullName:`Unscoped Validation Student ${timestamp}`, level:'B1', active:true },
+    body: { branchId:seed.matrizBranchId, fullName:`Unscoped Validation Student ${timestamp}`, level:'B1', active:true },
     expectedStatus: 403,
   });
 
@@ -746,7 +756,32 @@ async function main() {
     expectedStatus: 200,
   });
 
-  const sessionStart = new Date(Date.now() + 24 * 60 * 60 * 1000);
+  const groupEnrollment = requireSuccess(await runCase({
+    name: 'Admin enrolls student in class group',
+    method: 'post',
+    route: `${apiPrefix}/class-group-enrollments`,
+    client: admin.agent,
+    body: {
+      studentId:student.id,
+      classGroupId:classGroup.id,
+      status:'active',
+      startsAt:new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+    },
+    expectedStatus: 201,
+  }), 'Class group enrollment');
+  await runCase({
+    name: 'Admin lists class group enrollments',
+    method: 'get',
+    route: `${apiPrefix}/class-group-enrollments`,
+    client: admin.agent,
+    expectedStatus: 200,
+    assert: (res) => {
+      if (!res.body.data.some((item) => item.id === groupEnrollment.id)) throw new Error('Created class group enrollment was not listed.');
+    },
+  });
+
+  const sessionStart = new Date(Date.now() - 30 * 60 * 1000);
+  const absenceSessionStart = new Date(Date.now() - 4 * 60 * 60 * 1000);
   const classSession = requireSuccess(await runCase({
     name: 'Admin creates class session',
     method: 'post',
@@ -761,7 +796,7 @@ async function main() {
     method: 'post',
     route: `${apiPrefix}/class-sessions`,
     client: admin.agent,
-    body: { classGroupId: classGroup.id, startsAt: addHours(sessionStart, 3), endsAt: addHours(sessionStart, 5), status: 'scheduled' },
+    body: { classGroupId: classGroup.id, startsAt: absenceSessionStart.toISOString(), endsAt: addHours(absenceSessionStart, 2), status: 'scheduled' },
     expectedStatus: 201,
   }), 'Absence class session create');
 
@@ -772,7 +807,7 @@ async function main() {
     method: 'patch',
     route: `${apiPrefix}/class-sessions/${classSession.id}`,
     client: admin.agent,
-    body: { status: 'completed' },
+    body: { name: `${classGroup.name} Session` },
     expectedStatus: 200,
   });
 
@@ -854,9 +889,10 @@ async function main() {
     client: admin.agent,
     body: { status: 'approved', reviewNotes: 'Validation approved.' },
     expectedStatus: 200,
-    assert: async () => {
+    assert: async (res) => {
       const reviewedAttendance = await app.locals.db.studentAttendance.findById(absentAttendance.id);
-      if (reviewedAttendance.status !== 'justified') throw new Error('Approved justification did not update attendance status.');
+      if (reviewedAttendance.status !== 'absent') throw new Error('Physical attendance history was overwritten.');
+      if (res.body.data.status !== 'approved') throw new Error('Absence justification was not approved.');
     },
   });
 
@@ -883,6 +919,40 @@ async function main() {
   await runCase({ name: 'Admin gets scholarship candidate report', method: 'get', route: `${apiPrefix}/reports/scholarships/${student.id}/candidate`, client: admin.agent, expectedStatus: 200 });
   await runCase({ name: 'Admin gets level promotion candidate report', method: 'get', route: `${apiPrefix}/reports/level-promotions/${student.id}/candidate`, client: admin.agent, expectedStatus: 200 });
   await runCase({ name: 'Admin gets teacher payment report', method: 'get', route: `${apiPrefix}/reports/teachers/${teacher.id}/payment`, client: admin.agent, expectedStatus: 200 });
+  const reportRange = new URLSearchParams({
+    from:'2026-01-01T00:00:00.000Z',
+    to:'2026-12-31T23:59:59.999Z',
+    level:'B1',
+  }).toString();
+  await runCase({
+    name: 'Admin gets filtered general report',
+    method: 'get',
+    route: `${apiPrefix}/reports/general?${reportRange}`,
+    client: admin.agent,
+    expectedStatus: 200,
+    assert: (res) => {
+      if (!res.body.data.totals || !Array.isArray(res.body.data.branches)) throw new Error('General report contract is incomplete.');
+    },
+  });
+  await runCase({
+    name: 'Admin gets detailed attendance report',
+    method: 'get',
+    route: `${apiPrefix}/reports/attendance?${reportRange}`,
+    client: admin.agent,
+    expectedStatus: 200,
+    assert: (res) => {
+      if (!res.body.data.totals || !Array.isArray(res.body.data.byStudent) || !Array.isArray(res.body.data.records)) {
+        throw new Error('Attendance report contract is incomplete.');
+      }
+    },
+  });
+  await runCase({
+    name: 'Attendance report rejects unsupported level filter',
+    method: 'get',
+    route: `${apiPrefix}/reports/attendance?level=B3`,
+    client: admin.agent,
+    expectedStatus: 422,
+  });
 
   await runCase({ name: 'Admin lists scholarship evaluations', method: 'get', route: `${apiPrefix}/scholarship-evaluations`, client: admin.agent, expectedStatus: 200 });
   await runCase({
@@ -902,6 +972,67 @@ async function main() {
     client: admin.agent,
     body: { studentId: student.id, consistencyScore: 82, theoryScore: 80, practiceScore: 85, approved: false },
     expectedStatus: 201,
+  });
+
+  const resetAccount = requireSuccess(await runCase({
+    name: 'Admin resets another user password',
+    method: 'post',
+    route: `${apiPrefix}/users/${createdAccount.user.id}/reset-password`,
+    client: admin.agent,
+    expectedStatus: 200,
+    assert: (res) => {
+      if (res.body.data.temporaryPassword || res.body.data.user.mustChangePassword !== true || res.body.data.invitation?.status !== 'sent') {
+        throw new Error('Password reset did not send a protected temporary credential.');
+      }
+    },
+  }), 'Administrative password reset');
+  const resetInvitation = app.locals.emailService.latestInvitationFor(createdAccount.user.email);
+  if (!resetInvitation?.temporaryPassword) throw new Error('The test mailbox did not capture the reset invitation.');
+  await runCase({
+    name: 'Password reset revokes previous bearer session',
+    method: 'get',
+    route: `${apiPrefix}/branches`,
+    headers:{ Authorization:`Bearer ${changedPasswordSession.sessionToken}` },
+    expectedStatus:401,
+  });
+  await runCase({
+    name: 'Admin deactivates another user account',
+    method: 'patch',
+    route: `${apiPrefix}/users/${createdAccount.user.id}/status`,
+    client:admin.agent,
+    body:{ active:false },
+    expectedStatus:200,
+    assert:(res) => {
+      if (res.body.data.active !== false) throw new Error('User remained active after deactivation.');
+    },
+  });
+  await runCase({
+    name: 'Deactivated user cannot sign in with temporary password',
+    method: 'post',
+    route: `${apiPrefix}/auth/login`,
+    body:{ email:createdAccount.user.email, password:resetInvitation.temporaryPassword },
+    expectedStatus:401,
+  });
+  await runCase({
+    name: 'Admin reactivates role-ready user account',
+    method: 'patch',
+    route: `${apiPrefix}/users/${createdAccount.user.id}/status`,
+    client:admin.agent,
+    body:{ active:true },
+    expectedStatus:200,
+    assert:(res) => {
+      if (res.body.data.active !== true) throw new Error('User remained inactive after reactivation.');
+    },
+  });
+  await runCase({
+    name: 'Reactivated user signs in and must change temporary password',
+    method: 'post',
+    route: `${apiPrefix}/auth/login`,
+    body:{ email:createdAccount.user.email, password:resetInvitation.temporaryPassword },
+    expectedStatus:200,
+    assert:(res) => {
+      if (res.body.data.user.mustChangePassword !== true) throw new Error('Temporary credential did not preserve first-login password change.');
+    },
   });
 
   await runCase({ name: 'Admin lists audit logs', method: 'get', route: `${apiPrefix}/audit-logs`, client: admin.agent, expectedStatus: 200 });

@@ -6,7 +6,7 @@ dist
 coverage
 tmp
 npm-debug.log*
-python-analytics-api/.venv
-python-analytics-api/__pycache__
+apis/python-analytics-api/.venv
+apis/python-analytics-api/__pycache__
 **/__pycache__
 **/*.pyc

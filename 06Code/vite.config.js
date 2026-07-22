@@ -10,9 +10,9 @@ module.exports = defineConfig({
     emptyOutDir: true,
   },
   server: {
-    port: 5173,
+    port: Number(process.env.FRONTEND_PORT || 5175),
     proxy: {
-      '/api/v1': 'http://127.0.0.1:3000',
+      '/api/v1': process.env.VITE_API_PROXY_TARGET || 'http://127.0.0.1:3005',
     },
   },
 });

@@ -63,6 +63,8 @@ function writeLocalEnvironment() {
       { key: 'session_token', value: '', type: 'secret', enabled: true },
       { key: 'login_email', value: 'admin@alc.edu', type: 'default', enabled: true },
       { key: 'login_password', value: 'AmericanLatin2026!', type: 'secret', enabled: true },
+      { key: 'student_login_email', value: 'student@alc.edu', type: 'default', enabled: true },
+      { key: 'student_login_password', value: 'StudentALC2026!', type: 'secret', enabled: true },
       { key: 'user_id', value: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', type: 'default', enabled: true },
       { key: 'branch_id', value: '11111111-1111-4111-8111-111111111111', type: 'default', enabled: true },
       { key: 'student_id', value: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', type: 'default', enabled: true },
@@ -77,6 +79,13 @@ function writeLocalEnvironment() {
       { key: 'teacher_attendance_id', value: '', type: 'default', enabled: true },
       { key: 'absence_justification_id', value: '', type: 'default', enabled: true },
       { key: 'enrollment_request_id', value: '', type: 'default', enabled: true },
+      { key: 'managed_user_id', value: '', type: 'default', enabled: true },
+      { key: 'managed_temporary_password', value: '', type: 'secret', enabled: true },
+      { key: 'class_group_enrollment_id', value: '', type: 'default', enabled: true },
+      { key: 'roster_records', value: '[]', type: 'default', enabled: true },
+      { key: 'academy_event_id', value: '', type: 'default', enabled: true },
+      { key: 'student_payment_id', value: '', type: 'default', enabled: true },
+      { key: 'admin_session_token', value: '', type: 'secret', enabled: true },
     ],
     _postman_variable_scope: 'environment',
     _postman_exported_using: 'Codex local evidence runner',
@@ -102,7 +111,7 @@ function startServer() {
     AUTH_RATE_LIMIT_MAX: '200',
   };
 
-  const server = spawn(process.execPath, ['src/server.js'], {
+  const server = spawn(process.execPath, ['backend/src/server.js'], {
     cwd: codeDir,
     env,
     stdio: ['ignore', 'pipe', 'pipe'],
@@ -115,13 +124,17 @@ function startServer() {
 }
 
 function runNewman() {
-  const npx = 'npx';
+  const npxCommand = process.platform === 'win32' ? process.execPath : 'npx';
+  const npxArguments = process.platform === 'win32'
+    ? [path.join(path.dirname(process.execPath), 'node_modules', 'npm', 'bin', 'npx-cli.js')]
+    : [];
   const collectionArg = path.relative(repoRoot, collectionPath);
   const environmentArg = path.relative(repoRoot, tempEnvironmentPath);
   const jsonExportArg = path.relative(repoRoot, rawJsonPath);
   const result = spawnSync(
-    npx,
+    npxCommand,
     [
+      ...npxArguments,
       '--yes',
       'newman',
       'run',
@@ -140,8 +153,9 @@ function runNewman() {
       env: {
         ...process.env,
         npm_config_strict_ssl: 'false',
+        NODE_OPTIONS:[process.env.NODE_OPTIONS, '--no-deprecation'].filter(Boolean).join(' '),
       },
-      shell: process.platform === 'win32',
+      shell: false,
       timeout: 180000,
     },
   );

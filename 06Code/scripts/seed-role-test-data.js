@@ -1,8 +1,8 @@
 require('dotenv').config();
 
 const { PrismaClient } = require('@prisma/client');
-const { Roles } = require('../src/models/constants');
-const { hashPassword } = require('../src/utils/passwordHasher');
+const { Roles } = require('../backend/src/models/constants');
+const { hashPassword } = require('../backend/src/utils/passwordHasher');
 const { assertLocalDevelopmentSeed, requiredSeedValue } = require('./seed-safety');
 
 const prisma = new PrismaClient();

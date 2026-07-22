@@ -1,6 +1,6 @@
 require('dotenv').config();
 
-const { PrismaDatabaseContext } = require('../src/repositories/PrismaDatabaseContext');
+const { PrismaDatabaseContext } = require('../backend/src/repositories/PrismaDatabaseContext');
 
 const ROLLBACK = new Error('OPERATIONAL_SMOKE_ROLLBACK');
 

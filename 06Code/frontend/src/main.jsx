@@ -1,47 +1,79 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
+import { createPortal } from 'react-dom';
 import { apiRequest, patchJson, postJson, putJson } from './api/client';
+import ReportsPanel from './components/reports/ReportsPanel';
+import UserDirectoryPanel from './components/accounts/UserDirectoryPanel';
 import './styles.css';
+import './cyberpunk-landing.css';
+import './system-theme.css';
 
 const branches = [
   {
-    name: 'Matriz',
+    name: 'Matriz Sur',
     color: '#facc15',
-    short: 'Sede principal',
+    short: 'Barrionuevo',
+    address: 'Serapio Japerabi S11-119 y Pedro Capiro, 3.er piso, sector Barrionuevo, Quito',
+    mapsQuery: 'Serapio Japerabi S11-119 y Pedro Capiro, sector Barrionuevo, Quito, Ecuador',
     focus: 'Punto central para nuevos estudiantes, grupos activos y procesos de mayor continuidad.',
   },
   {
     name: 'Norte',
     color: '#60a5fa',
-    short: 'Entrenamiento cercano',
+    short: 'Sector La Y',
+    address: 'Veracruz N37-186, entre Barón de Carondelet y Juan José Villalengua, Quito',
+    mapsQuery: 'Veracruz N37-186 entre Barón de Carondelet y Juan José Villalengua, Quito, Ecuador',
     focus: 'Clases cerca del norte de la ciudad para iniciar, retomar o fortalecer el entrenamiento.',
   },
   {
-    name: 'Sur Guamaní',
+    name: 'Quitumbe',
     color: '#fb923c',
-    short: 'Movimiento del sur',
+    short: 'Sur de Quito',
+    address: 'Avenida Guayanay y avenida General José Gallardo, sector Quitumbe, Quito',
+    mapsQuery: 'Avenida Guayanay y avenida General José Gallardo, Quitumbe, Quito, Ecuador',
     focus: 'Programas tropicales, urbanos y culturales para estudiantes del sur de Quito.',
   },
   {
     name: 'Tumbaco',
     color: '#a78bfa',
-    short: 'Constancia y técnica',
+    short: 'Centro de Tumbaco',
+    address: 'Gaspar de Carvajal y Guayaquil, pasando la Clínica de Especialidades Tumbaco, Quito',
+    mapsQuery: 'Gaspar de Carvajal y Guayaquil, Tumbaco, Quito, Ecuador',
     focus: 'Entrenamientos grupales para mejorar técnica, seguridad y disciplina escénica.',
   },
   {
     name: 'Conocoto',
     color: '#f472b6',
-    short: 'Comunidad y práctica',
+    short: 'Santa Mónica Baja',
+    address: 'Calle F1 S1-154 y Miguel Riofrío, Santa Mónica Baja, Conocoto',
+    mapsQuery: 'Calle F1 y Miguel Riofrío, Conocoto 170805, Quito, Ecuador',
     focus: 'Espacio cercano para ritmos latinos, montaje, práctica y expresión escénica.',
   },
 ];
 
-const heroPhotos = [
-  '/assets/hero-dance-1.jpg',
-  '/assets/hero-dance-2.jpg',
-  '/assets/hero-dance-3.jpg',
-  '/assets/hero-dance-4.jpg',
-];
+const googleMapsApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY?.trim();
+
+function googleMapsSearchUrl(branch) {
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(branch.mapsQuery)}`;
+}
+
+function googleMapsDirectionsUrl(branch) {
+  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(branch.mapsQuery)}`;
+}
+
+function googleMapsEmbedUrl(branch) {
+  if (googleMapsApiKey) {
+    return `https://www.google.com/maps/embed/v1/place?key=${encodeURIComponent(googleMapsApiKey)}&q=${encodeURIComponent(branch.mapsQuery)}&zoom=16`;
+  }
+  return `https://www.google.com/maps?q=${encodeURIComponent(branch.mapsQuery)}&z=16&output=embed`;
+}
+
+const heroMedia = {
+  video: '/assets/hero-dance-class-pexels-6939802.mp4',
+  poster: '/assets/hero-dance-1.jpg',
+};
+
+const enrollmentPhoto = '/assets/hero-dance-3.jpg';
 
 const metrics = [
   { value: '5', label: 'sedes activas', icon: 'branches' },
@@ -54,37 +86,37 @@ const dancePrograms = [
   {
     level: 'Tropical',
     title: 'Salsa',
-    image: '/assets/program-salsa.jpg',
+    image: '/assets/program-salsa-v2.jpg',
     description: 'Ritmo, coordinación, musicalidad, trabajo en pareja y confianza social.',
   },
   {
     level: 'Tropical',
     title: 'Bachata',
-    image: '/assets/program-bachata.jpg',
+    image: '/assets/program-bachata-v2.jpg',
     description: 'Movimiento corporal, conexión, secuencias y expresión dentro del estilo.',
   },
   {
     level: 'Urbano',
     title: 'Hip Hop',
-    image: '/assets/program-hiphop.jpg',
+    image: '/assets/program-hiphop-v2.jpg',
     description: 'Grooves, coreografía, presencia escénica y entrenamiento físico.',
   },
   {
     level: 'Urbano',
     title: 'Heels',
-    image: '/assets/program-heels.jpg',
+    image: '/assets/program-heels-v2.jpg',
     description: 'Líneas, balance, seguridad, actitud y puesta en escena.',
   },
   {
     level: 'Urbano',
     title: 'Afro, House y Dancehall',
-    image: '/assets/program-afro.jpg',
+    image: '/assets/program-afro-v2.jpg',
     description: 'Fundamentos, resistencia, vocabulario de movimiento y freestyle.',
   },
   {
     level: 'Étnico',
     title: 'Danza tradicional ecuatoriana',
-    image: '/assets/program-ecuador.jpg',
+    image: '/assets/program-ecuador-v2.jpg',
     description: 'Expresión cultural, trabajo grupal, coordinación y montaje escénico.',
   },
 ];
@@ -103,6 +135,7 @@ const accountRoleOptions = [
   { value: 'Teacher', label: 'Profesor' },
   { value: 'BranchDirector', label: 'Director de sede' },
   { value: 'GeneralDirector', label: 'Director general' },
+  { value: 'Admin', label: 'Administrador' },
 ];
 
 const accountManagerRoles = new Set(['Admin', 'GeneralDirector']);
@@ -195,9 +228,86 @@ function usePrefersReducedMotion() {
   return reducedMotion;
 }
 
+function ArrowRightIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M5 12h14" />
+      <path d="M13 6l6 6-6 6" />
+    </svg>
+  );
+}
+
+function programCategoryTag(level) {
+  const normalized = level.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase();
+  return `${normalized} · FORMACIÓN`;
+}
+
+function LandingAccountLink({ user, profile = null, mobile = false, loading = false }) {
+  const className = `${mobile ? 'cyber-mobile-login' : 'cyber-nav-cta'}${user ? ' cyber-session-link' : ''}`;
+  if (loading) return <span className={`${className} cyber-session-loading`} aria-hidden="true" />;
+  if (!user) return <a className={className} href="/login.html">Ingresar</a>;
+  const name = displayUserName(user);
+  const imageUrl = profileImageUrl(user, profile);
+  return (
+    <a className={className} href="/private/dashboard.html" aria-label={`${name}: volver a mi panel`} title="Volver a mi panel">
+      <span className="cyber-session-avatar" aria-hidden="true">
+        {imageUrl ? <img src={imageUrl} alt="" /> : (
+          <svg viewBox="0 0 32 32">
+            <circle cx="16" cy="11" r="6" />
+            <path d="M5 29c.7-7 4.5-10.5 11-10.5S26.3 22 27 29" />
+          </svg>
+        )}
+      </span>
+      <span className="cyber-session-name">{name}</span>
+    </a>
+  );
+}
+
 function LandingPage() {
   const heroRef = useRef(null);
+  const heroVideoRef = useRef(null);
   const [heroInView, setHeroInView] = useState(true);
+  const [sessionUser, setSessionUser] = useState(null);
+  const [sessionProfile, setSessionProfile] = useState(null);
+  const [sessionChecked, setSessionChecked] = useState(false);
+  const reducedMotion = usePrefersReducedMotion();
+
+  useEffect(() => {
+    let mounted = true;
+    async function refreshSession() {
+      try {
+        const payload = await apiRequest('/auth/me');
+        const user = payload.data?.user || null;
+        let profile = null;
+        if (user?.role === 'Student' && !user.mustChangePassword) {
+          const studentsPayload = await apiRequest('/students').catch(() => null);
+          profile = studentsPayload?.data?.find((student) => student.userId === user.id) || null;
+        }
+        if (mounted) {
+          setSessionUser(user);
+          setSessionProfile(profile);
+        }
+      } catch {
+        if (mounted) {
+          setSessionUser(null);
+          setSessionProfile(null);
+        }
+      } finally {
+        if (mounted) setSessionChecked(true);
+      }
+    }
+    const refreshOnVisible = () => {
+      if (document.visibilityState === 'visible') refreshSession();
+    };
+    refreshSession();
+    window.addEventListener('pageshow', refreshSession);
+    document.addEventListener('visibilitychange', refreshOnVisible);
+    return () => {
+      mounted = false;
+      window.removeEventListener('pageshow', refreshSession);
+      document.removeEventListener('visibilitychange', refreshOnVisible);
+    };
+  }, []);
 
   useEffect(() => {
     const hero = heroRef.current;
@@ -211,52 +321,312 @@ function LandingPage() {
     return () => observer.disconnect();
   }, []);
 
-  return (
-    <>
-      <a className="skip-link" href="#main-content">Saltar al contenido principal</a>
-      <header className={`site-hero ${heroInView ? 'hero-playing' : 'hero-paused'}`} ref={heroRef}>
-        <div className="hero-slider" aria-hidden="true">
-          <div className="hero-track">
-            {heroPhotos.map((photo) => <div className="hero-frame" key={photo} style={{ backgroundImage:`url(${photo})` }} />)}
-          </div>
-        </div>
+  useEffect(() => {
+    const video = heroVideoRef.current;
+    if (!video) return;
 
-        <nav className="topbar" aria-label="Navegación principal">
-          <a className="brand" href="/">
-            <span className="brand-mark">ALC</span>
-            <span>American Latin Class</span>
+    if (!heroInView || reducedMotion) {
+      video.pause();
+      return;
+    }
+
+    video.play().catch(() => {
+      // The poster remains visible if the browser blocks autoplay.
+    });
+  }, [heroInView, reducedMotion]);
+
+  return (
+    <div className="cyber-landing">
+      <a className="skip-link" href="#main-content">Saltar al contenido principal</a>
+      <nav className="cyber-topbar" aria-label="Navegación principal">
+        <div className="cyber-topbar-inner">
+          <a className="cyber-brand" href="/">
+            <span className="cyber-brand-mark">ALC</span>
+            <span className="cyber-brand-text">American Latin Class</span>
           </a>
-          <div className="nav-links">
+          <div className="cyber-nav-links">
             <a href="#programs">Programas</a>
             <a href="#branches">Sedes</a>
             <a href="#enroll">Inscripción</a>
-            <a className="nav-cta" href="/login.html">Ingresar</a>
+            <LandingAccountLink user={sessionUser} profile={sessionProfile} loading={!sessionChecked} />
           </div>
-        </nav>
+          <LandingAccountLink user={sessionUser} profile={sessionProfile} loading={!sessionChecked} mobile />
+        </div>
+      </nav>
 
-        <section className="hero-content" aria-label="Academia de baile American Latin Class">
-          <span className="pill-link">Academia de baile urbano, tropical y étnico</span>
-          <h1>Muévete con técnica, ritmo y propósito</h1>
-          <p>
-            American Latin Class acompaña a estudiantes, profesores y sedes con una experiencia clara:
-            clases organizadas, niveles definidos y seguimiento académico sin complicaciones.
-          </p>
-          <div className="hero-actions">
-            <a className="primary-link" href="#enroll">Solicitar inscripción</a>
-            <a className="secondary-button" href="#programs">Ver programas</a>
+      <header className="cyber-hero" ref={heroRef}>
+        <div className="cyber-hero-rail" aria-hidden="true">
+          <div className={`cyber-hero-rail-track ${reducedMotion ? '' : 'marquee-vertical'}`}>
+            {[0, 1].map((key) => (
+              <span className="cyber-hero-rail-line" key={key}>
+                Clases activas // Cinco sedes // Formación B1 y B2
+              </span>
+            ))}
           </div>
-          <span className="hero-note">Formación para nuevos estudiantes, bailarines en proceso y grupos de presentación.</span>
-        </section>
+        </div>
+        <div className="cyber-hero-grid">
+          <div className="cyber-hero-copy">
+            <span className="cyber-status-pill">
+              <span className="cy-pulse-dot" aria-hidden="true" />
+              <span className="font-mono">Academia de baile urbano, tropical y étnico</span>
+            </span>
+            <h1 className="font-space">
+              Muévete con
+              <br />
+              <span className="outline">propósito</span>
+            </h1>
+            <p>
+              American Latin Class acompaña a estudiantes, profesores y sedes con una experiencia clara:
+              clases organizadas, niveles definidos y seguimiento académico sin complicaciones.
+            </p>
+            <div className="cyber-hero-actions">
+              <a className="cyber-btn-primary glow-yellow" href="#enroll">Solicitar inscripción</a>
+              <a className="cyber-btn-secondary" href="#programs">Ver programas</a>
+            </div>
+            <span className="cyber-hero-note">Formación para nuevos estudiantes, bailarines en proceso y grupos de presentación.</span>
+          </div>
+          <div className={`cyber-hero-media ${reducedMotion ? '' : 'scanning-line'}`} role="img" aria-label="Clase grupal de baile en American Latin Class">
+            <video
+              ref={heroVideoRef}
+              src={heroMedia.video}
+              poster={heroMedia.poster}
+              muted
+              loop
+              playsInline
+              autoPlay={!reducedMotion}
+              preload="metadata"
+              aria-hidden="true"
+            />
+            <div className="cyber-hero-media-tint" />
+            <div className="cyber-hero-media-fade" />
+          </div>
+        </div>
       </header>
 
       <main id="main-content">
-        <MetricsBand />
-        <ProgramsSection />
-        <BranchesSection />
-        <EnrollmentForm />
+        <CyberMetricsSentence />
+        <CyberProgramsSection />
+        <CyberBranchesSection />
+        <CyberEnrollmentForm />
       </main>
-      <SiteFooter />
-    </>
+      <CyberSiteFooter sessionUser={sessionUser} />
+    </div>
+  );
+}
+
+function CyberMetricsSentence() {
+  const values = Object.fromEntries(metrics.map((metric) => [metric.icon, metric.value]));
+  return (
+    <section className="cyber-metrics" aria-label="Resumen de la academia">
+      <svg className="cyber-metrics-bg" aria-hidden="true" preserveAspectRatio="xMidYMid slice" viewBox="0 0 1000 1000">
+        <path d="M0,500 C100,450 200,550 300,500 S500,450 600,500 S800,550 1000,500" fill="none" stroke="white" strokeWidth="1" />
+        <path d="M0,600 C100,550 200,650 300,600 S500,550 600,600 S800,650 1000,600" fill="none" stroke="white" strokeWidth="1" />
+        <path d="M0,400 C100,350 200,450 300,400 S500,350 600,400 S800,450 1000,400" fill="none" stroke="white" strokeWidth="1" />
+      </svg>
+      <p className="font-space">
+        Formación en <strong>{values.branches}</strong> sedes, <strong>{values.programs}</strong> líneas de baile,
+        más de <strong>{values.styles}</strong> estilos y niveles <strong>{values.levels}</strong> para avanzar con confianza.
+      </p>
+    </section>
+  );
+}
+
+function CyberProgramsSection() {
+  return (
+    <section className="cyber-programs" id="programs">
+      <div className="cyber-programs-inner">
+        <div className="cyber-programs-heading">
+          <h2 className="font-space">Programas de formación</h2>
+          <p className="font-mono">Explora cada línea de baile y encuentra tu próximo ritmo</p>
+        </div>
+        <div className="cyber-programs-spine" aria-hidden="true" />
+        <div className="cyber-programs-rows">
+          {dancePrograms.map((program, index) => (
+            <CyberProgramRow program={program} align={index % 2 === 0 ? 'left' : 'right'} key={program.title} />
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function CyberProgramRow({ program, align }) {
+  return (
+    <article className={`cyber-program-row ${align === 'right' ? 'cy-right' : ''}`}>
+      <div className="cyber-program-copy">
+        <span className="cy-tag font-mono">{programCategoryTag(program.level)}</span>
+        <h3 className="font-space">{program.title}</h3>
+        <p>{program.description}</p>
+        <a className="cyber-program-link" href="#enroll">
+          Consultar horarios
+          <ArrowRightIcon />
+        </a>
+      </div>
+      <div className="cyber-program-media">
+        <img src={program.image} alt={program.title} loading="lazy" />
+      </div>
+    </article>
+  );
+}
+
+function CyberBranchesSection() {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const activeBranch = branches[activeIndex];
+  const embedUrl = googleMapsEmbedUrl(activeBranch);
+
+  return (
+    <section className="cyber-branches" id="branches">
+      <div className="cyber-branches-inner">
+        <div className="cyber-branches-map">
+          <iframe
+            key={activeBranch.name}
+            className="cyber-google-map"
+            title={`Mapa de la sede ${activeBranch.name}`}
+            src={embedUrl}
+            loading="lazy"
+            allowFullScreen
+            referrerPolicy="strict-origin-when-cross-origin"
+          />
+          <div className="cyber-map-location">
+            <span className="font-mono">SEDE SELECCIONADA</span>
+            <strong className="font-space">{activeBranch.name}</strong>
+            <address>{activeBranch.address}</address>
+            <div className="cyber-map-actions">
+              <a href={googleMapsSearchUrl(activeBranch)} target="_blank" rel="noreferrer">Ver en Google Maps</a>
+              <a href={googleMapsDirectionsUrl(activeBranch)} target="_blank" rel="noreferrer">Cómo llegar</a>
+            </div>
+          </div>
+        </div>
+        <div className="cyber-branches-side">
+          <h2 className="font-space">Encuentra tu sede</h2>
+          <ul className="cyber-branch-list">
+            {branches.map((branch, index) => (
+              <li key={branch.name}>
+                <button
+                  type="button"
+                  className={`cyber-branch-item ${index === activeIndex ? 'active' : ''}`}
+                  onClick={() => setActiveIndex(index)}
+                  aria-pressed={index === activeIndex}
+                >
+                  <strong className="font-space">{branch.name}</strong>
+                  <span className="font-mono">{branch.short}</span>
+                  <p><b>{branch.address}</b>{branch.focus}</p>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function CyberEnrollmentForm() {
+  const [status, setStatus] = useState('');
+  const [availableBranches, setAvailableBranches] = useState([]);
+  const [branchesState, setBranchesState] = useState('loading');
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    apiRequest('/public/branches')
+      .then((payload) => {
+        setAvailableBranches(payload.data || []);
+        setBranchesState('ready');
+      })
+      .catch(() => {
+        setAvailableBranches([]);
+        setBranchesState('error');
+      });
+  }, []);
+
+  async function submit(event) {
+    event.preventDefault();
+    if (submitting) return;
+    setSubmitting(true);
+    setStatus('');
+    try {
+      const form = Object.fromEntries(new FormData(event.currentTarget).entries());
+      const selectedBranch = availableBranches.find((branch) => branch.id === form.branchId);
+      await postJson('/enrollment-requests', {
+        fullName:form.fullName,
+        email:form.email,
+        branchId:form.branchId || undefined,
+        preferredBranch:selectedBranch?.name || form.preferredBranch || undefined,
+        styleInterest:form.styleInterest || undefined,
+      });
+      event.currentTarget.reset();
+      setStatus('Solicitud registrada. El equipo de la academia se comunicará contigo.');
+    } catch (error) {
+      setStatus(errorMessage(error, 'No se pudo registrar la solicitud. Intenta nuevamente.'));
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <section className="cyber-enroll" id="enroll">
+      <div className="cyber-enroll-panel hud-frame chamfer">
+        <div className="cyber-enroll-copy">
+          <h2 className="font-space">
+            Únete a nuestra
+            <br />
+            <span className="cy-accent">comunidad</span>
+          </h2>
+          <p>Envía tus datos para recibir información sobre sedes, horarios, niveles y programas disponibles.</p>
+          <form onSubmit={submit} className="cyber-enroll-form" aria-busy={submitting}>
+            <div className="cy-form-row">
+              <label>Nombre completo<input name="fullName" autoComplete="name" placeholder="Tu nombre y apellido" required /></label>
+              <label>Correo electrónico<input name="email" type="email" autoComplete="email" placeholder="nombre@correo.com" required /></label>
+            </div>
+            <label>Sede de preferencia
+              {branchesState === 'ready' && availableBranches.length ? (
+                <select name="branchId" defaultValue="">
+                  <option value="">Sin preferencia</option>
+                  {availableBranches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}
+                </select>
+              ) : branchesState === 'loading' ? (
+                <select disabled aria-label="Cargando sedes"><option>Cargando sedes...</option></select>
+              ) : (
+                <input name="preferredBranch" placeholder="Norte, Matriz, Tumbaco" />
+              )}
+            </label>
+            {branchesState === 'error' && <p className="cyber-enroll-help">No pudimos cargar las sedes. Escribe tu preferencia y procesaremos la solicitud manualmente.</p>}
+            <label>Ritmo de interés<input name="styleInterest" placeholder="Salsa, Hip Hop, Bachata" /></label>
+            <button type="submit" className="cyber-enroll-submit" disabled={submitting}>{submitting ? 'Enviando...' : 'Enviar solicitud'}</button>
+            <p className="cyber-enroll-status font-mono" role="status" aria-live="polite">{status}</p>
+          </form>
+        </div>
+        <div className="cyber-enroll-media">
+          <img src={enrollmentPhoto} alt="" loading="lazy" />
+          <div className="cyber-enroll-media-tint" />
+          <div className="cyber-enroll-readout">
+            <div>INSCRIPCIONES ABIERTAS</div>
+            <div>{branches.length} SEDES DISPONIBLES</div>
+            <div>RESPUESTA EN 24 A 48 HORAS</div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function CyberSiteFooter({ sessionUser }) {
+  return (
+    <footer className="cyber-footer">
+      <div className="cyber-footer-inner">
+        <div className="cyber-footer-brand">
+          <span className="cyber-brand-mark">ALC</span>
+          <div>
+            <strong className="cyber-brand-text" style={{ display:'block', fontSize:'16px' }}>American Latin Class</strong>
+            <p className="cyber-footer-tagline">Academia de baile urbano, tropical y étnico en cinco sedes.</p>
+          </div>
+        </div>
+        <div className="cyber-footer-links">
+          <a href={sessionUser ? '/private/dashboard.html' : '/login.html'}>{sessionUser ? 'Volver a mi panel' : 'Ingresar al panel'}</a>
+        </div>
+        <span className="cyber-footer-copy">© 2026 American Latin Class · Quito, Ecuador</span>
+      </div>
+    </footer>
   );
 }
 
@@ -289,6 +659,11 @@ function LoginPage() {
 
     async function loadGoogleSignIn() {
       try {
+        const activeSession = await apiRequest('/auth/me').catch(() => null);
+        if (activeSession?.data?.user) {
+          window.location.replace('/private/dashboard.html');
+          return;
+        }
         const payload = await apiRequest('/auth/config');
         const clientId = payload.data.googleClientId;
 
@@ -327,10 +702,13 @@ function LoginPage() {
         });
 
         window.google.accounts.id.renderButton(buttonRef.current, {
-          theme: 'outline',
+          theme: 'filled_black',
           size: 'large',
           type: 'standard',
-          width: 280,
+          shape: 'rectangular',
+          text: 'continue_with',
+          logo_alignment: 'left',
+          width: Math.min(Math.max(Math.floor(buttonRef.current?.clientWidth || 280), 240), 400),
         });
         setStatus(new URLSearchParams(window.location.search).has('session') ? 'Tu sesión terminó. Ingresa nuevamente.' : '');
       } catch {
@@ -353,17 +731,20 @@ function LoginPage() {
         <a className="secondary-button compact" href="/">Volver al inicio</a>
       </nav>
       <section className="login-panel" aria-label="Ingreso al panel interno">
-        <p className="eyebrow">Panel interno</p>
-        <h1>Ingreso del equipo ALC</h1>
-        <p className="login-copy">Accede con el correo registrado por la academia y tu contraseña.</p>
+        <p className="eyebrow">Acceso privado</p>
+        <h1>Ingresa a tu cuenta ALC</h1>
+        <p className="login-copy">Usa el correo asociado a tu cuenta y tu contraseña personal.</p>
         <form className="password-login-form" id="login-form" onSubmit={submitPasswordLogin}>
           <label>Correo electrónico<input name="email" type="email" autoComplete="email" required /></label>
-          <label>Contraseña<input name="password" type="password" autoComplete="current-password" required /></label>
+          <label>Contraseña<input name="password" type="password" autoComplete="current-password" minLength="12" required /></label>
           <button type="submit" disabled={submitting}>{submitting ? 'Ingresando...' : 'Ingresar al panel'}</button>
           <p className="form-status" role="status" aria-live="polite">{passwordStatus}</p>
         </form>
         <div className="login-divider"><span>o continúa con Google</span></div>
-        <div className="google-button" ref={buttonRef} />
+        <div className="google-signin-shell">
+          <span className="google-signin-label">Acceso con cuenta asociada</span>
+          <div className="google-button" ref={buttonRef} />
+        </div>
         <p className="form-status" aria-live="polite">{status}</p>
       </section>
     </main>
@@ -645,6 +1026,80 @@ function statusLabel(status) {
     frozen:'Congelada',
     withdrawn:'Retirada',
   }[status] || 'Registrado';
+}
+
+const auditActionLabels = {
+  ABSENCE_JUSTIFICATION_CREATED:'Justificación de ausencia enviada',
+  ABSENCE_JUSTIFICATION_REVIEWED:'Justificación de ausencia revisada',
+  ACADEMIC_USER_CREATED:'Cuenta académica creada',
+  ACADEMY_EVENT_REMOVED:'Evento de la academia eliminado',
+  AUTH_LOGIN_GOOGLE:'Inicio de sesión con Google',
+  AUTH_LOGIN_PASSWORD:'Inicio de sesión con contraseña',
+  AUTH_LOGIN_TEST_HELPER:'Acceso de verificación registrado',
+  AUTH_LOGOUT:'Cierre de sesión',
+  AUTH_PASSWORD_CHANGED:'Contraseña actualizada',
+  BOOTSTRAP_ADMIN_CREATED:'Cuenta administrativa inicial creada',
+  CLASS_GROUP_ENROLLMENT_CREATED:'Matrícula creada',
+  CLASS_GROUP_ENROLLMENT_UPDATED:'Matrícula actualizada',
+  ENROLLMENT_REQUEST_CREATED:'Solicitud de inscripción recibida',
+  ENROLLMENT_REQUEST_STATUS_UPDATED:'Seguimiento de inscripción actualizado',
+  ENTITY_CREATED:'Registro creado',
+  ENTITY_UPDATED:'Registro actualizado',
+  LEVEL_PROMOTION_EVALUATION_REGISTERED:'Evaluación de nivel registrada',
+  OPERATIONAL_SMOKE:'Verificación operativa registrada',
+  SCHOLARSHIP_EVALUATION_REGISTERED:'Evaluación de beca registrada',
+  SESSION_ATTENDANCE_DRAFT_SAVED:'Borrador de asistencia guardado',
+  SESSION_ATTENDANCE_FINALIZED:'Asistencia de clase finalizada',
+  STUDENT_ATTENDANCE_CORRECTED:'Asistencia de estudiante corregida',
+  STUDENT_ATTENDANCE_RECORDED:'Asistencia de estudiante registrada',
+  STUDENT_CHARGE_CREATED:'Cargo de estudiante creado',
+  STUDENT_CHARGE_UPDATED:'Cargo de estudiante actualizado',
+  STUDENT_PAYMENT_REVERSED:'Pago de estudiante reversado',
+  STUDENT_PROFILE_PHOTO_REMOVED:'Foto de perfil eliminada',
+  STUDENT_PROFILE_PHOTO_UPDATED:'Foto de perfil actualizada',
+  TEACHER_CHECK_IN:'Entrada de profesor registrada',
+  TEACHER_CHECK_OUT:'Salida de profesor registrada',
+  USER_BRANCH_ACCESS_UPDATED:'Acceso a sede actualizado',
+  USER_PASSWORD_RESET:'Contraseña restablecida',
+  USER_ROLE_UPDATED:'Responsabilidad de usuario actualizada',
+};
+
+const auditResourceLabels = {
+  absence_justifications:'Justificación de ausencia',
+  'academy-events':'Evento de la academia',
+  academy_events:'Evento de la academia',
+  authentication:'Acceso al sistema',
+  branches:'Sede',
+  'class-group-enrollments':'Matrícula',
+  class_group_enrollments:'Matrícula',
+  'class-groups':'Grupo de clase',
+  class_groups:'Grupo de clase',
+  'class-sessions':'Clase programada',
+  class_sessions:'Clase programada',
+  'dance-categories':'Categoría de baile',
+  'dance-styles':'Estilo de baile',
+  'enrollment-requests':'Solicitud de inscripción',
+  enrollment_requests:'Solicitud de inscripción',
+  level_promotion_evaluations:'Evaluación de nivel',
+  scholarship_evaluations:'Evaluación de beca',
+  'student-attendance':'Asistencia de estudiante',
+  student_attendance_records:'Asistencia de estudiante',
+  student_charges:'Cargo de estudiante',
+  'student-payments':'Pago de estudiante',
+  student_payments:'Pago de estudiante',
+  students:'Estudiante',
+  'teacher-attendance':'Jornada de profesor',
+  teacher_attendance_records:'Jornada de profesor',
+  teachers:'Profesor',
+  users:'Cuenta de usuario',
+};
+
+function auditActionLabel(action) {
+  return auditActionLabels[action] || 'Actividad registrada';
+}
+
+function auditResourceLabel(log) {
+  return auditResourceLabels[log.entityType || log.resourceType] || 'Registro institucional';
 }
 
 function displayUserName(user) {
@@ -1010,14 +1465,27 @@ function StudentJustificationPanel({ attendanceRecords, onOutput }) {
     event.preventDefault();
     if (!absences.length || submitting) return;
     setSubmitting(true);
-    const form = Object.fromEntries(new FormData(event.currentTarget).entries());
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
+    const evidence = form.get('evidence');
+    if (evidence instanceof File && evidence.size) {
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+      if (!allowedTypes.includes(evidence.type)) {
+        onOutput({ success:false, message:'La evidencia debe ser una imagen JPG, PNG o WebP, o un documento PDF.' });
+        setSubmitting(false);
+        return;
+      }
+      if (evidence.size > 5 * 1024 * 1024) {
+        onOutput({ success:false, message:'La evidencia no puede superar 5 MB.' });
+        setSubmitting(false);
+        return;
+      }
+    } else {
+      form.delete('evidence');
+    }
     try {
-      await postJson('/absence-justifications', {
-        attendanceRecordId:form.attendanceRecordId,
-        reason:form.reason,
-        evidenceUrl:form.evidenceUrl || undefined,
-      });
-      event.currentTarget.reset();
+      await apiRequest('/absence-justifications', { method:'POST', body:form });
+      formElement.reset();
       onOutput({ success:true, message:'Tu justificación fue enviada para revisión.' });
     } catch (error) {
       onOutput({ success:false, message:errorMessage(error, 'No se pudo enviar la justificación. Verifica que la ausencia siga pendiente.') });
@@ -1034,7 +1502,7 @@ function StudentJustificationPanel({ attendanceRecords, onOutput }) {
         <>
           <label>Ausencia<select name="attendanceRecordId" required>{absences.map((record) => <option key={record.id} value={record.id}>{formatDateTime(record.createdAt)} · {cleanAttendanceNote(record.notes)}</option>)}</select></label>
           <label>Motivo<textarea name="reason" minLength="5" maxLength="500" required placeholder="Explica brevemente el motivo de la ausencia" /></label>
-          <label>Evidencia opcional<input name="evidenceUrl" type="url" pattern="https://.*" placeholder="https://..." /><span className="field-help">Usa un enlace HTTPS accesible para Dirección.</span></label>
+          <label className="evidence-file-field">Evidencia opcional<input name="evidence" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" /><span className="field-help">Adjunta una imagen JPG, PNG o WebP, o un documento PDF de hasta 5 MB.</span></label>
           <button type="submit" disabled={submitting}>{submitting ? 'Enviando...' : 'Enviar justificación'}</button>
         </>
       ) : (
@@ -1211,13 +1679,67 @@ function TeacherClassPanel({ data }) {
   );
 }
 
+function ModalDialog({ title, description, onClose, children, actions = null, busy = false, danger = false }) {
+  useEffect(() => {
+    const previousScroll = { x:window.scrollX, y:window.scrollY };
+    const previousBodyStyles = {
+      overflow:document.body.style.overflow,
+      position:document.body.style.position,
+      top:document.body.style.top,
+      left:document.body.style.left,
+      width:document.body.style.width,
+    };
+
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${previousScroll.y}px`;
+    document.body.style.left = `-${previousScroll.x}px`;
+    document.body.style.width = '100%';
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      Object.assign(document.body.style, previousBodyStyles);
+      window.scrollTo({ top:previousScroll.y, left:previousScroll.x, behavior:'auto' });
+    };
+  }, []);
+
+  useEffect(() => {
+    const onKeyDown = (event) => {
+      if (event.key === 'Escape' && !busy) onClose();
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [busy, onClose]);
+
+  return createPortal(
+    <div className="modal-backdrop" role="presentation" onMouseDown={(event) => {
+      if (event.target === event.currentTarget && !busy) onClose();
+    }}>
+      <section className={`modal-dialog${danger ? ' modal-dialog-danger' : ''}`} role="dialog" aria-modal="true" aria-labelledby="modal-title" aria-describedby={description ? 'modal-description' : undefined}>
+        <header className="modal-header">
+          <div><p className="eyebrow">Gestión</p><h2 id="modal-title">{title}</h2>{description && <p id="modal-description">{description}</p>}</div>
+          <button type="button" className="icon-close-button" aria-label="Cerrar ventana" onClick={onClose} disabled={busy}>×</button>
+        </header>
+        <div className="modal-content">{children}</div>
+        {actions && <footer className="modal-actions">{actions}</footer>}
+      </section>
+    </div>,
+    document.body,
+  );
+}
+
 function EventsManagerPanel({ data, onOutput, onDataUpdated }) {
   const events = data.academyEvents || [];
   const [branches, setBranches] = useState(data.branches || []);
   const [editingEvent, setEditingEvent] = useState(null);
+  const [eventModalOpen, setEventModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [pendingDeleteId, setPendingDeleteId] = useState('');
   const [deletingId, setDeletingId] = useState('');
+  const [query, setQuery] = useState('');
+  const [branchFilter, setBranchFilter] = useState('all');
+  const [levelFilter, setLevelFilter] = useState('all');
 
   useEffect(() => {
     if (!branches.length) {
@@ -1256,7 +1778,7 @@ function EventsManagerPanel({ data, onOutput, onDataUpdated }) {
         return [payload.data, ...others].sort((a, b) => new Date(a.startsAt) - new Date(b.startsAt));
       });
       setEditingEvent(null);
-      event.currentTarget.reset();
+      setEventModalOpen(false);
       onOutput({ success:true, message:editingEvent ? 'Evento actualizado.' : 'Evento creado.' });
     } catch (error) {
       onOutput({ success:false, message:errorMessage(error, 'No se pudo guardar el evento. Revisa sede, nivel y fecha.') });
@@ -1280,47 +1802,44 @@ function EventsManagerPanel({ data, onOutput, onDataUpdated }) {
     }
   }
 
+  const visibleEvents = [...events]
+    .filter((event) => event.active !== false)
+    .filter((event) => branchFilter === 'all' || event.branchId === branchFilter)
+    .filter((event) => levelFilter === 'all' || event.level === levelFilter)
+    .filter((event) => !query.trim() || `${event.title} ${event.location || ''}`.toLocaleLowerCase('es').includes(query.trim().toLocaleLowerCase('es')))
+    .sort((left, right) => new Date(left.startsAt) - new Date(right.startsAt));
+
+  const branchName = (branchId) => branches.find((branch) => branch.id === branchId)?.name || 'Sede';
+  const eventToDelete = events.find((event) => event.id === pendingDeleteId);
+
   return (
     <section className="academic-panel events-manager" id="eventos">
-      <div>
-        <p className="eyebrow">Eventos</p>
-        <h2>Calendario académico</h2>
-        <p>Crea eventos por sede y nivel para que cada estudiante vea únicamente lo que le corresponde.</p>
+      <div className="section-title-row">
+        <div><p className="eyebrow">Eventos</p><h2>Calendario académico</h2><p>Consulta y administra los eventos que verá cada estudiante según su sede y nivel.</p></div>
+        <button type="button" onClick={() => { setEditingEvent(null); setEventModalOpen(true); }}>Nuevo evento</button>
       </div>
-      <form key={editingEvent?.id || 'new-event'} className="event-form" onSubmit={submit} aria-busy={saving}>
-        <label>Sede<select name="branchId" required defaultValue={editingEvent?.branchId || ''}>
-          <option value="">Selecciona una sede</option>
-          {branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}
-        </select></label>
-        <label>Nivel<select name="level" required defaultValue={editingEvent?.level || 'ALL'}>
-          <option value="ALL">Todos</option>
-          <option value="B1">B1</option>
-          <option value="B2">B2</option>
-        </select></label>
-        <label>Título<input name="title" required defaultValue={editingEvent?.title || ''} placeholder="Showcase Urbano B1" /></label>
-        <label>Lugar<input name="location" defaultValue={editingEvent?.location || ''} placeholder="Sede Norte" /></label>
-        <label>Inicio <span className="label-hint">Hora de Quito</span><input name="startsAt" type="datetime-local" required defaultValue={toAcademyDateTimeLocal(editingEvent?.startsAt)} /></label>
-        <label>Fin <span className="label-hint">Hora de Quito</span><input name="endsAt" type="datetime-local" defaultValue={toAcademyDateTimeLocal(editingEvent?.endsAt)} /></label>
-        <label>Ingreso por show<input name="showIncome" type="number" min="0" step="0.01" defaultValue={editingEvent?.showIncome || 0} /></label>
-        <label>Descripción<textarea name="description" maxLength="1000" defaultValue={editingEvent?.description || ''} /></label>
-        <div className="button-row">
-          <button type="submit" disabled={saving}>{saving ? 'Guardando...' : editingEvent ? 'Actualizar evento' : 'Crear evento'}</button>
-          {editingEvent && <button type="button" className="secondary-action" onClick={() => setEditingEvent(null)}>Cancelar edición</button>}
-        </div>
-      </form>
-      <ul className="simple-list event-list">
-        {events.length ? events.map((event) => (
-          <li key={event.id}>
-            <strong>{cleanDisplayText(event.title, 'Evento académico')}</strong>
-            <span>{event.level === 'ALL' ? 'Todos los niveles' : event.level} · {formatDateTime(event.startsAt)} · Show {formatMoney(event.showIncome)}</span>
-            <div className="button-row compact">
-              <button type="button" className="secondary-action" onClick={() => setEditingEvent(event)}>Editar</button>
-              <button type="button" className="secondary-action danger-action" onClick={() => setPendingDeleteId(event.id)} disabled={deletingId === event.id}>Eliminar</button>
-            </div>
-            {pendingDeleteId === event.id && <div className="delete-confirmation" role="alert"><span>El evento dejará de ser visible. ¿Confirmas?</span><div className="button-row compact"><button type="button" className="danger-action" onClick={() => removeEvent(event.id)} disabled={deletingId === event.id}>{deletingId === event.id ? 'Eliminando...' : 'Sí, eliminar'}</button><button type="button" className="secondary-action" onClick={() => setPendingDeleteId('')}>Cancelar</button></div></div>}
-          </li>
-        )) : <li><span>No hay eventos registrados todavía.</span></li>}
-      </ul>
+      <div className="list-toolbar">
+        <label>Buscar<input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Nombre o lugar" /></label>
+        <label>Sede<select value={branchFilter} onChange={(event) => setBranchFilter(event.target.value)}><option value="all">Todas</option>{branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}</select></label>
+        <label>Nivel<select value={levelFilter} onChange={(event) => setLevelFilter(event.target.value)}><option value="all">Todos</option><option value="ALL">Todos los niveles</option><option value="B1">B1</option><option value="B2">B2</option></select></label>
+      </div>
+      {visibleEvents.length ? <div className="table-scroll"><table className="data-table management-table"><caption>{visibleEvents.length} eventos encontrados</caption><thead><tr><th>Evento</th><th>Sede y nivel</th><th>Fecha</th><th>Ingreso por show</th><th><span className="sr-only">Acciones</span></th></tr></thead><tbody>{visibleEvents.map((event) => <tr key={event.id}><td><strong>{cleanDisplayText(event.title, 'Evento académico')}</strong><span>{event.location || 'Lugar por confirmar'}</span></td><td>{branchName(event.branchId)} · {event.level === 'ALL' ? 'Todos' : event.level}</td><td>{formatDateTime(event.startsAt)}</td><td>{formatMoney(event.showIncome)}</td><td><div className="button-row compact"><button type="button" className="secondary-action" onClick={() => { setEditingEvent(event); setEventModalOpen(true); }}>Editar</button><button type="button" className="secondary-action danger-action" onClick={() => setPendingDeleteId(event.id)} disabled={deletingId === event.id}>Eliminar</button></div></td></tr>)}</tbody></table></div> : <p className="empty-state">No hay eventos que coincidan con los filtros.</p>}
+
+      {eventModalOpen && <ModalDialog title={editingEvent ? 'Editar evento' : 'Nuevo evento'} description="Define la sede, el público y la fecha antes de publicar." onClose={() => { setEventModalOpen(false); setEditingEvent(null); }} busy={saving}>
+        <form key={editingEvent?.id || 'new-event'} className="modal-form" onSubmit={submit} aria-busy={saving}>
+          <label>Sede<select name="branchId" required defaultValue={editingEvent?.branchId || ''}><option value="">Selecciona una sede</option>{branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}</select></label>
+          <label>Nivel<select name="level" required defaultValue={editingEvent?.level || 'ALL'}><option value="ALL">Todos</option><option value="B1">B1</option><option value="B2">B2</option></select></label>
+          <label className="span-two">Título<input name="title" minLength="3" maxLength="160" required defaultValue={editingEvent?.title || ''} placeholder="Showcase Urbano B1" /></label>
+          <label className="span-two">Lugar<input name="location" maxLength="160" defaultValue={editingEvent?.location || ''} placeholder="Sede Norte" /></label>
+          <label>Inicio <span className="label-hint">Hora de Quito</span><input name="startsAt" type="datetime-local" required defaultValue={toAcademyDateTimeLocal(editingEvent?.startsAt)} /></label>
+          <label>Fin <span className="label-hint">Hora de Quito</span><input name="endsAt" type="datetime-local" defaultValue={toAcademyDateTimeLocal(editingEvent?.endsAt)} /></label>
+          <label>Ingreso por show<input name="showIncome" type="number" min="0" max="100000000" step="0.01" defaultValue={editingEvent?.showIncome || 0} /></label>
+          <label className="span-two">Descripción<textarea name="description" maxLength="1000" defaultValue={editingEvent?.description || ''} /></label>
+          <div className="modal-form-actions span-two"><button type="button" className="secondary-action" onClick={() => { setEventModalOpen(false); setEditingEvent(null); }} disabled={saving}>Cancelar</button><button type="submit" disabled={saving}>{saving ? 'Guardando...' : editingEvent ? 'Guardar cambios' : 'Crear evento'}</button></div>
+        </form>
+      </ModalDialog>}
+
+      {eventToDelete && <ModalDialog danger title="Eliminar evento" description="El evento dejará de ser visible para estudiantes y profesores." onClose={() => setPendingDeleteId('')} busy={deletingId === eventToDelete.id} actions={<><button type="button" className="secondary-action" onClick={() => setPendingDeleteId('')} disabled={Boolean(deletingId)}>Cancelar</button><button type="button" className="danger-action" onClick={() => removeEvent(eventToDelete.id)} disabled={Boolean(deletingId)}>{deletingId ? 'Eliminando...' : 'Sí, eliminar evento'}</button></>}><p><strong>{eventToDelete.title}</strong></p><p>Esta acción conserva el registro histórico, pero lo retira del calendario visible.</p></ModalDialog>}
     </section>
   );
 }
@@ -1390,10 +1909,10 @@ function DirectorRequestsPanel({ data, onOutput, onDataUpdated }) {
       <div className="request-columns">
         <section aria-labelledby="justification-queue-title">
           <div className="section-title-row"><div><h3 id="justification-queue-title">Justificaciones</h3><p>Revisa evidencia y deja una decisión trazable.</p></div><span className="count-badge">{pendingJustifications.length}</span></div>
-          {pendingJustifications.length ? <ul className="request-list">{pendingJustifications.map((request) => <li key={request.id}><div className="list-heading-row"><strong>{cleanDisplayText(request.studentName || request.student?.fullName, 'Estudiante')}</strong><span className="status-chip warning">Pendiente</span></div><span>{formatDateTime(request.createdAt)} · {cleanDisplayText(request.reason, 'Sin motivo visible')}</span>{request.evidenceUrl && <a href={request.evidenceUrl} target="_blank" rel="noreferrer">Abrir evidencia adjunta</a>}<label>Nota de revisión<textarea value={reviewNotes[request.id] || ''} maxLength="500" onChange={(event) => setReviewNotes((current) => ({ ...current, [request.id]:event.target.value }))} placeholder="Motivo de aprobación o rechazo" /></label><div className="button-row responsive-actions"><button type="button" onClick={() => reviewJustification(request, 'approved')} disabled={busyId === request.id}>{busyId === request.id ? 'Procesando...' : 'Aprobar'}</button><button type="button" className="secondary-action danger-action" onClick={() => reviewJustification(request, 'rejected')} disabled={busyId === request.id}>Rechazar</button></div></li>)}</ul> : <p className="empty-state">No hay justificaciones pendientes.</p>}
+          {pendingJustifications.length ? <ul className="request-list">{pendingJustifications.map((request) => <li key={request.id}><div className="list-heading-row"><strong>{cleanDisplayText(request.studentName || request.student?.fullName, 'Estudiante')}</strong><span className="status-chip warning">Pendiente</span></div><span>{formatDateTime(request.createdAt)} · {cleanDisplayText(request.reason, 'Sin motivo visible')}</span>{request.hasEvidence && <a href={`/api/v1/absence-justifications/${request.id}/evidence`} target="_blank" rel="noreferrer">Abrir evidencia adjunta</a>}<label>Nota de revisión<textarea value={reviewNotes[request.id] || ''} maxLength="500" onChange={(event) => setReviewNotes((current) => ({ ...current, [request.id]:event.target.value }))} placeholder="Motivo de aprobación o rechazo" /></label><div className="button-row responsive-actions"><button type="button" onClick={() => reviewJustification(request, 'approved')} disabled={busyId === request.id}>{busyId === request.id ? 'Procesando...' : 'Aprobar'}</button><button type="button" className="secondary-action danger-action" onClick={() => reviewJustification(request, 'rejected')} disabled={busyId === request.id}>Rechazar</button></div></li>)}</ul> : <p className="empty-state">No hay justificaciones pendientes.</p>}
         </section>
         <section aria-labelledby="lead-queue-title">
-          <div className="section-title-row"><div><h3 id="lead-queue-title">Prospectos de inscripción</h3><p>Evita que una solicitud quede sin seguimiento.</p></div><span className="count-badge">{visibleLeads.length}</span></div>
+          <div className="section-title-row"><div><h3 id="lead-queue-title">Solicitudes de inscripción</h3><p>Personas interesadas que aún requieren contacto, clase de prueba o confirmación de matrícula.</p></div><span className="count-badge">{visibleLeads.length}</span></div>
           <label>Filtrar solicitudes<select value={leadFilter} onChange={(event) => setLeadFilter(event.target.value)}><option value="open">Abiertas</option><option value="all">Todas</option>{LEAD_STATUS_OPTIONS.map((status) => <option key={status.value} value={status.value}>{status.label}</option>)}</select></label>
           {visibleLeads.length ? <ul className="request-list">{visibleLeads.map((lead) => {
             const draft = leadDrafts[lead.id] || { status:lead.status || 'pending', notes:'', followUpAt:'' };
@@ -1417,194 +1936,6 @@ function DirectorRequestsPanel({ data, onOutput, onDataUpdated }) {
         </section>
       </div>
     </section>
-  );
-}
-
-function ReportMetricList({ report }) {
-  const totals = report?.totals || report?.branch || {};
-  const value = (key, formatter = (item) => item) => totals[key] === undefined || totals[key] === null ? '—' : formatter(totals[key]);
-  const metrics = [
-    [value('totalIncome', formatMoney), 'Ingreso total'],
-    [value('grossCollectedIncome', formatMoney), 'Cobro bruto'],
-    [value('reversedAmount', formatMoney), 'Reversos'],
-    [value('tuitionIncome', formatMoney), 'Mensualidades cobradas'],
-    [value('showIncome', formatMoney), 'Shows y eventos'],
-    [value('pendingAmount', formatMoney), 'Cartera pendiente'],
-    [value('overdueAmount', formatMoney), 'Cartera vencida'],
-    [value('activeStudents'), 'Alumnos activos'],
-    [value('pendingPayments'), 'Pagos pendientes'],
-    [value('retiredStudents'), 'Retirados'],
-    [value('attendanceRate', (item) => `${item}%`), 'Asistencia'],
-    [totals.b1Students === undefined && totals.b2Students === undefined ? '—' : `${totals.b1Students || 0} / ${totals.b2Students || 0}`, 'B1 / B2'],
-    [value('occupancyRate', (item) => `${item}%`), 'Ocupación'],
-  ];
-  return (
-    <div className="report-metrics">
-      {metrics.map(([metricValue, label]) => <div key={label}><strong>{metricValue}</strong><span>{label}</span></div>)}
-    </div>
-  );
-}
-
-function AccessibleBarChart({ title, items, valueFormatter = (value) => String(value) }) {
-  const safeItems = items.filter((item) => Number.isFinite(Number(item.value))).slice(0, 10);
-  if (!safeItems.length) return <p className="empty-state">No hay datos suficientes para esta gráfica.</p>;
-  const max = Math.max(...safeItems.map((item) => Number(item.value)), 1);
-  const rowHeight = 38;
-  const height = 42 + safeItems.length * rowHeight;
-  return (
-    <div className="accessible-chart">
-      <svg viewBox={`0 0 680 ${height}`} role="img" aria-label={title}>
-        <title>{title}</title>
-        {safeItems.map((item, index) => {
-          const y = 28 + index * rowHeight;
-          const width = Math.max((Number(item.value) / max) * 390, Number(item.value) ? 3 : 0);
-          return <g key={`${item.label}-${index}`}><text x="0" y={y + 15}>{String(item.label).slice(0, 24)}</text><rect x="190" y={y} width="390" height="22" rx="7" className="chart-track" /><rect x="190" y={y} width={width} height="22" rx="7" className="chart-bar"><title>{item.label}: {valueFormatter(item.value)}</title></rect><text x="590" y={y + 15} className="chart-value">{valueFormatter(item.value)}</text></g>;
-        })}
-      </svg>
-      <details className="chart-data-fallback"><summary>Ver datos de la gráfica</summary><table><thead><tr><th>Elemento</th><th>Valor</th></tr></thead><tbody>{safeItems.map((item) => <tr key={item.label}><td>{item.label}</td><td>{valueFormatter(item.value)}</td></tr>)}</tbody></table></details>
-    </div>
-  );
-}
-
-function normalizeSeries(source, valueKeys = ['value']) {
-  const rows = Array.isArray(source) ? source : [];
-  return rows.map((item, index) => ({
-    label:item.label || item.period || item.date || item.name || `Dato ${index + 1}`,
-    value:Number(valueKeys.map((key) => item[key]).find((candidate) => candidate !== undefined) ?? 0),
-  }));
-}
-
-function ReportVisuals({ report }) {
-  const branches = Array.isArray(report?.branches) ? report.branches : [];
-  const attendanceTrendSource = Array.isArray(report?.trends) ? report.trends : report?.trends?.attendance;
-  const attendanceTrend = normalizeSeries(attendanceTrendSource, ['attendanceRate', 'rate', 'value']);
-  const distributions = report?.distributions && !Array.isArray(report.distributions)
-    ? Object.entries(report.distributions).flatMap(([category, values]) => (
-      values && typeof values === 'object'
-        ? Object.entries(values).map(([label, value]) => ({ label:`${category}: ${label}`, value:Number(value) }))
-        : [{ label:category, value:Number(values) }]
-    ))
-    : normalizeSeries(report?.distributions, ['count', 'value']);
-  const funnel = report?.funnel && !Array.isArray(report.funnel)
-    ? Object.entries(report.funnel).map(([label, value]) => ({ label, value:Number(value) }))
-    : normalizeSeries(report?.funnel, ['count', 'value']);
-  const alerts = Array.isArray(report?.qualityAlerts) ? report.qualityAlerts : [];
-  const hasCharts = branches.length || attendanceTrend.length || distributions.length || funnel.length;
-  return (
-    <>
-      {hasCharts ? <div className="report-chart-grid">
-        {!!branches.length && <section className="chart-card"><h3>Asistencia por sede</h3><AccessibleBarChart title="Porcentaje de asistencia por sede" items={branches.map((branch) => ({ label:branch.name, value:Number(branch.attendanceRate || 0) }))} valueFormatter={(value) => `${value}%`} /></section>}
-        {!!branches.length && <section className="chart-card"><h3>Ingresos por sede</h3><AccessibleBarChart title="Ingreso total por sede" items={branches.map((branch) => ({ label:branch.name, value:Number(branch.totalIncome || 0) }))} valueFormatter={formatMoney} /></section>}
-        {!!attendanceTrend.length && <section className="chart-card"><h3>Tendencia de asistencia</h3><AccessibleBarChart title="Tendencia de asistencia por periodo" items={attendanceTrend} valueFormatter={(value) => `${value}%`} /></section>}
-        {!!distributions.length && <section className="chart-card"><h3>Distribución académica</h3><AccessibleBarChart title="Distribución académica" items={distributions} /></section>}
-        {!!funnel.length && <section className="chart-card"><h3>Embudo de inscripción</h3><AccessibleBarChart title="Embudo de solicitudes de inscripción" items={funnel} /></section>}
-      </div> : <p className="empty-state">El servidor devolvió los indicadores, pero todavía no publicó series para gráficas.</p>}
-      {!!alerts.length && <section className="quality-alerts" aria-labelledby="quality-alerts-title"><h3 id="quality-alerts-title">Alertas que requieren atención</h3><ul>{alerts.map((alert, index) => <li key={alert.id || alert.code || index} data-severity={alert.severity || 'medium'}><strong>{alert.title || alert.type || (alert.code ? alert.code.replaceAll('_', ' ') : 'Alerta operativa')}{alert.count ? ` · ${alert.count}` : ''}</strong><span>{alert.message || alert.description || String(alert)}</span></li>)}</ul></section>}
-    </>
-  );
-}
-
-function ReportsPanel({ data, role, onOutput }) {
-  const canUseGeneralReport = ['Admin', 'GeneralDirector'].includes(role);
-  const [reportMode, setReportMode] = useState(canUseGeneralReport ? 'general' : 'branch');
-  const [selectedBranchId, setSelectedBranchId] = useState('');
-  const today = toAcademyDateTimeLocal(new Date()).slice(0, 10);
-  const thirtyDaysAgo = toAcademyDateTimeLocal(new Date(Date.now() - (29 * 86400000))).slice(0, 10);
-  const [dateRange, setDateRange] = useState({ from:thirtyDaysAgo, to:today });
-  const [appliedRange, setAppliedRange] = useState({ from:thirtyDaysAgo, to:today });
-  const [report, setReport] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [reportError, setReportError] = useState('');
-  const initialLoadStarted = useRef(false);
-
-  useEffect(() => {
-    if (!selectedBranchId && data.branches.length) setSelectedBranchId(data.branches[0].id);
-  }, [selectedBranchId, data.branches]);
-
-  useEffect(() => {
-    const branchReady = reportMode !== 'branch' || selectedBranchId || data.branches[0]?.id;
-    if (!initialLoadStarted.current && branchReady) {
-      initialLoadStarted.current = true;
-      loadReport(reportMode, appliedRange, selectedBranchId || data.branches[0]?.id, false);
-    }
-  }, [selectedBranchId, data.branches]);
-
-  async function loadReport(mode = reportMode, range = appliedRange, branchOverride = selectedBranchId, announce = true) {
-    const branchId = branchOverride || data.branches[0]?.id;
-    if ((mode === 'branch' || !canUseGeneralReport) && !branchId) {
-      setReport(null);
-      setReportError('No hay una sede disponible para generar el reporte.');
-      return;
-    }
-    setReport(null);
-    setReportError('');
-    setLoading(true);
-    try {
-      const basePath = mode === 'branch' || !canUseGeneralReport ? `/reports/branches/${branchId}/detail` : '/reports/general';
-      const query = new URLSearchParams({ from:`${range.from}T00:00:00-05:00`, to:`${range.to}T23:59:59-05:00` });
-      const payload = await apiRequest(`${basePath}?${query}`);
-      setReport(payload.data);
-      if (announce) onOutput({ success:true, message:mode === 'branch' ? 'Reporte por sede actualizado.' : 'Reporte general actualizado.' });
-    } catch (error) {
-      const message = errorMessage(error, 'No se pudo cargar el reporte. Revisa tu rol o la sede seleccionada.');
-      setReportError(message);
-      if (announce) onOutput({ success:false, message });
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  function switchMode(mode) {
-    setReportMode(mode);
-    loadReport(mode, appliedRange, selectedBranchId || data.branches[0]?.id, false);
-  }
-
-  function applyFilters(event) {
-    event.preventDefault();
-    if (!dateRange.from || !dateRange.to || dateRange.from > dateRange.to) {
-      setReportError('La fecha inicial debe ser anterior o igual a la fecha final.');
-      return;
-    }
-    setAppliedRange(dateRange);
-    loadReport(reportMode, dateRange);
-  }
-
-  return (
-    <div className="academic-panel reports-panel" aria-busy={loading}>
-      <p className="eyebrow">Reportes</p>
-      <h2>{reportMode === 'branch' ? 'Reporte por sede' : 'Reporte general'}</h2>
-      <p>Compara indicadores dentro de un periodo explícito. Los valores “—” significan que el servidor no publicó esa métrica.</p>
-      <div className="report-controls">
-        {canUseGeneralReport && <button type="button" aria-pressed={reportMode === 'general'} className={reportMode === 'general' ? '' : 'secondary-action'} onClick={() => switchMode('general')}>Reporte general</button>}
-        <button type="button" aria-pressed={reportMode === 'branch'} className={reportMode === 'branch' ? '' : 'secondary-action'} onClick={() => switchMode('branch')}>Reporte por sede</button>
-        {reportMode === 'branch' && (
-          <label>Sede<select value={selectedBranchId} onChange={(event) => { setSelectedBranchId(event.target.value); setReport(null); setReportError('Seleccionaste otra sede. Actualiza para cargar sus datos.'); }}>
-            {data.branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}
-          </select></label>
-        )}
-      </div>
-      <form className="report-filter-form" onSubmit={applyFilters}><label>Desde<input type="date" value={dateRange.from} max={dateRange.to || today} onChange={(event) => setDateRange((current) => ({ ...current, from:event.target.value }))} /></label><label>Hasta<input type="date" value={dateRange.to} min={dateRange.from} max={today} onChange={(event) => setDateRange((current) => ({ ...current, to:event.target.value }))} /></label><button type="submit" disabled={loading}>{loading ? 'Generando...' : 'Aplicar periodo'}</button><button type="button" className="secondary-action" onClick={() => loadReport()} disabled={loading}>Actualizar</button></form>
-      <p className="report-period">Periodo: {formatDate(`${appliedRange.from}T12:00:00-05:00`)} — {formatDate(`${appliedRange.to}T12:00:00-05:00`)}</p>
-      {loading && <div className="loading-state" role="status">Calculando indicadores del periodo...</div>}
-      {reportError && <div className="inline-alert error" role="alert"><strong>Reporte no disponible</strong><span>{reportError}</span></div>}
-      {report ? (
-        <>
-          <div className="report-freshness"><span>Actualizado</span><strong>{report.generatedAt ? formatDateTime(report.generatedAt) : 'Fecha no publicada por el servidor'}</strong></div>
-          <ReportMetricList report={report} />
-          <ReportVisuals report={report} />
-          {Array.isArray(report.branches) && report.branches.length > 0 && (
-            <ul className="simple-list branch-report-list">
-              {report.branches.map((branch) => (
-                <li key={branch.id}>
-                  <strong>{branch.name}</strong>
-                  <span>{branch.activeStudents ?? '—'} activos · {branch.totalIncome === undefined ? 'Ingreso no publicado' : `${formatMoney(branch.totalIncome)} ingreso total`} · {branch.attendanceRate ?? '—'}% asistencia</span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </>
-      ) : !loading && !reportError ? <p className="empty-state">Aplica un periodo para visualizar indicadores de dirección.</p> : null}
-    </div>
   );
 }
 
@@ -1808,7 +2139,7 @@ function RoleSummary({ role, data }) {
     return <SummaryStrip items={[[unavailable('students') ? 'No disponible' : data.students.length, data.branches.length > 1 ? 'Estudiantes asignados' : 'Estudiantes de sede'], [unavailable('teachers') ? 'No disponible' : data.teachers.length, 'Profesores visibles'], [unavailable('absenceJustifications') ? 'No disponible' : data.absenceJustifications.filter((item) => item.status === 'pending').length, 'Justificaciones pendientes']]} />;
   }
   if (role === 'GeneralDirector') {
-    return <SummaryStrip items={[[unavailable('students') ? 'No disponible' : data.students.filter((student) => student.active !== false).length, 'Estudiantes activos'], [unavailable('enrollmentRequests') ? 'No disponible' : data.enrollmentRequests.filter((lead) => !['enrolled', 'lost'].includes(lead.status)).length, 'Prospectos abiertos'], [unavailable('absenceJustifications') ? 'No disponible' : data.absenceJustifications.filter((item) => item.status === 'pending').length, 'Justificaciones pendientes']]} />;
+    return <SummaryStrip items={[[unavailable('students') ? 'No disponible' : data.students.filter((student) => student.active !== false).length, 'Estudiantes activos'], [unavailable('enrollmentRequests') ? 'No disponible' : data.enrollmentRequests.filter((lead) => !['enrolled', 'lost'].includes(lead.status)).length, 'Solicitudes por atender'], [unavailable('absenceJustifications') ? 'No disponible' : data.absenceJustifications.filter((item) => item.status === 'pending').length, 'Justificaciones pendientes']]} />;
   }
   if (role === 'Admin') {
     return <SummaryStrip items={[[unavailable('users') ? 'No disponible' : data.users.filter((user) => user.active !== false).length, 'Usuarios activos'], [unavailable('students') ? 'No disponible' : data.students.length, 'Perfiles académicos'], [unavailable('auditLogs') ? 'No disponible' : data.auditLogs.length, 'Eventos auditados visibles']]} />;
@@ -1831,16 +2162,26 @@ function SupervisorPanel({ role, data }) {
   );
 }
 
-function AdminSecurityPanel({ data }) {
+function AdminSecurityPanel({ data, onNavigate }) {
+  const activeUsers = data.users.filter((user) => user.active !== false);
+  const inactiveUsers = data.users.filter((user) => user.active === false);
+  const passwordChanges = activeUsers.filter((user) => user.mustChangePassword);
+  const assignedRoles = new Set(activeUsers.map((user) => user.role).filter(Boolean));
   return (
     <section className="academic-panel" id="seguridad">
       <p className="eyebrow">Seguridad</p>
-      <h2>Gestión de accesos</h2>
+      <h2>Control de acceso institucional</h2>
+      <p>Supervisa el estado de las cuentas y atiende los accesos pendientes desde un solo lugar.</p>
       <ul className="simple-list">
-        <li><strong>{data.users.length} usuarios activos</strong><span>Controla quién puede ingresar al sistema académico.</span></li>
-        <li><strong>Permisos por rol</strong><span>Cada persona ve únicamente las funciones que corresponden a su responsabilidad.</span></li>
-        <li><strong>Recuperación de acceso</strong><span>Las cuentas nuevas reciben una clave temporal para activar su ingreso privado.</span></li>
+        <li><strong>{activeUsers.length} cuentas activas</strong><span>{inactiveUsers.length ? `${inactiveUsers.length} cuentas permanecen inactivas y no pueden ingresar.` : 'No hay cuentas inactivas pendientes de revisión.'}</span></li>
+        <li><strong>{passwordChanges.length} cambios de contraseña pendientes</strong><span>Las cuentas con clave temporal deben completar este paso antes de utilizar el panel.</span></li>
+        <li><strong>{assignedRoles.size} responsabilidades asignadas</strong><span>Los permisos se aplican según la función académica de cada persona.</span></li>
+        <li><strong>{data.auditLogs.length} actividades recientes disponibles</strong><span>Los accesos y cambios importantes conservan fecha y responsable.</span></li>
       </ul>
+      <div className="button-row responsive-actions">
+        <button type="button" onClick={() => onNavigate('cuentas')}>Gestionar cuentas</button>
+        <button type="button" className="secondary-action" onClick={() => onNavigate('auditoria')}>Revisar actividad</button>
+      </div>
     </section>
   );
 }
@@ -1848,10 +2189,12 @@ function AdminSecurityPanel({ data }) {
 function AdminAuditPanel({ data }) {
   const [query, setQuery] = useState('');
   const [actionFilter, setActionFilter] = useState('all');
+  const [dateFilter, setDateFilter] = useState('');
   const actions = [...new Set(data.auditLogs.map((log) => log.action).filter(Boolean))].sort();
   const visibleLogs = [...data.auditLogs]
     .filter((log) => actionFilter === 'all' || log.action === actionFilter)
-    .filter((log) => !query.trim() || JSON.stringify([log.action, log.entityType, log.entityId, log.actorName, log.userName]).toLowerCase().includes(query.trim().toLowerCase()))
+    .filter((log) => !dateFilter || toAcademyDateTimeLocal(log.createdAt || log.timestamp).slice(0, 10) === dateFilter)
+    .filter((log) => !query.trim() || JSON.stringify([auditActionLabel(log.action), auditResourceLabel(log), log.actorName, log.userName]).toLowerCase().includes(query.trim().toLowerCase()))
     .sort((a, b) => new Date(b.createdAt || b.timestamp || 0) - new Date(a.createdAt || a.timestamp || 0))
     .slice(0, 100);
   return (
@@ -1859,14 +2202,19 @@ function AdminAuditPanel({ data }) {
       <p className="eyebrow">Auditoría</p>
       <h2>Seguimiento de cambios</h2>
       <p>Consulta quién ejecutó una acción sensible, sobre qué registro y cuándo ocurrió.</p>
-      <div className="audit-filters"><label>Buscar<input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Acción, responsable o registro" /></label><label>Tipo de acción<select value={actionFilter} onChange={(event) => setActionFilter(event.target.value)}><option value="all">Todas</option>{actions.map((action) => <option key={action} value={action}>{action.replaceAll('_', ' ')}</option>)}</select></label></div>
-      {visibleLogs.length ? <div className="table-scroll"><table className="data-table"><caption>Últimos {visibleLogs.length} eventos que coinciden con los filtros</caption><thead><tr><th>Fecha</th><th>Acción</th><th>Responsable</th><th>Recurso</th></tr></thead><tbody>{visibleLogs.map((log) => <tr key={log.id}><td>{formatDateTime(log.createdAt || log.timestamp)}</td><td><strong>{String(log.action || 'ACTIVIDAD').replaceAll('_', ' ')}</strong></td><td>{cleanDisplayText(log.actorName || log.userName || log.actorEmail, log.actorId ? `Usuario ${String(log.actorId).slice(0, 8)}` : 'Sistema')}</td><td>{log.entityType || log.resourceType || 'registro'}{log.entityId ? ` · ${String(log.entityId).slice(0, 8)}` : ''}</td></tr>)}</tbody></table></div> : <p className="empty-state">No hay eventos de auditoría para los filtros seleccionados.</p>}
+      <div className="audit-filters"><label>Buscar<input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Acción, responsable o registro" /></label><label>Tipo de acción<select value={actionFilter} onChange={(event) => setActionFilter(event.target.value)}><option value="all">Todas</option>{actions.map((action) => <option key={action} value={action}>{auditActionLabel(action)}</option>)}</select></label><label>Fecha<input type="date" value={dateFilter} onChange={(event) => setDateFilter(event.target.value)} /></label></div>
+      {visibleLogs.length ? <div className="table-scroll"><table className="data-table"><caption>Últimos {visibleLogs.length} eventos que coinciden con los filtros</caption><thead><tr><th>Fecha</th><th>Acción</th><th>Responsable</th><th>Registro</th></tr></thead><tbody>{visibleLogs.map((log) => <tr key={log.id}><td>{formatDateTime(log.createdAt || log.timestamp)}</td><td><strong>{auditActionLabel(log.action)}</strong></td><td>{cleanDisplayText(log.actorName || log.userName || log.actorEmail, 'Sistema')}</td><td>{auditResourceLabel(log)}</td></tr>)}</tbody></table></div> : <p className="empty-state">No hay eventos de auditoría para los filtros seleccionados.</p>}
     </section>
   );
 }
 
 function AcademyOperationsPanel({ data, role, onOutput, onDataUpdated }) {
   const [section, setSection] = useState('enrollments');
+  const [modal, setModal] = useState(null);
+  const [pendingDelete, setPendingDelete] = useState(null);
+  const [query, setQuery] = useState('');
+  const [branchFilter, setBranchFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
   const groups = data.classGroups || [];
   const sessions = data.classSessions || [];
   const enrollments = data.classGroupEnrollments || [];
@@ -1880,6 +2228,8 @@ function AcademyOperationsPanel({ data, role, onOutput, onDataUpdated }) {
   const studentName = (id) => data.students.find((student) => student.id === id)?.fullName || 'Estudiante';
   const teacherName = (id) => data.teachers.find((teacher) => teacher.id === id)?.fullName || 'Sin profesor';
   const groupName = (id) => groups.find((group) => group.id === id)?.name || 'Grupo';
+  const groupBranchId = (id) => groups.find((group) => group.id === id)?.branchId;
+  const studentBranchId = (id) => data.students.find((student) => student.id === id)?.branchId;
   const enrollmentTransitions = {
     active:['active', 'frozen', 'withdrawn', 'completed'],
     trial:['trial', 'active', 'waitlisted', 'withdrawn', 'completed'],
@@ -1904,10 +2254,32 @@ function AcademyOperationsPanel({ data, role, onOutput, onDataUpdated }) {
         active:true,
       });
       onDataUpdated('classGroups', (current) => [...current, payload.data]);
-      event.currentTarget.reset();
+      setModal(null);
       onOutput({ success:true, message:'Grupo creado con sede, nivel y cupo controlados.' });
     } catch (error) {
       onOutput({ success:false, message:errorMessage(error, 'No se pudo crear el grupo.') });
+    } finally { setBusy(''); }
+  }
+
+  async function updateGroup(event, group) {
+    event.preventDefault();
+    if (busy) return;
+    const form = Object.fromEntries(new FormData(event.currentTarget).entries());
+    setBusy(group.id);
+    try {
+      const payload = await patchJson(`/class-groups/${group.id}`, {
+        branchId:form.branchId,
+        name:form.name,
+        level:form.level,
+        capacity:Number(form.capacity),
+        teacherId:form.teacherId || null,
+        active:form.active === 'true',
+      });
+      onDataUpdated('classGroups', (current) => current.map((item) => item.id === group.id ? payload.data : item));
+      setModal(null);
+      onOutput({ success:true, message:'Grupo actualizado correctamente.' });
+    } catch (error) {
+      onOutput({ success:false, message:errorMessage(error, 'No se pudo actualizar el grupo.') });
     } finally { setBusy(''); }
   }
 
@@ -1925,10 +2297,36 @@ function AcademyOperationsPanel({ data, role, onOutput, onDataUpdated }) {
         status:'scheduled',
       });
       onDataUpdated('classSessions', (current) => [...current, payload.data]);
-      event.currentTarget.reset();
+      setModal(null);
       onOutput({ success:true, message:'Clase programada sin conflictos de grupo o profesor.' });
     } catch (error) {
       onOutput({ success:false, message:errorMessage(error, 'No se pudo programar la clase.') });
+    } finally { setBusy(''); }
+  }
+
+  async function updateSession(event, session) {
+    event.preventDefault();
+    if (busy) return;
+    const form = Object.fromEntries(new FormData(event.currentTarget).entries());
+    const startsAt = academyLocalToIso(form.startsAt);
+    const endsAt = academyLocalToIso(form.endsAt);
+    if (!startsAt || !endsAt || new Date(endsAt) <= new Date(startsAt)) {
+      onOutput({ success:false, message:'La hora de fin debe ser posterior al inicio.' });
+      return;
+    }
+    setBusy(session.id);
+    try {
+      const payload = await patchJson(`/class-sessions/${session.id}`, {
+        classGroupId:form.classGroupId,
+        ...(form.name?.trim() ? { name:form.name.trim() } : {}),
+        startsAt,
+        endsAt,
+      });
+      onDataUpdated('classSessions', (current) => current.map((item) => item.id === session.id ? payload.data : item));
+      setModal(null);
+      onOutput({ success:true, message:'Clase actualizada correctamente.' });
+    } catch (error) {
+      onOutput({ success:false, message:errorMessage(error, 'No se pudo actualizar la clase.') });
     } finally { setBusy(''); }
   }
 
@@ -1944,7 +2342,7 @@ function AcademyOperationsPanel({ data, role, onOutput, onDataUpdated }) {
         status:form.status,
       });
       onDataUpdated('classGroupEnrollments', (current) => [...current, payload.data]);
-      event.currentTarget.reset();
+      setModal(null);
       onOutput({ success:true, message:payload.data.status === 'waitlisted' ? 'El grupo está lleno; la matrícula quedó en lista de espera.' : 'Matrícula creada correctamente.' });
     } catch (error) {
       onOutput({ success:false, message:errorMessage(error, 'No se pudo crear la matrícula.') });
@@ -1962,9 +2360,23 @@ function AcademyOperationsPanel({ data, role, onOutput, onDataUpdated }) {
       });
       onDataUpdated('classGroupEnrollments', (current) => current.map((item) => item.id === enrollment.id ? payload.data : item));
       setEnrollmentDrafts((current) => ({ ...current, [enrollment.id]:{ status:payload.data.status, reason:'' } }));
+      setModal(null);
       onOutput({ success:true, message:payload.data.status === 'waitlisted' && draft.status !== 'waitlisted' ? 'No había cupo; el estudiante permanece en lista de espera.' : 'Estado de matrícula actualizado.' });
     } catch (error) {
       onOutput({ success:false, message:errorMessage(error, 'No se pudo actualizar la matrícula.') });
+    } finally { setBusy(''); }
+  }
+
+  async function deleteEnrollment(enrollment) {
+    if (busy) return;
+    setBusy(enrollment.id);
+    try {
+      await apiRequest(`/class-group-enrollments/${enrollment.id}`, { method:'DELETE' });
+      onDataUpdated('classGroupEnrollments', (current) => current.filter((item) => item.id !== enrollment.id));
+      setPendingDelete(null);
+      onOutput({ success:true, message:'Matrícula errónea eliminada. La acción quedó registrada en auditoría.' });
+    } catch (error) {
+      onOutput({ success:false, message:errorMessage(error, 'No se puede eliminar una matrícula con historial de asistencia. Cámbiala a retirada o completada.') });
     } finally { setBusy(''); }
   }
 
@@ -1975,6 +2387,7 @@ function AcademyOperationsPanel({ data, role, onOutput, onDataUpdated }) {
     try {
       const payload = await patchJson(`/class-sessions/${session.id}`, { status:'cancelled', cancellationReason:reason });
       onDataUpdated('classSessions', (current) => current.map((item) => item.id === session.id ? payload.data : item));
+      setModal(null);
       onOutput({ success:true, message:'Clase cancelada con motivo y responsable auditados.' });
     } catch (error) {
       onOutput({ success:false, message:errorMessage(error, 'No se pudo cancelar la clase.') });
@@ -1996,7 +2409,7 @@ function AcademyOperationsPanel({ data, role, onOutput, onDataUpdated }) {
         ...(form.dueAt ? { dueAt:academyLocalToIso(form.dueAt) } : {}),
       });
       onDataUpdated('studentPayments', (current) => [...current, payload.data]);
-      event.currentTarget.reset();
+      setModal(null);
       onOutput({ success:true, message:form.status === 'paid' ? 'Cobro registrado y conciliado.' : 'Obligación agregada al estado de cuenta.' });
     } catch (error) {
       onOutput({ success:false, message:errorMessage(error, 'No se pudo registrar el movimiento financiero.') });
@@ -2020,6 +2433,7 @@ function AcademyOperationsPanel({ data, role, onOutput, onDataUpdated }) {
         onOutput({ success:true, message:action === 'paid' ? 'Pago marcado como cobrado.' : 'Obligación cancelada con motivo.' });
       }
       setPaymentReasons((current) => ({ ...current, [payment.id]:'' }));
+      setModal(null);
     } catch (error) {
       onOutput({ success:false, message:errorMessage(error, 'No se pudo actualizar el movimiento financiero.') });
     } finally { setBusy(''); }
@@ -2032,21 +2446,78 @@ function AcademyOperationsPanel({ data, role, onOutput, onDataUpdated }) {
     ['payments', 'Cartera'],
   ];
   const nowLocal = toAcademyDateTimeLocal(new Date());
+  const normalizedQuery = query.trim().toLocaleLowerCase('es');
+  const enrollmentRows = enrollments.filter((item) => (
+    (branchFilter === 'all' || groupBranchId(item.classGroupId) === branchFilter)
+    && (statusFilter === 'all' || item.status === statusFilter)
+    && (!normalizedQuery || `${studentName(item.studentId)} ${groupName(item.classGroupId)}`.toLocaleLowerCase('es').includes(normalizedQuery))
+  ));
+  const groupRows = groups.filter((item) => (
+    (branchFilter === 'all' || item.branchId === branchFilter)
+    && (statusFilter === 'all' || (statusFilter === 'active' ? item.active !== false : item.active === false))
+    && (!normalizedQuery || `${item.name} ${teacherName(item.teacherId)}`.toLocaleLowerCase('es').includes(normalizedQuery))
+  ));
+  const sessionRows = [...sessions].filter((item) => (
+    (branchFilter === 'all' || groupBranchId(item.classGroupId) === branchFilter)
+    && (statusFilter === 'all' || item.status === statusFilter)
+    && (!normalizedQuery || `${item.name || ''} ${groupName(item.classGroupId)}`.toLocaleLowerCase('es').includes(normalizedQuery))
+  )).sort((left, right) => new Date(right.startsAt) - new Date(left.startsAt));
+  const paymentRows = [...payments].filter((item) => (
+    (branchFilter === 'all' || (item.branchId || studentBranchId(item.studentId)) === branchFilter)
+    && (statusFilter === 'all' || item.status === statusFilter)
+    && (!normalizedQuery || `${studentName(item.studentId)} ${item.concept}`.toLocaleLowerCase('es').includes(normalizedQuery))
+  )).sort((left, right) => new Date(right.createdAt || right.paidAt || 0) - new Date(left.createdAt || left.paidAt || 0));
+
+  const sectionConfig = {
+    enrollments:{ title:'Matrículas', button:'Nueva matrícula', modalType:'new-enrollment', statuses:[['all', 'Todos'], ['active', 'Activa'], ['trial', 'Prueba'], ['waitlisted', 'Lista de espera'], ['frozen', 'Congelada'], ['withdrawn', 'Retirada'], ['completed', 'Completada']] },
+    groups:{ title:'Grupos', button:'Nuevo grupo', modalType:'new-group', statuses:[['all', 'Todos'], ['active', 'Activos'], ['inactive', 'Inactivos']] },
+    sessions:{ title:'Agenda', button:'Programar clase', modalType:'new-session', statuses:[['all', 'Todos'], ['scheduled', 'Programada'], ['completed', 'Completada'], ['cancelled', 'Cancelada']] },
+    payments:{ title:'Cartera', button:'Nuevo movimiento', modalType:'new-payment', statuses:[['all', 'Todos'], ['pending', 'Pendiente'], ['overdue', 'Vencido'], ['paid', 'Cobrado'], ['cancelled', 'Cancelado'], ['reversed', 'Reversado']] },
+  }[section];
+
+  function switchSection(nextSection) {
+    setSection(nextSection);
+    setQuery('');
+    setBranchFilter('all');
+    setStatusFilter('all');
+    setModal(null);
+  }
 
   return (
     <section className="academic-panel operations-panel" id="academia">
       <p className="eyebrow">Operación académica</p>
       <h2>Control diario de la academia</h2>
       <p>Cada cambio valida sede, nivel, cupo, horario y trazabilidad antes de guardarse.</p>
-      <div className="module-tabs" role="tablist" aria-label="Áreas operativas">{tabs.map(([id, label]) => <button key={id} type="button" role="tab" aria-selected={section === id} className={section === id ? 'active' : 'secondary-action'} onClick={() => setSection(id)}>{label}</button>)}</div>
+      <div className="module-tabs" role="tablist" aria-label="Áreas operativas">{tabs.map(([id, label]) => <button key={id} type="button" role="tab" aria-selected={section === id} className={section === id ? 'active' : 'secondary-action'} onClick={() => switchSection(id)}>{label}</button>)}</div>
 
-      {section === 'enrollments' && <div className="operations-layout"><form className="operations-form" onSubmit={createEnrollment}><h3>Nueva matrícula</h3><label>Estudiante<select name="studentId" required><option value="">Selecciona</option>{data.students.filter((student) => student.active !== false).map((student) => <option key={student.id} value={student.id}>{student.fullName} · {student.level} · {branchName(student.branchId)}</option>)}</select></label><label>Grupo<select name="classGroupId" required><option value="">Selecciona</option>{groups.filter((group) => group.active !== false).map((group) => <option key={group.id} value={group.id}>{group.name} · {group.level} · {branchName(group.branchId)}</option>)}</select></label><label>Tipo<select name="status" defaultValue="active"><option value="active">Regular</option><option value="trial">Prueba</option><option value="waitlisted">Lista de espera</option></select></label><button disabled={Boolean(busy)}>{busy === 'enrollment' ? 'Guardando...' : 'Crear matrícula'}</button></form><div><h3>Matrículas visibles</h3>{enrollments.length ? <ul className="simple-list compact-list">{enrollments.map((enrollment) => { const draft = enrollmentDrafts[enrollment.id] || { status:enrollment.status, reason:'' }; const terminal = ['withdrawn', 'completed'].includes(enrollment.status); return <li key={enrollment.id}><strong>{studentName(enrollment.studentId)}</strong><span>{groupName(enrollment.classGroupId)} · {statusLabel(enrollment.status)}</span>{!terminal && <><label>Nuevo estado<select value={draft.status} onChange={(event) => setEnrollmentDrafts((current) => ({ ...current, [enrollment.id]:{ ...draft, status:event.target.value } }))}>{(enrollmentTransitions[enrollment.status] || [enrollment.status]).map((status) => <option key={status} value={status}>{statusLabel(status)}</option>)}</select></label>{draft.status === 'withdrawn' && <label>Motivo de retiro<textarea value={draft.reason} minLength="3" maxLength="500" onChange={(event) => setEnrollmentDrafts((current) => ({ ...current, [enrollment.id]:{ ...draft, reason:event.target.value } }))} /></label>}{draft.status !== enrollment.status && <button type="button" onClick={() => updateEnrollment(enrollment)} disabled={busy === enrollment.id || (draft.status === 'withdrawn' && draft.reason.trim().length < 3)}>Aplicar estado</button>}</>}</li>; })}</ul> : <p className="empty-state">No hay matrículas visibles.</p>}</div></div>}
+      <div className="management-heading"><div><h3>{sectionConfig.title}</h3><p>Busca, filtra y gestiona cada registro desde el listado.</p></div><button type="button" onClick={() => setModal({ type:sectionConfig.modalType })}>{sectionConfig.button}</button></div>
+      <div className="list-toolbar"><label>Buscar<input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder={section === 'payments' ? 'Estudiante o concepto' : 'Nombre o grupo'} /></label><label>Sede<select value={branchFilter} onChange={(event) => setBranchFilter(event.target.value)}><option value="all">Todas</option>{data.branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}</select></label><label>Estado<select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>{sectionConfig.statuses.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label></div>
 
-      {section === 'groups' && <div className="operations-layout"><form className="operations-form" onSubmit={createGroup}><h3>Crear grupo</h3><label>Sede<select name="branchId" required><option value="">Selecciona</option>{data.branches.filter((branch) => branch.active !== false).map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}</select></label><label>Nombre<input name="name" minLength="2" maxLength="120" required /></label><label>Nivel<select name="level" defaultValue="B1"><option>B1</option><option>B2</option></select></label><label>Cupo<input name="capacity" type="number" min="1" max="200" defaultValue="30" required /></label><label>Profesor<select name="teacherId"><option value="">Por asignar</option>{data.teachers.filter((teacher) => teacher.active !== false).map((teacher) => <option key={teacher.id} value={teacher.id}>{teacher.fullName} · {branchName(teacher.branchId)}</option>)}</select></label><button disabled={Boolean(busy)}>{busy === 'group' ? 'Creando...' : 'Crear grupo'}</button></form><div><h3>Grupos activos</h3>{groups.length ? <ul className="simple-list compact-list">{groups.map((group) => { const occupied = enrollments.filter((enrollment) => enrollment.classGroupId === group.id && ['active', 'trial'].includes(enrollment.status)).length; return <li key={group.id}><strong>{group.name} · {group.level}</strong><span>{branchName(group.branchId)} · {teacherName(group.teacherId)}</span><span>{occupied} de {group.capacity || 30} cupos ocupados</span></li>; })}</ul> : <p className="empty-state">No hay grupos visibles.</p>}</div></div>}
+      {section === 'enrollments' && (enrollmentRows.length ? <div className="table-scroll"><table className="data-table management-table"><caption>{enrollmentRows.length} matrículas encontradas</caption><thead><tr><th>Estudiante</th><th>Grupo</th><th>Sede</th><th>Estado</th><th>Inicio</th><th><span className="sr-only">Acciones</span></th></tr></thead><tbody>{enrollmentRows.map((enrollment) => <tr key={enrollment.id}><td><strong>{studentName(enrollment.studentId)}</strong></td><td>{groupName(enrollment.classGroupId)}</td><td>{branchName(groupBranchId(enrollment.classGroupId))}</td><td><span className={`status-chip enrollment-${enrollment.status}`}>{statusLabel(enrollment.status)}</span></td><td>{formatDateTime(enrollment.startsAt || enrollment.enrolledAt)}</td><td><div className="button-row compact"><button type="button" className="secondary-action" onClick={() => { setEnrollmentDrafts((current) => ({ ...current, [enrollment.id]:{ status:enrollment.status, reason:enrollment.withdrawalReason || '' } })); setModal({ type:'manage-enrollment', item:enrollment }); }}>Gestionar</button><button type="button" className="secondary-action danger-action" onClick={() => setPendingDelete(enrollment)}>Eliminar</button></div></td></tr>)}</tbody></table></div> : <p className="empty-state">No hay matrículas que coincidan con los filtros.</p>)}
 
-      {section === 'sessions' && <div className="operations-layout"><form className="operations-form" onSubmit={createSession}><h3>Programar clase</h3><label>Grupo<select name="classGroupId" required><option value="">Selecciona</option>{groups.filter((group) => group.active !== false).map((group) => <option key={group.id} value={group.id}>{group.name} · {teacherName(group.teacherId)}</option>)}</select></label><label>Nombre opcional<input name="name" minLength="2" maxLength="120" /></label><label>Inicio<input name="startsAt" type="datetime-local" min={nowLocal} required /></label><label>Fin<input name="endsAt" type="datetime-local" min={nowLocal} required /></label><button disabled={Boolean(busy)}>{busy === 'session' ? 'Programando...' : 'Programar clase'}</button></form><div><h3>Agenda visible</h3>{sessions.length ? <ul className="simple-list compact-list">{[...sessions].sort((a, b) => new Date(b.startsAt) - new Date(a.startsAt)).slice(0, 20).map((session) => <li key={session.id}><strong>{session.name || groupName(session.classGroupId)}</strong><span>{formatDateTime(session.startsAt)} · {statusLabel(session.status)}</span>{session.status === 'scheduled' && <><label>Motivo para cancelar<textarea value={sessionReasons[session.id] || ''} minLength="5" maxLength="500" onChange={(event) => setSessionReasons((current) => ({ ...current, [session.id]:event.target.value }))} /></label><button type="button" className="secondary-action danger-action" onClick={() => cancelSession(session)} disabled={busy === session.id || (sessionReasons[session.id]?.trim().length || 0) < 5}>Cancelar clase</button></>}</li>)}</ul> : <p className="empty-state">No hay clases visibles.</p>}</div></div>}
+      {section === 'groups' && (groupRows.length ? <div className="table-scroll"><table className="data-table management-table"><caption>{groupRows.length} grupos encontrados</caption><thead><tr><th>Grupo</th><th>Sede</th><th>Profesor</th><th>Cupos</th><th>Estado</th><th><span className="sr-only">Acciones</span></th></tr></thead><tbody>{groupRows.map((group) => { const occupied = enrollments.filter((enrollment) => enrollment.classGroupId === group.id && ['active', 'trial'].includes(enrollment.status)).length; return <tr key={group.id}><td><strong>{group.name}</strong><span>Nivel {group.level}</span></td><td>{branchName(group.branchId)}</td><td>{teacherName(group.teacherId)}</td><td>{occupied} / {group.capacity || 30}</td><td><span className={`status-chip ${group.active === false ? 'error' : 'success'}`}>{group.active === false ? 'Inactivo' : 'Activo'}</span></td><td><button type="button" className="secondary-action" onClick={() => setModal({ type:'edit-group', item:group })}>Editar</button></td></tr>; })}</tbody></table></div> : <p className="empty-state">No hay grupos que coincidan con los filtros.</p>)}
 
-      {section === 'payments' && <div className="operations-layout"><form className="operations-form" onSubmit={createCharge}><h3>Registrar obligación o cobro</h3><label>Estudiante<select name="studentId" required><option value="">Selecciona</option>{data.students.filter((student) => student.active !== false).map((student) => <option key={student.id} value={student.id}>{student.fullName} · {branchName(student.branchId)}</option>)}</select></label><label>Concepto<input name="concept" minLength="3" maxLength="100" defaultValue="Mensualidad" required /></label><label>Periodo<input name="period" type="month" defaultValue={nowLocal.slice(0, 7)} required /></label><label>Valor<input name="amount" type="number" min="0.01" max="100000000" step="0.01" required /></label><label>Vencimiento<input name="dueAt" type="datetime-local" /></label><label>Estado<select name="status" defaultValue="pending"><option value="pending">Pendiente</option><option value="paid">Cobrado</option></select></label><button disabled={Boolean(busy)}>{busy === 'payment' ? 'Registrando...' : 'Registrar movimiento'}</button></form><div><h3>Últimos movimientos</h3>{payments.length ? <ul className="simple-list compact-list">{[...payments].sort((a, b) => new Date(b.createdAt || b.paidAt || 0) - new Date(a.createdAt || a.paidAt || 0)).slice(0, 30).map((payment) => <li key={payment.id}><div className="list-heading-row"><strong>{studentName(payment.studentId)} · {payment.concept}</strong><span className={`status-chip payment-${payment.status}`}>{statusLabel(payment.status)}</span></div><span>{formatMoney(payment.amount)} · {payment.period}</span>{['pending', 'overdue'].includes(payment.status) && <div className="button-row compact"><button type="button" onClick={() => updatePayment(payment, 'paid')} disabled={busy === payment.id}>Marcar cobrado</button></div>}{(['pending', 'overdue'].includes(payment.status) || (payment.status === 'paid' && role !== 'BranchDirector' && payment.transactionType !== 'reversal')) && <label>{payment.status === 'paid' ? 'Motivo del reverso' : 'Motivo de cancelación'}<textarea value={paymentReasons[payment.id] || ''} minLength="5" maxLength="500" onChange={(event) => setPaymentReasons((current) => ({ ...current, [payment.id]:event.target.value }))} /></label>}{['pending', 'overdue'].includes(payment.status) && <button type="button" className="secondary-action danger-action" onClick={() => updatePayment(payment, 'cancel')} disabled={busy === payment.id || (paymentReasons[payment.id]?.trim().length || 0) < 5}>Cancelar obligación</button>}{payment.status === 'paid' && role !== 'BranchDirector' && payment.transactionType !== 'reversal' && <button type="button" className="secondary-action danger-action" onClick={() => updatePayment(payment, 'reverse')} disabled={busy === payment.id || (paymentReasons[payment.id]?.trim().length || 0) < 5}>Crear reverso</button>}</li>)}</ul> : <p className="empty-state">No hay movimientos financieros visibles.</p>}</div></div>}
+      {section === 'sessions' && (sessionRows.length ? <div className="table-scroll"><table className="data-table management-table"><caption>{sessionRows.length} clases encontradas</caption><thead><tr><th>Clase</th><th>Grupo</th><th>Sede</th><th>Fecha</th><th>Estado</th><th><span className="sr-only">Acciones</span></th></tr></thead><tbody>{sessionRows.map((session) => <tr key={session.id}><td><strong>{session.name || groupName(session.classGroupId)}</strong></td><td>{groupName(session.classGroupId)}</td><td>{branchName(groupBranchId(session.classGroupId))}</td><td>{formatDateTime(session.startsAt)}</td><td><span className={`status-chip session-${session.status}`}>{statusLabel(session.status)}</span></td><td><button type="button" className="secondary-action" onClick={() => setModal({ type:'manage-session', item:session })}>Gestionar</button></td></tr>)}</tbody></table></div> : <p className="empty-state">No hay clases que coincidan con los filtros.</p>)}
+
+      {section === 'payments' && (paymentRows.length ? <div className="table-scroll"><table className="data-table management-table"><caption>{paymentRows.length} movimientos encontrados</caption><thead><tr><th>Estudiante</th><th>Concepto</th><th>Periodo</th><th>Valor</th><th>Estado</th><th><span className="sr-only">Acciones</span></th></tr></thead><tbody>{paymentRows.map((payment) => <tr key={payment.id}><td><strong>{studentName(payment.studentId)}</strong></td><td>{payment.concept}</td><td>{payment.period}</td><td>{formatMoney(payment.amount)}</td><td><span className={`status-chip payment-${payment.status}`}>{statusLabel(payment.status)}</span></td><td>{(['pending', 'overdue', 'paid'].includes(payment.status) && payment.transactionType !== 'reversal') ? <button type="button" className="secondary-action" onClick={() => setModal({ type:'manage-payment', item:payment })}>Gestionar</button> : <span>Solo consulta</span>}</td></tr>)}</tbody></table></div> : <p className="empty-state">No hay movimientos que coincidan con los filtros.</p>)}
+
+      {modal?.type === 'new-enrollment' && <ModalDialog title="Nueva matrícula" description="El sistema validará sede, nivel y cupo antes de guardar." onClose={() => setModal(null)} busy={Boolean(busy)}><form className="modal-form" onSubmit={createEnrollment}><label className="span-two">Estudiante<select name="studentId" required><option value="">Selecciona</option>{data.students.filter((student) => student.active !== false).map((student) => <option key={student.id} value={student.id}>{student.fullName} · {student.level} · {branchName(student.branchId)}</option>)}</select></label><label className="span-two">Grupo<select name="classGroupId" required><option value="">Selecciona</option>{groups.filter((group) => group.active !== false).map((group) => <option key={group.id} value={group.id}>{group.name} · {group.level} · {branchName(group.branchId)}</option>)}</select></label><label>Tipo<select name="status" defaultValue="active"><option value="active">Regular</option><option value="trial">Prueba</option><option value="waitlisted">Lista de espera</option></select></label><div className="modal-form-actions span-two"><button type="button" className="secondary-action" onClick={() => setModal(null)}>Cancelar</button><button disabled={Boolean(busy)}>{busy ? 'Guardando...' : 'Crear matrícula'}</button></div></form></ModalDialog>}
+
+      {modal?.type === 'manage-enrollment' && (() => { const enrollment = modal.item; const draft = enrollmentDrafts[enrollment.id] || { status:enrollment.status, reason:'' }; const terminal = ['withdrawn', 'completed'].includes(enrollment.status); return <ModalDialog title="Gestionar matrícula" description={`${studentName(enrollment.studentId)} · ${groupName(enrollment.classGroupId)}`} onClose={() => setModal(null)} busy={Boolean(busy)}><div className="record-summary"><span>Estado actual</span><strong>{statusLabel(enrollment.status)}</strong><p>“Completada” indica que el estudiante terminó el periodo o programa correspondiente. “Retirada” registra una salida anticipada.</p></div>{terminal ? <p className="empty-state">Esta matrícula ya cerró su ciclo y se conserva como historial académico.</p> : <form className="modal-form" onSubmit={(event) => { event.preventDefault(); updateEnrollment(enrollment); }}><label className="span-two">Nuevo estado<select value={draft.status} onChange={(event) => setEnrollmentDrafts((current) => ({ ...current, [enrollment.id]:{ ...draft, status:event.target.value } }))}>{(enrollmentTransitions[enrollment.status] || [enrollment.status]).map((status) => <option key={status} value={status}>{statusLabel(status)}</option>)}</select></label>{draft.status === 'withdrawn' && <label className="span-two">Motivo de retiro<textarea value={draft.reason} minLength="3" maxLength="500" onChange={(event) => setEnrollmentDrafts((current) => ({ ...current, [enrollment.id]:{ ...draft, reason:event.target.value } }))} required /></label>}<div className="modal-form-actions span-two"><button type="button" className="secondary-action" onClick={() => setModal(null)}>Cancelar</button><button disabled={busy === enrollment.id || draft.status === enrollment.status || (draft.status === 'withdrawn' && draft.reason.trim().length < 3)}>Guardar estado</button></div></form>}</ModalDialog>; })()}
+
+      {modal?.type === 'new-group' && <ModalDialog title="Nuevo grupo" description="Crea un grupo con sede, nivel, profesor y cupo definidos." onClose={() => setModal(null)} busy={Boolean(busy)}><form className="modal-form" onSubmit={createGroup}><label>Sede<select name="branchId" required><option value="">Selecciona</option>{data.branches.filter((branch) => branch.active !== false).map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}</select></label><label>Nombre<input name="name" minLength="2" maxLength="120" required /></label><label>Nivel<select name="level" defaultValue="B1"><option>B1</option><option>B2</option></select></label><label>Cupo<input name="capacity" type="number" min="1" max="200" defaultValue="30" required /></label><label className="span-two">Profesor<select name="teacherId"><option value="">Por asignar</option>{data.teachers.filter((teacher) => teacher.active !== false).map((teacher) => <option key={teacher.id} value={teacher.id}>{teacher.fullName} · {branchName(teacher.branchId)}</option>)}</select></label><div className="modal-form-actions span-two"><button type="button" className="secondary-action" onClick={() => setModal(null)}>Cancelar</button><button disabled={Boolean(busy)}>{busy ? 'Creando...' : 'Crear grupo'}</button></div></form></ModalDialog>}
+
+      {modal?.type === 'edit-group' && <ModalDialog title="Editar grupo" description="Los grupos con historial se desactivan en lugar de eliminarse." onClose={() => setModal(null)} busy={Boolean(busy)}><form key={modal.item.id} className="modal-form" onSubmit={(event) => updateGroup(event, modal.item)}><label>Sede<select name="branchId" required defaultValue={modal.item.branchId}>{data.branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}</select></label><label>Nombre<input name="name" minLength="2" maxLength="120" required defaultValue={modal.item.name} /></label><label>Nivel<select name="level" defaultValue={modal.item.level}><option>B1</option><option>B2</option></select></label><label>Cupo<input name="capacity" type="number" min="1" max="200" defaultValue={modal.item.capacity || 30} required /></label><label>Profesor<select name="teacherId" defaultValue={modal.item.teacherId || ''}><option value="">Por asignar</option>{data.teachers.map((teacher) => <option key={teacher.id} value={teacher.id}>{teacher.fullName}</option>)}</select></label><label>Estado<select name="active" defaultValue={String(modal.item.active !== false)}><option value="true">Activo</option><option value="false">Inactivo</option></select></label><div className="modal-form-actions span-two"><button type="button" className="secondary-action" onClick={() => setModal(null)}>Cancelar</button><button disabled={Boolean(busy)}>Guardar cambios</button></div></form></ModalDialog>}
+
+      {modal?.type === 'new-session' && <ModalDialog title="Programar clase" description="La agenda validará los cruces de grupo y profesor." onClose={() => setModal(null)} busy={Boolean(busy)}><form className="modal-form" onSubmit={createSession}><label className="span-two">Grupo<select name="classGroupId" required><option value="">Selecciona</option>{groups.filter((group) => group.active !== false).map((group) => <option key={group.id} value={group.id}>{group.name} · {teacherName(group.teacherId)}</option>)}</select></label><label className="span-two">Nombre opcional<input name="name" minLength="2" maxLength="120" /></label><label>Inicio<input name="startsAt" type="datetime-local" min={nowLocal} required /></label><label>Fin<input name="endsAt" type="datetime-local" min={nowLocal} required /></label><div className="modal-form-actions span-two"><button type="button" className="secondary-action" onClick={() => setModal(null)}>Cancelar</button><button disabled={Boolean(busy)}>{busy ? 'Programando...' : 'Programar clase'}</button></div></form></ModalDialog>}
+
+      {modal?.type === 'manage-session' && <ModalDialog title="Gestionar clase" description={`${modal.item.name || groupName(modal.item.classGroupId)} · ${formatDateTime(modal.item.startsAt)}`} onClose={() => setModal(null)} busy={Boolean(busy)}><form key={modal.item.id} className="modal-form" onSubmit={(event) => updateSession(event, modal.item)}><label className="span-two">Grupo<select name="classGroupId" required defaultValue={modal.item.classGroupId}>{groups.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}</select></label><label className="span-two">Nombre<input name="name" minLength="2" maxLength="120" defaultValue={modal.item.name || ''} /></label><label>Inicio<input name="startsAt" type="datetime-local" required defaultValue={toAcademyDateTimeLocal(modal.item.startsAt)} /></label><label>Fin<input name="endsAt" type="datetime-local" required defaultValue={toAcademyDateTimeLocal(modal.item.endsAt)} /></label>{modal.item.status === 'scheduled' && <label className="span-two">Motivo para cancelar<textarea value={sessionReasons[modal.item.id] || ''} minLength="5" maxLength="500" onChange={(event) => setSessionReasons((current) => ({ ...current, [modal.item.id]:event.target.value }))} placeholder="Solo se usa al cancelar la clase" /></label>}<div className="modal-form-actions span-two">{modal.item.status === 'scheduled' && <button type="button" className="secondary-action danger-action" onClick={() => cancelSession(modal.item)} disabled={(sessionReasons[modal.item.id]?.trim().length || 0) < 5 || Boolean(busy)}>Cancelar clase</button>}<button type="button" className="secondary-action" onClick={() => setModal(null)}>Cerrar</button>{modal.item.status === 'scheduled' && <button disabled={Boolean(busy)}>Guardar cambios</button>}</div></form></ModalDialog>}
+
+      {modal?.type === 'new-payment' && <ModalDialog title="Nuevo movimiento" description="Registra una obligación o un cobro. Los movimientos conciliados se corrigen mediante reverso." onClose={() => setModal(null)} busy={Boolean(busy)}><form className="modal-form" onSubmit={createCharge}><label className="span-two">Estudiante<select name="studentId" required><option value="">Selecciona</option>{data.students.filter((student) => student.active !== false).map((student) => <option key={student.id} value={student.id}>{student.fullName} · {branchName(student.branchId)}</option>)}</select></label><label>Concepto<input name="concept" minLength="3" maxLength="100" defaultValue="Mensualidad" required /></label><label>Periodo<input name="period" type="month" defaultValue={nowLocal.slice(0, 7)} required /></label><label>Valor<input name="amount" type="number" min="0.01" max="100000000" step="0.01" required /></label><label>Vencimiento<input name="dueAt" type="datetime-local" /></label><label>Estado<select name="status" defaultValue="pending"><option value="pending">Pendiente</option><option value="paid">Cobrado</option></select></label><div className="modal-form-actions span-two"><button type="button" className="secondary-action" onClick={() => setModal(null)}>Cancelar</button><button disabled={Boolean(busy)}>{busy ? 'Registrando...' : 'Registrar movimiento'}</button></div></form></ModalDialog>}
+
+      {modal?.type === 'manage-payment' && (() => { const payment = modal.item; const isPaid = payment.status === 'paid'; const needsReason = isPaid || ['pending', 'overdue'].includes(payment.status); return <ModalDialog title="Gestionar movimiento" description={`${studentName(payment.studentId)} · ${payment.concept} · ${formatMoney(payment.amount)}`} onClose={() => setModal(null)} busy={Boolean(busy)}><div className="record-summary"><span>Estado actual</span><strong>{statusLabel(payment.status)}</strong><p>Los cobros no se eliminan. Un reverso crea el movimiento contrario y conserva la trazabilidad contable.</p></div>{needsReason && <label>{isPaid ? 'Motivo del reverso' : 'Motivo si deseas cancelar'}<textarea value={paymentReasons[payment.id] || ''} minLength="5" maxLength="500" onChange={(event) => setPaymentReasons((current) => ({ ...current, [payment.id]:event.target.value }))} /></label>}<div className="modal-form-actions">{['pending', 'overdue'].includes(payment.status) && <button type="button" onClick={() => updatePayment(payment, 'paid')} disabled={Boolean(busy)}>Marcar cobrado</button>}{['pending', 'overdue'].includes(payment.status) && <button type="button" className="secondary-action danger-action" onClick={() => updatePayment(payment, 'cancel')} disabled={Boolean(busy) || (paymentReasons[payment.id]?.trim().length || 0) < 5}>Cancelar obligación</button>}{isPaid && role !== 'BranchDirector' && payment.transactionType !== 'reversal' && <button type="button" className="secondary-action danger-action" onClick={() => updatePayment(payment, 'reverse')} disabled={Boolean(busy) || (paymentReasons[payment.id]?.trim().length || 0) < 5}>Crear reverso</button>}</div></ModalDialog>; })()}
+
+      {pendingDelete && <ModalDialog danger title="Eliminar matrícula" description="Solo se permite cuando no existe historial de asistencia." onClose={() => setPendingDelete(null)} busy={busy === pendingDelete.id} actions={<><button type="button" className="secondary-action" onClick={() => setPendingDelete(null)} disabled={Boolean(busy)}>Cancelar</button><button type="button" className="danger-action" onClick={() => deleteEnrollment(pendingDelete)} disabled={Boolean(busy)}>{busy ? 'Eliminando...' : 'Eliminar matrícula'}</button></>}><p><strong>{studentName(pendingDelete.studentId)}</strong></p><p>{groupName(pendingDelete.classGroupId)}. Si ya tiene asistencia, el sistema rechazará la eliminación y deberás registrar la matrícula como retirada o completada.</p></ModalDialog>}
     </section>
   );
 }
@@ -2083,7 +2554,7 @@ function AdminOverviewPanel({ data }) {
   );
 }
 
-function AccountCreationPanel({ role = 'Admin' }) {
+function AccountCreationPanel({ role = 'Admin', onAccountCreated }) {
   const [status, setStatus] = useState('');
   const [createdAccount, setCreatedAccount] = useState(null);
   const [selectedRole, setSelectedRole] = useState('Student');
@@ -2091,7 +2562,7 @@ function AccountCreationPanel({ role = 'Admin' }) {
   const [submitting, setSubmitting] = useState(false);
   const visibleRoleOptions = role === 'Admin'
     ? accountRoleOptions
-    : accountRoleOptions.filter((option) => option.value !== 'GeneralDirector');
+    : accountRoleOptions.filter((option) => !['GeneralDirector', 'Admin'].includes(option.value));
 
   useEffect(() => {
     apiRequest('/branches')
@@ -2135,7 +2606,8 @@ function AccountCreationPanel({ role = 'Admin' }) {
     try {
       const payload = await postJson('/users', body);
       setCreatedAccount(payload.data);
-      setStatus('Cuenta creada correctamente.');
+      onAccountCreated?.(payload.data.user);
+      setStatus(payload.data.message || `Cuenta registrada. La invitación fue enviada a ${payload.data.user.email}.`);
       event.currentTarget.reset();
       setSelectedRole('Student');
     } catch (error) {
@@ -2150,11 +2622,11 @@ function AccountCreationPanel({ role = 'Admin' }) {
       <div>
         <p className="eyebrow">Cuentas</p>
         <h2>Enviar invitación de acceso</h2>
-        <p>Registra a una persona autorizada. El sistema generará una clave temporal de un solo uso para su primer ingreso.</p>
+        <p>Registra a una persona autorizada. Recibirá por correo una clave temporal y las instrucciones para completar su primer ingreso.</p>
       </div>
       <form className="account-form" onSubmit={submit} aria-busy={submitting}>
-        <label>Nombre completo<input name="name" autoComplete="name" required /></label>
-        <label>Correo electrónico<input name="email" type="email" autoComplete="email" required /></label>
+        <label>Nombre completo<input name="name" autoComplete="name" minLength="3" maxLength="160" required /></label>
+        <label>Correo electrónico<input name="email" type="email" autoComplete="email" maxLength="160" required /></label>
         <label>Rol<select name="role" value={selectedRole} onChange={(event) => setSelectedRole(event.target.value)} required>{visibleRoleOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
         {(selectedRole === 'Student' || selectedRole === 'Teacher') && (
           <label>Sede
@@ -2173,7 +2645,7 @@ function AccountCreationPanel({ role = 'Admin' }) {
           </label>
         )}
         {selectedRole === 'Teacher' && (
-          <label>Tarifa por hora<input name="hourlyRate" type="number" min="0" step="0.01" placeholder="12.50" /></label>
+          <label>Tarifa por hora<input name="hourlyRate" type="number" min="0" max="10000" step="0.01" placeholder="12.50" /></label>
         )}
         {selectedRole === 'BranchDirector' && (
           <fieldset className="branch-checkbox-list">
@@ -2186,14 +2658,12 @@ function AccountCreationPanel({ role = 'Admin' }) {
             )) : <p>No se pudieron cargar las sedes. Intenta nuevamente más tarde.</p>}
           </fieldset>
         )}
-        <button type="submit" disabled={submitting}>{submitting ? 'Generando...' : 'Generar invitación'}</button>
+        <button type="submit" disabled={submitting}>{submitting ? 'Enviando...' : 'Enviar invitación'}</button>
       </form>
       {createdAccount && (
-        <div className="credential-box" aria-live="polite">
-          <span>Clave temporal generada</span>
-          <strong>{createdAccount.temporaryPassword}</strong>
-          <p>Esta clave se muestra una sola vez. La persona deberá cambiarla en su primer ingreso.</p>
-          <button type="button" className="secondary-action" onClick={async () => { try { await navigator.clipboard.writeText(createdAccount.temporaryPassword); setStatus('Clave temporal copiada. Compártela por un canal seguro.'); } catch { setStatus('No se pudo copiar automáticamente. Selecciona la clave y cópiala manualmente.'); } }}>Copiar clave temporal</button>
+        <div className="delivery-confirmation" aria-live="polite">
+          <span className="delivery-confirmation-mark" aria-hidden="true">✓</span>
+          <div><strong>Invitación enviada</strong><p>La cuenta de {createdAccount.user.name} fue registrada. La clave temporal y las instrucciones se enviaron a <strong>{createdAccount.user.email}</strong>.</p></div>
         </div>
       )}
       <p className="form-status" aria-live="polite">{status}</p>
@@ -2249,7 +2719,7 @@ function PasswordChangeRequired({ user, onChanged }) {
   );
 }
 
-function DashboardModuleContent({ role, activeModule, data, onOutput, onProfileUpdated, onDataUpdated }) {
+function DashboardModuleContent({ role, activeModule, data, currentUser, onOutput, onProfileUpdated, onDataUpdated, onNavigate }) {
   if (role === 'Student') {
     if (activeModule === 'perfil') return <StudentProfilePanel data={data} onOutput={onOutput} onProfileUpdated={onProfileUpdated} />;
     if (activeModule === 'asistencia') return <StudentAttendanceHistory attendanceRecords={data.attendanceRecords} classSessions={data.classSessions} />;
@@ -2275,7 +2745,7 @@ function DashboardModuleContent({ role, activeModule, data, onOutput, onProfileU
 
   if (role === 'GeneralDirector') {
     if (activeModule === 'academia') return <AcademyOperationsPanel data={data} role={role} onOutput={onOutput} onDataUpdated={onDataUpdated} />;
-    if (activeModule === 'cuentas') return <AccountCreationPanel role={role} />;
+    if (activeModule === 'cuentas') return <div className="account-management-stack"><AccountCreationPanel role={role} onAccountCreated={(user) => onDataUpdated('users', (current) => [...current, user])} /><UserDirectoryPanel users={data.users} branches={data.branches} currentUser={currentUser} onOutput={onOutput} onUserUpdated={(user) => onDataUpdated('users', (current) => current.map((item) => item.id === user.id ? user : item))} /></div>;
     if (activeModule === 'eventos') return <EventsManagerPanel data={data} onOutput={onOutput} onDataUpdated={onDataUpdated} />;
     if (activeModule === 'solicitudes') return <DirectorRequestsPanel data={data} onOutput={onOutput} onDataUpdated={onDataUpdated} />;
     if (activeModule === 'reportes') return <ReportsPanel data={data} role={role} onOutput={onOutput} />;
@@ -2285,13 +2755,13 @@ function DashboardModuleContent({ role, activeModule, data, onOutput, onProfileU
 
   if (role === 'Admin') {
     if (activeModule === 'indicadores') return <AdminOverviewPanel data={data} />;
-    if (activeModule === 'seguridad') return <AdminSecurityPanel data={data} />;
+    if (activeModule === 'seguridad') return <AdminSecurityPanel data={data} onNavigate={onNavigate} />;
     if (activeModule === 'auditoria') return <AdminAuditPanel data={data} />;
     if (activeModule === 'academia') return <AcademyOperationsPanel data={data} role={role} onOutput={onOutput} onDataUpdated={onDataUpdated} />;
     if (activeModule === 'eventos') return <EventsManagerPanel data={data} onOutput={onOutput} onDataUpdated={onDataUpdated} />;
     if (activeModule === 'solicitudes') return <DirectorRequestsPanel data={data} onOutput={onOutput} onDataUpdated={onDataUpdated} />;
     if (activeModule === 'reportes') return <ReportsPanel data={data} role={role} onOutput={onOutput} />;
-    return <AccountCreationPanel role={role} />;
+    return <div className="account-management-stack"><AccountCreationPanel role={role} onAccountCreated={(user) => onDataUpdated('users', (current) => [...current, user])} /><UserDirectoryPanel users={data.users} branches={data.branches} currentUser={currentUser} onOutput={onOutput} onUserUpdated={(user) => onDataUpdated('users', (current) => current.map((item) => item.id === user.id ? user : item))} /></div>;
   }
 
   return (
@@ -2352,14 +2822,40 @@ function PrivateDashboard() {
     if (!sessionReady || !currentUser || currentUser.mustChangePassword) return undefined;
     setIntroVisible(true);
     if (reducedMotion) return undefined;
-    const timer = setTimeout(() => setIntroVisible(false), 4200);
-    return () => clearTimeout(timer);
+    const initialScrollY = window.scrollY;
+    const sidebar = document.querySelector('.dashboard-sidebar');
+    const initialSidebarScrollTop = sidebar?.scrollTop || 0;
+    let userInteracted = false;
+    let restoreTimer;
+    const markInteraction = () => { userInteracted = true; };
+    window.addEventListener('wheel', markInteraction, { passive:true });
+    window.addEventListener('touchmove', markInteraction, { passive:true });
+    window.addEventListener('pointerdown', markInteraction, { passive:true });
+    const timer = setTimeout(() => {
+      setIntroVisible(false);
+      restoreTimer = setTimeout(() => {
+        if (!userInteracted) {
+          window.scrollTo({ top:initialScrollY, left:0, behavior:'instant' });
+          sidebar?.scrollTo({ top:initialSidebarScrollTop, left:0, behavior:'auto' });
+        }
+      }, 520);
+    }, 4200);
+    return () => {
+      clearTimeout(timer);
+      clearTimeout(restoreTimer);
+      window.removeEventListener('wheel', markInteraction);
+      window.removeEventListener('touchmove', markInteraction);
+      window.removeEventListener('pointerdown', markInteraction);
+    };
   }, [sessionReady, currentUser?.id, currentUser?.mustChangePassword, reducedMotion]);
 
   function changeModule(moduleId) {
     setActiveModule(moduleId);
     setOutput(null);
-    window.setTimeout(() => document.querySelector('.dashboard-workspace')?.focus(), 0);
+    window.setTimeout(() => {
+      window.scrollTo({ top:0, left:0, behavior:'instant' });
+      document.querySelector('.dashboard-workspace')?.focus({ preventScroll:true });
+    }, 0);
   }
 
   function updateStudentProfile(profile) {
@@ -2433,7 +2929,7 @@ function PrivateDashboard() {
           <>
             <DashboardIntro user={currentUser} data={dashboardData} visible={introVisible} onDismiss={() => setIntroVisible(false)} />
             <section className="dashboard-workspace" aria-label="Contenido del módulo activo" tabIndex="-1">
-              {dashboardLoading ? <div className="dashboard-loading" role="status"><span className="loading-spinner" aria-hidden="true" /><div><strong>Cargando información académica</strong><p>Validamos cada fuente antes de mostrar indicadores.</p></div></div> : <><DataHealthBanner errors={dashboardData.resourceErrors} onRetry={() => setReloadKey((current) => current + 1)} /><RoleSummary role={currentUser.role} data={dashboardData} /><DashboardModuleContent role={currentUser.role} activeModule={selectedModule} data={dashboardData} onOutput={setOutput} onProfileUpdated={updateStudentProfile} onDataUpdated={updateDashboardCollection} /><FriendlyOutput output={output} /></>}
+              {dashboardLoading ? <div className="dashboard-loading" role="status"><span className="loading-spinner" aria-hidden="true" /><div><strong>Cargando información académica</strong><p>Validamos cada fuente antes de mostrar indicadores.</p></div></div> : <><DataHealthBanner errors={dashboardData.resourceErrors} onRetry={() => setReloadKey((current) => current + 1)} /><RoleSummary role={currentUser.role} data={dashboardData} /><DashboardModuleContent role={currentUser.role} activeModule={selectedModule} data={dashboardData} currentUser={currentUser} onOutput={setOutput} onProfileUpdated={updateStudentProfile} onDataUpdated={updateDashboardCollection} onNavigate={changeModule} /><FriendlyOutput output={output} /></>}
             </section>
           </>
         )}

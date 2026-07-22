@@ -24,6 +24,7 @@ export async function apiRequest(path, options = {}) {
   const controller = new AbortController();
   const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
   const hasBody = fetchOptions.body !== undefined && fetchOptions.body !== null;
+  const hasFormDataBody = typeof FormData !== 'undefined' && fetchOptions.body instanceof FormData;
   const method = String(fetchOptions.method || 'GET').toUpperCase();
   const csrfToken = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method) ? cookieValue('alc_csrf') : '';
 
@@ -32,7 +33,7 @@ export async function apiRequest(path, options = {}) {
       credentials: 'include',
       ...fetchOptions,
       headers: {
-        ...(hasBody ? { 'Content-Type': 'application/json' } : {}),
+        ...(hasBody && !hasFormDataBody ? { 'Content-Type': 'application/json' } : {}),
         ...(csrfToken ? { 'X-CSRF-Token':csrfToken } : {}),
         ...optionHeaders,
       },

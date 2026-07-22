@@ -11,7 +11,7 @@ if (!databaseUrl) {
   process.exit(1);
 }
 
-const migrationsPath = path.resolve(__dirname, '..', 'migrations');
+const migrationsPath = path.resolve(__dirname, '..', 'persistence', 'migrations');
 const migrationFiles = fs.readdirSync(migrationsPath)
   .filter((name) => /^\d{3}_[a-z0-9_]+\.sql$/i.test(name))
   .sort((left, right) => left.localeCompare(right));

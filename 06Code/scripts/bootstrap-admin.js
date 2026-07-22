@@ -1,7 +1,7 @@
 require('dotenv').config();
 
 const { PrismaClient } = require('@prisma/client');
-const { hashPassword } = require('../src/utils/passwordHasher');
+const { hashPassword } = require('../backend/src/utils/passwordHasher');
 
 function required(name) {
   const value = String(process.env[name] || '').trim();

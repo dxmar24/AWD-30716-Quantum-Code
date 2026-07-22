@@ -2,16 +2,17 @@
   "name": "american-latin-class-attendance-system",
   "version": "1.0.0",
   "description": "Academic-professional attendance and academic tracking backend for American Latin Class.",
-  "main": "src/server.js",
+  "main": "backend/src/server.js",
   "scripts": {
     "prestart": "npm run frontend:build",
-    "start": "node src/server.js",
+    "start": "node backend/src/server.js",
     "predev": "npm run frontend:build",
-    "dev": "node src/server.js",
-    "db:local:up": "docker compose up -d postgres",
+    "dev": "node backend/src/server.js",
+    "db:local:up": "docker compose up -d postgres mailpit",
     "db:local:down": "docker compose down",
-    "db:local:logs": "docker compose logs -f postgres",
-    "db:generate": "prisma generate",
+    "db:local:logs": "docker compose logs -f postgres mailpit",
+    "db:generate": "prisma generate --schema persistence/prisma/schema.prisma",
+    "db:studio": "prisma studio --schema persistence/prisma/schema.prisma",
     "db:migrate": "node scripts/apply-migrations.js",
     "db:migrate:status": "node scripts/apply-migrations.js --status",
     "db:bootstrap-admin": "node scripts/bootstrap-admin.js",
@@ -27,7 +28,10 @@
     "db:seed:academic-demo": "node scripts/seed-academic-demo-data.js",
     "db:normalize:levels": "node scripts/normalize-academic-levels.js",
     "postman:evidence:local": "node scripts/run-postman-local-evidence.js",
-    "test:api:validation": "node scripts/api-validation-suite.js"
+    "postman:evidence:analytics": "node scripts/run-python-analytics-postman-evidence.js",
+    "postman:coverage": "node scripts/verify-postman-route-coverage.js",
+    "test:api:validation": "node scripts/api-validation-suite.js",
+    "evidence:ui": "node scripts/capture-ui-evidence.js"
   },
   "dependencies": {
     "@prisma/client": "5.22.0",
@@ -39,6 +43,8 @@
     "google-auth-library": "^10.9.0",
     "helmet": "^8.3.0",
     "jsonwebtoken": "^9.0.3",
+    "multer": "2.2.0",
+    "nodemailer": "9.0.3",
     "pg": "^8.22.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
@@ -53,8 +59,11 @@
   },
   "jest": {
     "testEnvironment": "node",
+    "setupFiles": [
+      "<rootDir>/backend/tests/setup-env.js"
+    ],
     "testMatch": [
-      "**/tests/**/*.test.js"
+      "**/backend/tests/**/*.test.js"
     ]
   },
   "engines": {
