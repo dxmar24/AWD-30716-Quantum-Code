@@ -427,4 +427,4 @@ The API validation suite covers auth, sessions, RBAC, CRUD, attendance, absence,
 The Jest suite covers integration, auth, RBAC, cache management and unit-level rules tests.
 
 - Command: `npm test`
-- Result: 5 test suites passed, 24 tests passed, 0 failed.
+- Current regression result: 11 test suites passed, 91 tests passed, 0 failed.

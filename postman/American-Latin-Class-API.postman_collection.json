@@ -2,103 +2,395 @@
   "info": {
     "_postman_id": "89119ee1-20d5-4e6d-8f60-9b2a23ca34b1",
     "name": "American Latin Class API",
-    "description": "Manual verification collection for the American Latin Class Attendance System. Primary authentication proof uses Postman-only email/password login at /auth/login, stores the returned JWT in session_token and validates protected routes with Bearer auth. Google OAuth requests remain available as optional checks.",
+    "description": "Defense-ready manual verification collection for American Latin Class. It covers authentication, authorization, catalogs, academic enrollment, attendance, payments, events, reports, account governance and student self-service with executable Postman tests.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
     "type": "bearer",
     "bearer": [
-      { "key": "token", "value": "{{session_token}}", "type": "string" }
+      {
+        "key": "token",
+        "value": "{{session_token}}",
+        "type": "string"
+      }
     ]
   },
   "item": [
+    {
+      "name": "Health And Public",
+      "item": [
+        {
+          "name": "Liveness",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/health/live"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Process is alive', () => pm.expect(pm.response.json().status).to.eql('ok'));"
+                ]
+              }
+            }
+          ],
+          "auth": {
+            "type": "noauth"
+          }
+        },
+        {
+          "name": "Readiness",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/health/ready"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Database is ready', () => pm.expect(pm.response.json().dependencies.database).to.eql('up'));"
+                ]
+              }
+            }
+          ],
+          "auth": {
+            "type": "noauth"
+          }
+        },
+        {
+          "name": "Public Branches",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/public/branches"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Active branches returned', () => pm.expect(pm.response.json().data).to.be.an('array').that.is.not.empty);",
+                  "pm.test('Public cache policy visible', () => pm.expect(pm.response.headers.get('Cache-Control')).to.include('public'));"
+                ]
+              }
+            }
+          ],
+          "auth": {
+            "type": "noauth"
+          }
+        }
+      ]
+    },
     {
       "name": "Auth & Session",
       "item": [
         {
           "name": "Auth Config",
-          "request": { "method": "GET", "url": "{{base_url}}/auth/config" },
-          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', () => pm.response.to.have.status(200));", "pm.test('Google client id returned', () => pm.expect(pm.response.json().data.googleClientId).to.be.a('string'));"] } }]
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/auth/config"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Google client id returned', () => pm.expect(pm.response.json().data.googleClientId).to.be.a('string'));"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Private Dashboard - Anonymous Redirect",
-          "request": { "method": "GET", "url": "{{site_url}}/private/dashboard.html" },
-          "protocolProfileBehavior": { "followRedirects": false },
-          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 302 without session', () => pm.response.to.have.status(302));", "pm.test('Redirects to login', () => pm.expect(pm.response.headers.get('Location')).to.include('/login.html?session=expired'));"] } }]
+          "request": {
+            "method": "GET",
+            "url": "{{site_url}}/private/dashboard.html"
+          },
+          "protocolProfileBehavior": {
+            "followRedirects": false
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 302 without session', () => pm.response.to.have.status(302));",
+                  "pm.test('Redirects to login', () => pm.expect(pm.response.headers.get('Location')).to.include('/login.html?session=expired'));"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Current Session - No Token",
-          "auth": { "type": "noauth" },
+          "auth": {
+            "type": "noauth"
+          },
           "request": {
             "method": "GET",
-            "header": [{ "key": "Cookie", "value": "alc_session=" }],
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "alc_session="
+              }
+            ],
             "url": "{{base_url}}/auth/me"
           },
           "event": [
-            { "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["pm.environment.unset('session_token');"] } },
-            { "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 401 without token', () => pm.response.to.have.status(401));", "pm.test('Authentication required message', () => pm.expect(pm.response.json().message).to.include('Authentication required'));"] } }
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.environment.unset('session_token');"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 401 without token', () => pm.response.to.have.status(401));",
+                  "pm.test('Authentication required message', () => pm.expect(pm.response.json().message).to.include('Authentication required'));"
+                ]
+              }
+            }
           ]
         },
         {
           "name": "Password Login - Invalid Credentials",
-          "auth": { "type": "noauth" },
+          "auth": {
+            "type": "noauth"
+          },
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{login_email}}\",\n  \"password\": \"wrong-password\"\n}", "options": { "raw": { "language": "json" } } },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{login_email}}\",\n  \"password\": \"wrong-password\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": "{{base_url}}/auth/login"
           },
-          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 401 invalid credentials', () => pm.response.to.have.status(401));"] } }]
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 401 invalid credentials', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Password Login - Demo",
-          "auth": { "type": "noauth" },
+          "auth": {
+            "type": "noauth"
+          },
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{login_email}}\",\n  \"password\": \"{{login_password}}\"\n}", "options": { "raw": { "language": "json" } } },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{login_email}}\",\n  \"password\": \"{{login_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": "{{base_url}}/auth/login"
           },
-          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', () => pm.response.to.have.status(200));", "const json = pm.response.json();", "pm.environment.set('user_id', json.data.user.id);", "pm.environment.set('session_token', json.data.sessionToken);", "pm.test('JWT session token returned', () => pm.expect(json.data.sessionToken.split('.')).to.have.length(3));", "pm.test('Bearer token type returned', () => pm.expect(json.data.tokenType).to.eql('Bearer'));", "pm.test('Session cookie issued', () => pm.expect(pm.cookies.has('alc_session')).to.be.true);"] } }]
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.environment.set('user_id', json.data.user.id);",
+                  "pm.environment.set('session_token', json.data.sessionToken);",
+                  "pm.test('JWT session token returned', () => pm.expect(json.data.sessionToken.split('.')).to.have.length(3));",
+                  "pm.test('Bearer token type returned', () => pm.expect(json.data.tokenType).to.eql('Bearer'));",
+                  "pm.test('Session cookie issued', () => pm.expect(pm.cookies.has('alc_session')).to.be.true);"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Google Login - Invalid Token",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"idToken\": \"not-a-valid-google-token\"\n}", "options": { "raw": { "language": "json" } } },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idToken\": \"not-a-valid-google-token\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": "{{base_url}}/auth/google"
           },
-          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 401', () => pm.response.to.have.status(401));"] } }]
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Google Login - Optional Real Token",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"idToken\": \"{{google_id_token}}\"\n}", "options": { "raw": { "language": "json" } } },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idToken\": \"{{google_id_token}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": "{{base_url}}/auth/google"
           },
-          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["const token = pm.environment.get('google_id_token');", "if (!token) {", "  pm.test('Skipped when google_id_token is empty', () => pm.expect([401, 422]).to.include(pm.response.code));", "} else {", "  pm.test('HTTP 200', () => pm.response.to.have.status(200));", "  const json = pm.response.json();", "  pm.environment.set('user_id', json.data.user.id);", "  pm.environment.set('session_token', json.data.sessionToken);", "  pm.test('JWT session token returned', () => pm.expect(json.data.sessionToken.split('.')).to.have.length(3));", "  pm.test('Bearer token type returned', () => pm.expect(json.data.tokenType).to.eql('Bearer'));", "  pm.test('Session cookie issued', () => pm.expect(pm.cookies.has('alc_session')).to.be.true);", "}"] } }]
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const token = pm.environment.get('google_id_token');",
+                  "if (!token) {",
+                  "  pm.test('Skipped when google_id_token is empty', () => pm.expect([401, 422]).to.include(pm.response.code));",
+                  "} else {",
+                  "  pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "  const json = pm.response.json();",
+                  "  pm.environment.set('user_id', json.data.user.id);",
+                  "  pm.environment.set('session_token', json.data.sessionToken);",
+                  "  pm.test('JWT session token returned', () => pm.expect(json.data.sessionToken.split('.')).to.have.length(3));",
+                  "  pm.test('Bearer token type returned', () => pm.expect(json.data.tokenType).to.eql('Bearer'));",
+                  "  pm.test('Session cookie issued', () => pm.expect(pm.cookies.has('alc_session')).to.be.true);",
+                  "}"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Current Session",
-          "request": { "method": "GET", "url": "{{base_url}}/auth/me" },
-          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', () => pm.response.to.have.status(200));", "const json = pm.response.json();", "pm.environment.set('user_id', json.data.user.id);"] } }]
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/auth/me"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.environment.set('user_id', json.data.user.id);"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Current Session - Bearer Token",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{session_token}}" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{session_token}}"
+              }
+            ],
             "url": "{{base_url}}/auth/me"
           },
-          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200 with bearer token', () => pm.response.to.have.status(200));", "const json = pm.response.json();", "pm.test('Session user returned', () => pm.expect(json.data.user.id).to.eql(pm.environment.get('user_id')));"] } }]
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200 with bearer token', () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test('Session user returned', () => pm.expect(json.data.user.id).to.eql(pm.environment.get('user_id')));"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Private Dashboard - With Session",
-          "request": { "method": "GET", "url": "{{site_url}}/private/dashboard.html" },
-          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200 with session', () => pm.response.to.have.status(200));", "pm.test('React root present', () => pm.expect(pm.response.text()).to.include('id=\"root\"'));"] } }]
+          "request": {
+            "method": "GET",
+            "url": "{{site_url}}/private/dashboard.html"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200 with session', () => pm.response.to.have.status(200));",
+                  "pm.test('React root present', () => pm.expect(pm.response.text()).to.include('id=\"root\"'));"
+                ]
+              }
+            }
+          ]
         }
       ]
     },
@@ -109,61 +401,119 @@
           "name": "Create Enrollment Request",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"fullName\": \"Postman Prospect {{$timestamp}}\",\n  \"email\": \"postman-{{$timestamp}}@example.com\",\n  \"preferredBranch\": \"Norte\",\n  \"styleInterest\": \"Salsa\",\n  \"message\": \"Manual Postman validation.\"\n}", "options": { "raw": { "language": "json" } } },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Postman Prospect {{$timestamp}}\",\n  \"email\": \"postman-{{$timestamp}}@example.com\",\n  \"preferredBranch\": \"Norte\",\n  \"styleInterest\": \"Salsa\",\n  \"message\": \"Manual Postman validation.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": "{{base_url}}/enrollment-requests"
           },
-          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 201', () => pm.response.to.have.status(201));", "pm.environment.set('enrollment_request_id', pm.response.json().data.id);"] } }]
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "pm.environment.set('enrollment_request_id', pm.response.json().data.id);"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Create Enrollment Request - Invalid Email",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"fullName\": \"Invalid Email Prospect\",\n  \"email\": \"invalid\"\n}", "options": { "raw": { "language": "json" } } },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Invalid Email Prospect\",\n  \"email\": \"invalid\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": "{{base_url}}/enrollment-requests"
           },
-          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 422', () => pm.response.to.have.status(422));"] } }]
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 422', () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "List Enrollment Requests",
-          "request": { "method": "GET", "url": "{{base_url}}/enrollment-requests" },
-          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200 as director/admin', () => pm.response.to.have.status(200));"] } }]
-        }
-      ]
-    },
-    {
-      "name": "Identity And RBAC",
-      "item": [
-        {
-          "name": "List Users",
-          "request": { "method": "GET", "url": "{{base_url}}/users" },
-          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200 as director/admin', () => pm.response.to.have.status(200));"] } }]
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/enrollment-requests"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200 as director/admin', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
         },
         {
-          "name": "Assign User Role",
+          "name": "Update Enrollment Request Status",
           "request": {
             "method": "PATCH",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"role\": \"Admin\"\n}", "options": { "raw": { "language": "json" } } },
-            "url": "{{base_url}}/users/{{user_id}}/role"
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/enrollment-requests/{{enrollment_request_id}}/status",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"contacted\",\n  \"notes\": \"Contacted during Postman verification.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
           },
-          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200 as admin', () => pm.response.to.have.status(200));"] } }]
-        },
-        {
-          "name": "List Roles",
-          "request": { "method": "GET", "url": "{{base_url}}/roles" },
-          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200 authenticated', () => pm.response.to.have.status(200));"] } }]
-        },
-        {
-          "name": "List Permissions",
-          "request": { "method": "GET", "url": "{{base_url}}/permissions" },
-          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200 as director/admin', () => pm.response.to.have.status(200));"] } }]
-        },
-        {
-          "name": "List Audit Logs",
-          "request": { "method": "GET", "url": "{{base_url}}/audit-logs" },
-          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200 as director/admin', () => pm.response.to.have.status(200));"] } }]
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
         }
       ]
     },
@@ -174,165 +524,1276 @@
           "name": "Create Branch",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Postman Branch {{$timestamp}}\",\n  \"city\": \"Quito\",\n  \"active\": true\n}", "options": { "raw": { "language": "json" } } },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Postman Branch {{$timestamp}}\",\n  \"city\": \"Quito\",\n  \"active\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": "{{base_url}}/branches"
           },
-          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 201', () => pm.response.to.have.status(201));", "pm.environment.set('branch_id', pm.response.json().data.id);"] } }]
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "pm.environment.set('branch_id', pm.response.json().data.id);"
+                ]
+              }
+            }
+          ]
         },
-        { "name": "List Branches", "request": { "method": "GET", "url": "{{base_url}}/branches" }, "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', () => pm.response.to.have.status(200));"] } }] },
-        { "name": "Read Branch", "request": { "method": "GET", "url": "{{base_url}}/branches/{{branch_id}}" }, "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', () => pm.response.to.have.status(200));"] } }] },
+        {
+          "name": "List Branches",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/branches"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Read Branch",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/branches/{{branch_id}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
         {
           "name": "Update Branch",
           "request": {
             "method": "PATCH",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"city\": \"Quito Norte\"\n}", "options": { "raw": { "language": "json" } } },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"city\": \"Quito Norte\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": "{{base_url}}/branches/{{branch_id}}"
           },
-          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', () => pm.response.to.have.status(200));"] } }]
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Create Student",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"branchId\": \"{{branch_id}}\",\n  \"fullName\": \"Postman Student {{$timestamp}}\",\n  \"level\": \"B1\",\n  \"active\": true\n}", "options": { "raw": { "language": "json" } } },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"branchId\": \"{{branch_id}}\",\n  \"fullName\": \"Postman Student {{$timestamp}}\",\n  \"level\": \"B1\",\n  \"active\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": "{{base_url}}/students"
           },
-          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 201', () => pm.response.to.have.status(201));", "pm.environment.set('student_id', pm.response.json().data.id);"] } }]
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "pm.environment.set('student_id', pm.response.json().data.id);"
+                ]
+              }
+            }
+          ]
         },
-        { "name": "List Students", "request": { "method": "GET", "url": "{{base_url}}/students" }, "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', () => pm.response.to.have.status(200));"] } }] },
-        { "name": "Read Student", "request": { "method": "GET", "url": "{{base_url}}/students/{{student_id}}" }, "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', () => pm.response.to.have.status(200));"] } }] },
+        {
+          "name": "List Students",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/students"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Read Student",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/students/{{student_id}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
         {
           "name": "Update Student",
           "request": {
             "method": "PATCH",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"level\": \"B2\"\n}", "options": { "raw": { "language": "json" } } },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Postman Student Updated\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": "{{base_url}}/students/{{student_id}}"
           },
-          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', () => pm.response.to.have.status(200));"] } }]
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Create Teacher",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"branchId\": \"{{branch_id}}\",\n  \"fullName\": \"Postman Teacher {{$timestamp}}\",\n  \"hourlyRate\": 15,\n  \"active\": true\n}", "options": { "raw": { "language": "json" } } },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"branchId\": \"{{branch_id}}\",\n  \"fullName\": \"Postman Teacher {{$timestamp}}\",\n  \"hourlyRate\": 15,\n  \"active\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": "{{base_url}}/teachers"
           },
-          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 201', () => pm.response.to.have.status(201));", "pm.environment.set('teacher_id', pm.response.json().data.id);"] } }]
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "pm.environment.set('teacher_id', pm.response.json().data.id);"
+                ]
+              }
+            }
+          ]
         },
-        { "name": "List Teachers", "request": { "method": "GET", "url": "{{base_url}}/teachers" }, "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', () => pm.response.to.have.status(200));"] } }] },
-        { "name": "Read Teacher", "request": { "method": "GET", "url": "{{base_url}}/teachers/{{teacher_id}}" }, "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', () => pm.response.to.have.status(200));"] } }] },
+        {
+          "name": "List Teachers",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/teachers"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Read Teacher",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/teachers/{{teacher_id}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
         {
           "name": "Update Teacher",
           "request": {
             "method": "PATCH",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"hourlyRate\": 16\n}", "options": { "raw": { "language": "json" } } },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"hourlyRate\": 16\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": "{{base_url}}/teachers/{{teacher_id}}"
           },
-          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', () => pm.response.to.have.status(200));"] } }]
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Create Dance Category",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Postman Category {{$timestamp}}\"\n}", "options": { "raw": { "language": "json" } } },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Postman Category {{$timestamp}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": "{{base_url}}/dance-categories"
           },
-          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 201', () => pm.response.to.have.status(201));", "pm.environment.set('dance_category_id', pm.response.json().data.id);"] } }]
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "pm.environment.set('dance_category_id', pm.response.json().data.id);"
+                ]
+              }
+            }
+          ]
         },
-        { "name": "List Dance Categories", "request": { "method": "GET", "url": "{{base_url}}/dance-categories" }, "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', () => pm.response.to.have.status(200));"] } }] },
-        { "name": "Read Dance Category", "request": { "method": "GET", "url": "{{base_url}}/dance-categories/{{dance_category_id}}" }, "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', () => pm.response.to.have.status(200));"] } }] },
+        {
+          "name": "List Dance Categories",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/dance-categories"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Read Dance Category",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/dance-categories/{{dance_category_id}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
         {
           "name": "Update Dance Category",
           "request": {
             "method": "PATCH",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Postman Category Updated {{$timestamp}}\"\n}", "options": { "raw": { "language": "json" } } },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Postman Category Updated {{$timestamp}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": "{{base_url}}/dance-categories/{{dance_category_id}}"
           },
-          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', () => pm.response.to.have.status(200));"] } }]
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Create Dance Style",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"categoryId\": \"{{dance_category_id}}\",\n  \"name\": \"Postman Style {{$timestamp}}\"\n}", "options": { "raw": { "language": "json" } } },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"categoryId\": \"{{dance_category_id}}\",\n  \"name\": \"Postman Style {{$timestamp}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": "{{base_url}}/dance-styles"
           },
-          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 201', () => pm.response.to.have.status(201));", "pm.environment.set('dance_style_id', pm.response.json().data.id);"] } }]
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "pm.environment.set('dance_style_id', pm.response.json().data.id);"
+                ]
+              }
+            }
+          ]
         },
-        { "name": "List Dance Styles", "request": { "method": "GET", "url": "{{base_url}}/dance-styles" }, "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', () => pm.response.to.have.status(200));"] } }] },
-        { "name": "Read Dance Style", "request": { "method": "GET", "url": "{{base_url}}/dance-styles/{{dance_style_id}}" }, "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', () => pm.response.to.have.status(200));"] } }] },
+        {
+          "name": "List Dance Styles",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/dance-styles"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Read Dance Style",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/dance-styles/{{dance_style_id}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
         {
           "name": "Update Dance Style",
           "request": {
             "method": "PATCH",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Postman Style Updated {{$timestamp}}\"\n}", "options": { "raw": { "language": "json" } } },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Postman Style Updated {{$timestamp}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": "{{base_url}}/dance-styles/{{dance_style_id}}"
           },
-          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', () => pm.response.to.have.status(200));"] } }]
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Create Class Group",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"branchId\": \"{{branch_id}}\",\n  \"styleId\": \"{{dance_style_id}}\",\n  \"teacherId\": \"{{teacher_id}}\",\n  \"name\": \"Postman Group {{$timestamp}}\",\n  \"level\": \"B1\",\n  \"active\": true\n}", "options": { "raw": { "language": "json" } } },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"branchId\": \"{{branch_id}}\",\n  \"styleId\": \"{{dance_style_id}}\",\n  \"teacherId\": \"{{teacher_id}}\",\n  \"name\": \"Postman Group {{$timestamp}}\",\n  \"level\": \"B1\",\n  \"active\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": "{{base_url}}/class-groups"
           },
-          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 201', () => pm.response.to.have.status(201));", "pm.environment.set('class_group_id', pm.response.json().data.id);"] } }]
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "pm.environment.set('class_group_id', pm.response.json().data.id);"
+                ]
+              }
+            }
+          ]
         },
-        { "name": "List Class Groups", "request": { "method": "GET", "url": "{{base_url}}/class-groups" }, "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', () => pm.response.to.have.status(200));"] } }] },
-        { "name": "Read Class Group", "request": { "method": "GET", "url": "{{base_url}}/class-groups/{{class_group_id}}" }, "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', () => pm.response.to.have.status(200));"] } }] },
+        {
+          "name": "List Class Groups",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/class-groups"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Read Class Group",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/class-groups/{{class_group_id}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
         {
           "name": "Update Class Group",
           "request": {
             "method": "PATCH",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Postman Group Updated {{$timestamp}}\"\n}", "options": { "raw": { "language": "json" } } },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Postman Group Updated {{$timestamp}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": "{{base_url}}/class-groups/{{class_group_id}}"
           },
-          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', () => pm.response.to.have.status(200));"] } }]
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Enroll Student In Class Group",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/class-group-enrollments",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"studentId\": \"{{student_id}}\",\n  \"classGroupId\": \"{{class_group_id}}\",\n  \"status\": \"active\",\n  \"startsAt\": \"{{enrollment_start}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "pm.environment.set('class_group_enrollment_id', pm.response.json().data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Class Group Enrollments",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/class-group-enrollments"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Enrollments returned', () => pm.expect(pm.response.json().data).to.be.an('array'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Class Group Enrollment",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/class-group-enrollments/{{class_group_enrollment_id}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"active\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Create Class Session",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"classGroupId\": \"{{class_group_id}}\",\n  \"startsAt\": \"2026-07-01T18:00:00.000Z\",\n  \"endsAt\": \"2026-07-01T20:00:00.000Z\",\n  \"status\": \"scheduled\"\n}", "options": { "raw": { "language": "json" } } },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"classGroupId\": \"{{class_group_id}}\",\n  \"name\": \"Postman active class\",\n  \"startsAt\": \"{{session_start}}\",\n  \"endsAt\": \"{{session_end}}\",\n  \"status\": \"scheduled\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": "{{base_url}}/class-sessions"
           },
-          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 201', () => pm.response.to.have.status(201));", "pm.environment.set('class_session_id', pm.response.json().data.id);"] } }]
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "pm.environment.set('class_session_id', pm.response.json().data.id);"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Create Absence Class Session",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"classGroupId\": \"{{class_group_id}}\",\n  \"startsAt\": \"2026-07-02T18:00:00.000Z\",\n  \"endsAt\": \"2026-07-02T20:00:00.000Z\",\n  \"status\": \"scheduled\"\n}", "options": { "raw": { "language": "json" } } },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"classGroupId\": \"{{class_group_id}}\",\n  \"name\": \"Postman completed attendance window\",\n  \"startsAt\": \"{{absence_session_start}}\",\n  \"endsAt\": \"{{absence_session_end}}\",\n  \"status\": \"scheduled\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": "{{base_url}}/class-sessions"
           },
-          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 201', () => pm.response.to.have.status(201));", "pm.environment.set('absence_class_session_id', pm.response.json().data.id);"] } }]
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "pm.environment.set('absence_class_session_id', pm.response.json().data.id);"
+                ]
+              }
+            }
+          ]
         },
-        { "name": "List Class Sessions", "request": { "method": "GET", "url": "{{base_url}}/class-sessions" }, "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', () => pm.response.to.have.status(200));"] } }] },
-        { "name": "Read Class Session", "request": { "method": "GET", "url": "{{base_url}}/class-sessions/{{class_session_id}}" }, "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', () => pm.response.to.have.status(200));"] } }] },
+        {
+          "name": "List Class Sessions",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/class-sessions"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Read Class Session",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/class-sessions/{{class_session_id}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
         {
           "name": "Update Class Session",
           "request": {
             "method": "PATCH",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"status\": \"completed\"\n}", "options": { "raw": { "language": "json" } } },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Postman active class updated\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": "{{base_url}}/class-sessions/{{class_session_id}}"
           },
-          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', () => pm.response.to.have.status(200));"] } }]
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Identity And RBAC",
+      "item": [
+        {
+          "name": "List Users",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/users"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200 as director/admin', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Managed Branch Director Account",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/users",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"postman.director.{{$timestamp}}@example.com\",\n  \"name\": \"Postman Branch Director\",\n  \"role\": \"BranchDirector\",\n  \"branchIds\": [\n    \"{{branch_id}}\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "const managedAccount = pm.response.json().data;",
+                  "pm.environment.set('managed_user_id', managedAccount.user.id);",
+                  "pm.environment.set('managed_user_email', managedAccount.user.email);",
+                  "pm.test('Invitation sent without exposing password', () => { pm.expect(managedAccount.invitation.status).to.eql('sent'); pm.expect(managedAccount.temporaryPassword).to.be.undefined; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Capture Managed Invitation From Mailpit",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{mailpit_url}}/api/v1/messages"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const mailbox = pm.response.json();",
+                  "const recipient = pm.environment.get('managed_user_email');",
+                  "const invitation = mailbox.messages.find((message) => (message.To || []).some((address) => address.Address === recipient));",
+                  "pm.test('Invitation reached local mailbox', () => pm.expect(invitation).to.exist);",
+                  "if (invitation) pm.environment.set('managed_message_id', invitation.ID);"
+                ]
+              }
+            }
+          ],
+          "auth": {
+            "type": "noauth"
+          }
+        },
+        {
+          "name": "Read Managed Invitation Detail",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{mailpit_url}}/api/v1/message/{{managed_message_id}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const invitation = pm.response.json();",
+                  "const match = String(invitation.Text || '').match(/Contraseña temporal:\\s*([^\\r\\n]+)/);",
+                  "pm.test('Branded invitation contains a temporary credential', () => { pm.expect(invitation.Subject).to.eql('Tu acceso a American Latin Class'); pm.expect(match).to.exist; });",
+                  "if (match) pm.environment.set('managed_temporary_password', match[1].trim());"
+                ]
+              }
+            }
+          ],
+          "auth": {
+            "type": "noauth"
+          }
+        },
+        {
+          "name": "Managed Account First Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{managed_user_email}}\",\n  \"password\": \"{{managed_temporary_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Password change is required', () => pm.expect(pm.response.json().data.user.mustChangePassword).to.be.true);",
+                  "pm.environment.set('admin_session_token', pm.environment.get('session_token'));",
+                  "pm.environment.set('session_token', pm.response.json().data.sessionToken);"
+                ]
+              }
+            }
+          ],
+          "auth": {
+            "type": "noauth"
+          }
+        },
+        {
+          "name": "Managed Account Changes Temporary Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/auth/change-password",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"{{managed_temporary_password}}\",\n  \"newPassword\": \"ManagedDirector2026!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Password change requirement cleared', () => pm.expect(pm.response.json().data.user.mustChangePassword).to.be.false);",
+                  "pm.environment.set('session_token', pm.environment.get('admin_session_token'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Assign User Role",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"BranchDirector\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{base_url}}/users/{{managed_user_id}}/role"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200 as admin', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Roles",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/roles"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200 authenticated', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Permissions",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/permissions"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200 as director/admin', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Audit Logs",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/audit-logs"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200 as director/admin', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Read User Branch Access",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/users/{{managed_user_id}}/branch-access"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Assigned branch returned', () => pm.expect(pm.response.json().data.map((row) => row.branchId)).to.include(pm.environment.get('branch_id')));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update User Branch Access",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/users/{{managed_user_id}}/branch-access",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"branchIds\": [\n    \"{{branch_id}}\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reset Managed User Password",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{base_url}}/users/{{managed_user_id}}/reset-password"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Reset email sent without exposing password', () => { const data = pm.response.json().data; pm.expect(data.user.mustChangePassword).to.be.true; pm.expect(data.invitation.status).to.eql('sent'); pm.expect(data.temporaryPassword).to.be.undefined; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Resend Managed User Invitation",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{base_url}}/users/{{managed_user_id}}/resend-invitation"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Invitation resent without exposing password', () => { const data = pm.response.json().data; pm.expect(data.invitation.status).to.eql('sent'); pm.expect(data.temporaryPassword).to.be.undefined; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Deactivate Managed User",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/users/{{managed_user_id}}/status",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"active\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('User is inactive', () => pm.expect(pm.response.json().data.active).to.be.false);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reactivate Managed User",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/users/{{managed_user_id}}/status",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"active\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('User is active', () => pm.expect(pm.response.json().data.active).to.be.true);"
+                ]
+              }
+            }
+          ]
         }
       ]
     },
@@ -340,116 +1801,1094 @@
       "name": "Attendance And Absences",
       "item": [
         {
+          "name": "List Student Attendance",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/student-attendance"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Attendance list returned', () => pm.expect(pm.response.json().data).to.be.an('array'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Load Session Roster",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/class-sessions/{{class_session_id}}/roster"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const roster = pm.response.json().data.roster;",
+                  "pm.test('Roster has enrolled student', () => pm.expect(roster).to.be.an('array').that.is.not.empty);",
+                  "pm.environment.set('roster_records', JSON.stringify(roster.map((row) => ({ studentId: row.student.id, status: 'present', notes: 'Postman batch draft' }))));"
+                ]
+              }
+            }
+          ]
+        },
+        {
           "name": "Record Student Attendance",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"studentId\": \"{{student_id}}\",\n  \"classSessionId\": \"{{class_session_id}}\",\n  \"status\": \"present\",\n  \"notes\": \"Manual Postman validation.\"\n}", "options": { "raw": { "language": "json" } } },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"studentId\": \"{{student_id}}\",\n  \"classSessionId\": \"{{class_session_id}}\",\n  \"status\": \"present\",\n  \"notes\": \"Manual Postman validation.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": "{{base_url}}/student-attendance"
           },
-          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 201', () => pm.response.to.have.status(201));", "pm.environment.set('attendance_record_id', pm.response.json().data.id);"] } }]
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "pm.environment.set('attendance_record_id', pm.response.json().data.id);"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Record Student Attendance - Duplicate",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"studentId\": \"{{student_id}}\",\n  \"classSessionId\": \"{{class_session_id}}\",\n  \"status\": \"present\"\n}", "options": { "raw": { "language": "json" } } },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"studentId\": \"{{student_id}}\",\n  \"classSessionId\": \"{{class_session_id}}\",\n  \"status\": \"present\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": "{{base_url}}/student-attendance"
           },
-          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 409 duplicate', () => pm.response.to.have.status(409));"] } }]
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 409 duplicate', () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Save Session Attendance Draft",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/class-sessions/{{class_session_id}}/attendance",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"state\": \"draft\",\n  \"records\": {{roster_records}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Draft state returned', () => pm.expect(pm.response.json().data.attendanceState).to.eql('draft'));"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Record Absent Attendance",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"studentId\": \"{{student_id}}\",\n  \"classSessionId\": \"{{absence_class_session_id}}\",\n  \"status\": \"absent\",\n  \"notes\": \"Manual absence validation.\"\n}", "options": { "raw": { "language": "json" } } },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"studentId\": \"{{student_id}}\",\n  \"classSessionId\": \"{{absence_class_session_id}}\",\n  \"status\": \"absent\",\n  \"notes\": \"Manual absence validation.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": "{{base_url}}/student-attendance"
           },
-          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 201', () => pm.response.to.have.status(201));", "pm.environment.set('absence_attendance_record_id', pm.response.json().data.id);"] } }]
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "pm.environment.set('absence_attendance_record_id', pm.response.json().data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Teacher Attendance",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/teacher-attendance"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Teacher attendance list returned', () => pm.expect(pm.response.json().data).to.be.an('array'));"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Teacher Check In",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"teacherId\": \"{{teacher_id}}\",\n  \"classSessionId\": \"{{class_session_id}}\"\n}", "options": { "raw": { "language": "json" } } },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"teacherId\": \"{{teacher_id}}\",\n  \"classSessionId\": \"{{class_session_id}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": "{{base_url}}/teacher-attendance/check-in"
           },
-          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 201', () => pm.response.to.have.status(201));", "pm.environment.set('teacher_attendance_id', pm.response.json().data.id);"] } }]
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "pm.environment.set('teacher_attendance_id', pm.response.json().data.id);"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Teacher Check In - Duplicate Open Record",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"teacherId\": \"{{teacher_id}}\",\n  \"classSessionId\": \"{{class_session_id}}\"\n}", "options": { "raw": { "language": "json" } } },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"teacherId\": \"{{teacher_id}}\",\n  \"classSessionId\": \"{{class_session_id}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": "{{base_url}}/teacher-attendance/check-in"
           },
-          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 409 duplicate open check-in', () => pm.response.to.have.status(409));"] } }]
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 409 duplicate open check-in', () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Teacher Check Out",
-          "request": { "method": "PATCH", "url": "{{base_url}}/teacher-attendance/{{teacher_attendance_id}}/check-out" },
-          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', () => pm.response.to.have.status(200));"] } }]
+          "request": {
+            "method": "PATCH",
+            "url": "{{base_url}}/teacher-attendance/{{teacher_attendance_id}}/check-out"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Teacher Check Out - Duplicate",
-          "request": { "method": "PATCH", "url": "{{base_url}}/teacher-attendance/{{teacher_attendance_id}}/check-out" },
-          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 409 duplicate checkout', () => pm.response.to.have.status(409));"] } }]
+          "request": {
+            "method": "PATCH",
+            "url": "{{base_url}}/teacher-attendance/{{teacher_attendance_id}}/check-out"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 409 duplicate checkout', () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Create Absence Justification",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"attendanceRecordId\": \"{{absence_attendance_record_id}}\",\n  \"reason\": \"Medical appointment validation.\"\n}", "options": { "raw": { "language": "json" } } },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"attendanceRecordId\": \"{{absence_attendance_record_id}}\",\n  \"reason\": \"Medical appointment validation.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": "{{base_url}}/absence-justifications"
           },
-          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 201', () => pm.response.to.have.status(201));", "pm.environment.set('absence_justification_id', pm.response.json().data.id);"] } }]
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "pm.environment.set('absence_justification_id', pm.response.json().data.id);"
+                ]
+              }
+            }
+          ]
         },
-        { "name": "List Absence Justifications", "request": { "method": "GET", "url": "{{base_url}}/absence-justifications" }, "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', () => pm.response.to.have.status(200));"] } }] },
+        {
+          "name": "List Absence Justifications",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/absence-justifications"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
         {
           "name": "Review Absence Justification",
           "request": {
             "method": "PATCH",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"status\": \"approved\",\n  \"reviewNotes\": \"Manual Postman review.\"\n}", "options": { "raw": { "language": "json" } } },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"approved\",\n  \"reviewNotes\": \"Manual Postman review.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": "{{base_url}}/absence-justifications/{{absence_justification_id}}/review"
           },
-          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', () => pm.response.to.have.status(200));"] } }]
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reject Enrollment Deletion With Attendance History",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{base_url}}/class-group-enrollments/{{class_group_enrollment_id}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 409 protects attendance history', () => pm.response.to.have.status(409));",
+                  "pm.test('Business rule is explicit', () => pm.expect(pm.response.json().details.code).to.eql('ENROLLMENT_HAS_ATTENDANCE_HISTORY'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Read Missing Absence Evidence",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/absence-justifications/{{absence_justification_id}}/evidence"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 404 when no file was uploaded', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Academy Events",
+      "item": [
+        {
+          "name": "Create Academy Event",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/academy-events",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"branchId\": \"{{branch_id}}\",\n  \"title\": \"Postman Dance Showcase\",\n  \"description\": \"Event created during defense verification.\",\n  \"level\": \"ALL\",\n  \"startsAt\": \"{{event_start}}\",\n  \"endsAt\": \"{{event_end}}\",\n  \"location\": \"American Latin Class\",\n  \"showIncome\": 250,\n  \"active\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "pm.environment.set('academy_event_id', pm.response.json().data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Academy Events",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/academy-events"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Read Academy Event",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/academy-events/{{academy_event_id}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Created event returned', () => pm.expect(pm.response.json().data.id).to.eql(pm.environment.get('academy_event_id')));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Academy Event",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/academy-events/{{academy_event_id}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"showIncome\": 300\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Remove Academy Event",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{base_url}}/academy-events/{{academy_event_id}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Payments",
+      "item": [
+        {
+          "name": "Create Student Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/student-payments",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"studentId\": \"{{student_id}}\",\n  \"branchId\": \"{{branch_id}}\",\n  \"amount\": 45,\n  \"concept\": \"Monthly tuition\",\n  \"period\": \"{{payment_period}}\",\n  \"status\": \"pending\",\n  \"dueAt\": \"{{payment_due_at}}\",\n  \"notes\": \"Postman defense verification.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "pm.environment.set('student_payment_id', pm.response.json().data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Student Payments",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/student-payments"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Read Student Payment",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/student-payments/{{student_payment_id}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Student Payment",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/student-payments/{{student_payment_id}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"paid\",\n  \"paidAt\": \"{{payment_paid_at}}\",\n  \"notes\": \"Payment collected during Postman verification.\",\n  \"correctionReason\": \"Defense verification payment\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reverse Student Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/student-payments/{{student_payment_id}}/reversal",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Postman defense reversal test\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ]
         }
       ]
     },
     {
       "name": "Reports And Evaluations",
       "item": [
-        { "name": "Branch Summary Report", "request": { "method": "GET", "url": "{{base_url}}/reports/branches/summary" }, "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', () => pm.response.to.have.status(200));"] } }] },
-        { "name": "Scholarship Candidate Report", "request": { "method": "GET", "url": "{{base_url}}/reports/scholarships/{{student_id}}/candidate" }, "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', () => pm.response.to.have.status(200));"] } }] },
-        { "name": "Level Promotion Candidate Report", "request": { "method": "GET", "url": "{{base_url}}/reports/level-promotions/{{student_id}}/candidate" }, "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', () => pm.response.to.have.status(200));"] } }] },
-        { "name": "Teacher Payment Report", "request": { "method": "GET", "url": "{{base_url}}/reports/teachers/{{teacher_id}}/payment" }, "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', () => pm.response.to.have.status(200));"] } }] },
-        { "name": "List Scholarship Evaluations", "request": { "method": "GET", "url": "{{base_url}}/scholarship-evaluations" }, "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', () => pm.response.to.have.status(200));"] } }] },
+        {
+          "name": "Branch Summary Report",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/reports/branches/summary"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Scholarship Candidate Report",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/reports/scholarships/{{student_id}}/candidate"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Level Promotion Candidate Report",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/reports/level-promotions/{{student_id}}/candidate"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Teacher Payment Report",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/reports/teachers/{{teacher_id}}/payment"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Scholarship Evaluations",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/scholarship-evaluations"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
         {
           "name": "Create Scholarship Evaluation",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"studentId\": \"{{student_id}}\",\n  \"percentage\": 25,\n  \"theoryScore\": 80,\n  \"practiceScore\": 85,\n  \"approved\": false\n}", "options": { "raw": { "language": "json" } } },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"studentId\": \"{{student_id}}\",\n  \"percentage\": 25,\n  \"theoryScore\": 80,\n  \"practiceScore\": 85,\n  \"approved\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": "{{base_url}}/scholarship-evaluations"
           },
-          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 201', () => pm.response.to.have.status(201));"] } }]
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ]
         },
-        { "name": "List Level Promotion Evaluations", "request": { "method": "GET", "url": "{{base_url}}/level-promotion-evaluations" }, "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', () => pm.response.to.have.status(200));"] } }] },
+        {
+          "name": "List Level Promotion Evaluations",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/level-promotion-evaluations"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
         {
           "name": "Create Level Promotion Evaluation",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"studentId\": \"{{student_id}}\",\n  \"consistencyScore\": 82,\n  \"theoryScore\": 80,\n  \"practiceScore\": 85,\n  \"approved\": false\n}", "options": { "raw": { "language": "json" } } },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"studentId\": \"{{student_id}}\",\n  \"consistencyScore\": 82,\n  \"theoryScore\": 80,\n  \"practiceScore\": 85,\n  \"approved\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": "{{base_url}}/level-promotion-evaluations"
           },
-          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 201', () => pm.response.to.have.status(201));"] } }]
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "General Report With Filters",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/reports/general?from={{report_from}}&to={{report_to}}&level=B1"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('General report totals returned', () => pm.expect(pm.response.json().data.totals).to.be.an('object'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Branch Detail Report",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/reports/branches/{{branch_id}}/detail?from={{report_from}}&to={{report_to}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Branch report returned', () => pm.expect(pm.response.json().data.branch).to.be.an('object'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Detailed Attendance Report",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/reports/attendance?from={{report_from}}&to={{report_to}}&level=B1"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Attendance dimensions returned', () => { const data = pm.response.json().data; pm.expect(data.byStudent).to.be.an('array'); pm.expect(data.byClassGroup).to.be.an('array'); pm.expect(data.byBranch).to.be.an('array'); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Student Self Service",
+      "item": [
+        {
+          "name": "Student Password Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/auth/login",
+            "description": "Set student_login_email and student_login_password in the environment before running this folder.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{student_login_email}}\",\n  \"password\": \"{{student_login_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.environment.set('admin_session_token', pm.environment.get('session_token'));",
+                  "pm.environment.set('session_token', pm.response.json().data.sessionToken);"
+                ]
+              }
+            }
+          ],
+          "auth": {
+            "type": "noauth"
+          }
+        },
+        {
+          "name": "Student Reads Own Attendance",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/student-attendance"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Student Reads Own Payments",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/student-payments"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Student Reads Available Events",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/academy-events"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Student Uploads Profile Photo",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/students/me/profile-photo",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"profilePhotoUrl\": \"data:image/png;base64,iVBORw0KGgo=\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Student Removes Profile Photo",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{base_url}}/students/me/profile-photo"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.environment.set('session_token', pm.environment.get('admin_session_token'));"
+                ]
+              }
+            }
+          ]
         }
       ]
     },
@@ -458,19 +2897,71 @@
       "item": [
         {
           "name": "Logout",
-          "request": { "method": "POST", "url": "{{base_url}}/auth/logout" },
-          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 200', () => pm.response.to.have.status(200));"] } }]
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/auth/logout"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Current Session - After Logout",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{session_token}}" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{session_token}}"
+              }
+            ],
             "url": "{{base_url}}/auth/me"
           },
-          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('HTTP 401 after logout', () => pm.response.to.have.status(401));", "pm.environment.unset('session_token');"] } }]
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 401 after logout', () => pm.response.to.have.status(401));",
+                  "pm.environment.unset('session_token');"
+                ]
+              }
+            }
+          ]
         }
       ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "const now = Date.now();",
+          "pm.environment.set('session_start', new Date(now - 30 * 60 * 1000).toISOString());",
+          "pm.environment.set('session_end', new Date(now + 90 * 60 * 1000).toISOString());",
+          "pm.environment.set('absence_session_start', new Date(now - 4 * 60 * 60 * 1000).toISOString());",
+          "pm.environment.set('absence_session_end', new Date(now - 2 * 60 * 60 * 1000).toISOString());",
+          "pm.environment.set('enrollment_start', new Date(now - 24 * 60 * 60 * 1000).toISOString());",
+          "pm.environment.set('event_start', new Date(now + 7 * 24 * 60 * 60 * 1000).toISOString());",
+          "pm.environment.set('event_end', new Date(now + 7 * 24 * 60 * 60 * 1000 + 2 * 60 * 60 * 1000).toISOString());",
+          "pm.environment.set('report_from', new Date(now - 90 * 24 * 60 * 60 * 1000).toISOString());",
+          "pm.environment.set('report_to', new Date(now).toISOString());",
+          "pm.environment.set('payment_period', new Date(now).toISOString().slice(0, 7));",
+          "pm.environment.set('payment_paid_at', new Date(now).toISOString());",
+          "pm.environment.set('payment_due_at', new Date(now + 5 * 24 * 60 * 60 * 1000).toISOString());"
+        ]
+      }
     }
   ]
 }

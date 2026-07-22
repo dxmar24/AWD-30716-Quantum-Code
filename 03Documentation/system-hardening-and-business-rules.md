@@ -116,7 +116,7 @@ Métricas: recaudo bruto positivo, monto reversado, recaudo neto, mensualidad/ot
 
 ## Reportes gerenciales y calidad
 
-Los endpoints general, resumen de sedes y detalle aceptan `from`/`to` ISO con máximo 1095 días y zona `America/Bogota`:
+Los endpoints general, resumen de sedes y detalle aceptan `from`/`to` ISO con máximo 1095 días y zona `America/Guayaquil`:
 
 - `generatedAt`: cuándo se calculó la respuesta.
 - `asOf`: fecha efectiva de corte; usa la más temprana entre `to` y la generación para no proyectar estados futuros.

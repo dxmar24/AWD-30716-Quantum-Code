@@ -26,7 +26,7 @@ HTTP cache policies are centralized in `src/middleware/cacheControl.js`:
 State-changing services invalidate tags such as `branches`, `students`, `attendance`, `evaluations` and `reports`. This keeps repeated director dashboards fast while preventing stale academic data from remaining after writes.
 
 ## Python analytics microservice
-An additional Python FastAPI API is included under `06Code/python-analytics-api` for analytical academic endpoints. It is not responsible for creating sessions or writing transactional attendance records. It reads from the same PostgreSQL database and validates the same JWT session token issued by the Node Auth API.
+An additional Python FastAPI API is included under `06Code/apis/python-analytics-api` for analytical academic endpoints. It is not responsible for creating sessions or writing transactional attendance records. It reads from the same PostgreSQL database and validates the same JWT session token issued by the Node Auth API.
 
 Runtime responsibility:
 - Base path: `/api/analytics/v1`.
@@ -44,6 +44,8 @@ The React login page supports email/password and Google Sign-In. Email is the ac
 ## Database model
 PostgreSQL schema is normalized around users/roles/permissions, explicit user branch access, branches, students, teachers, dance styles, class groups, class sessions, student attendance, teacher attendance, absence justifications, scholarship evaluations, level promotion evaluations, enrollment requests, sessions and audit logs.
 
+Absence evidence is stored in the justification row as private `BYTEA` content with sanitized filename, detected MIME type and byte size. Upload parsing lives in `src/middleware/evidenceUpload.js`; content-signature validation and authorization live in `AcademicService`; HTTP download headers live in `AcademicController`. API list/create/review responses omit `evidence_data`, and file reads use an authenticated, resource-scoped endpoint with `Cache-Control: private, no-store`.
+
 ## AWS deployment
 - Frontend EC2: Nginx on ports 80/443 serving static landing/app assets.
 - Core Business API EC2: port 3000 for branches, students, teachers, classes and attendance.
@@ -55,6 +57,12 @@ Security groups should allow public 443 only to ALB/Nginx, API traffic only from
 
 ## Environment variables
 See `06Code/.env.example` for required runtime variables.
+
+### Public branch locator
+
+The landing page keeps the five current academy addresses in its public branch catalog and changes the embedded Google map and selected address without reloading the page. Search and directions use the official Google Maps URLs contract (`api=1`), which does not require a key. When `VITE_GOOGLE_MAPS_API_KEY` is available at build time, the location area uses the official Google Maps Embed API; otherwise it uses Google's query-based embedded map viewer so the map remains visible in local demonstrations.
+
+The Maps key is optional, must never be committed, and should be restricted in Google Cloud to the Maps Embed API and the exact HTTPS/localhost HTTP referrers used by the frontend. In both modes, visitors receive the verified address plus working Google Maps search and directions links.
 
 ## Clean Code and SOLID decisions
 Business rules live in services, HTTP details live in controllers, cross-cutting concerns live in middleware, and constants avoid magic strings. Classes depend on abstractions supplied through constructors.

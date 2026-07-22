@@ -26,7 +26,7 @@ Controlador con I/O ──datos + fecha──▶ módulo funcional ──▶ rep
 
 ## Diapositiva 3 — Interfaces funcionales
 
-Mostrar al inicio de `06Code/src/functional/reportMetrics.js`:
+Mostrar al inicio de `06Code/backend/src/functional/reportMetrics.js`:
 
 ```js
 Predicate<T>
@@ -103,7 +103,7 @@ También se puede mencionar:
 
 ## Diapositiva 7 — Pruebas
 
-Mostrar `06Code/tests/unit/report-metrics.test.js` y ejecutar:
+Mostrar `06Code/backend/tests/unit/report-metrics.test.js` y ejecutar:
 
 ```bash
 cd 06Code

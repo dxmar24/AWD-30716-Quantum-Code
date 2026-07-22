@@ -45,7 +45,7 @@ Google documentation reference: https://support.google.com/cloud/answer/15549257
 3. BranchDirector account creation requires at least one assigned branch.
 4. The email is the username for password login.
 5. The backend stores only `password_hash`.
-6. The director gives the user a temporary password.
+6. The system sends the temporary password and instructions to the user's registered email.
 7. The user signs in and must change the temporary password.
 8. Google Sign-In can then be used as an alternate login when the Google email matches the academy account.
 
@@ -71,11 +71,13 @@ There are no default credentials. Supply local `SEED_*_EMAIL` and `SEED_*_PASSWO
 
 ## Frontend Private Entry
 - Public landing access points to `/login.html`.
+- The landing header revalidates `/auth/me` after normal load, browser-history restoration and tab visibility changes. Active sessions replace **Ingresar** with the user's name/photo and a link back to the private panel.
 - Successful email/password or Google login redirects to `/private/dashboard.html`.
 - First-login users see the mandatory password-change screen before the academic dashboard.
-- Admin and GeneralDirector users can create academy accounts from the private dashboard, assign BranchDirector branches and see the one-time temporary password.
+- Admin and GeneralDirector users can create academy accounts from the private dashboard, assign BranchDirector branches and confirm email delivery without seeing the temporary password.
 - Logout revokes the server-side session and redirects to `/login.html?session=logout`.
 - The Content Security Policy allows the Google Identity Services script/frame while keeping application resources self-hosted.
+- The Google button uses only supported Google Identity Services appearance properties (`filled_black`, rectangular shape, localized continuation text and left-aligned logo).
 
 ## Required Environment Variables
 - `GOOGLE_CLIENT_ID`

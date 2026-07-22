@@ -39,7 +39,7 @@ Reason:
 - Works well with service/repository architecture.
 
 Current implementation status:
-- `06Code/prisma/schema.prisma` defines the normalized PostgreSQL data model.
+- `06Code/persistence/prisma/schema.prisma` defines the normalized PostgreSQL data model.
 - `PrismaDatabaseContext` and `PrismaRepository` wire Prisma into the repository layer.
 - `DB_DRIVER=prisma` is now the production/default database driver when `DATABASE_URL` exists.
 - In-memory repositories remain for fast unit/integration tests.
@@ -72,7 +72,7 @@ Reason:
 - Works well as a small analytics microservice behind Nginx or an AWS load balancer.
 
 Current implementation status:
-- The Python API lives under `06Code/python-analytics-api`.
+- The Python API lives under `06Code/apis/python-analytics-api`.
 - It exposes `/api/analytics/v1` endpoints for attendance risk, scholarship readiness, branch performance and teacher workload.
 - It reuses the JWT session token issued by the Node Auth API and validates the token against the shared PostgreSQL `sessions` table.
 - It is designed for a separate AWS EC2 instance on port `8000`.

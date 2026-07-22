@@ -36,6 +36,7 @@ The current executable is one Express application. Deploy it as one application 
 - `JWT_ISSUER=american-latin-class-auth`
 - `JWT_AUDIENCE=american-latin-class-services`
 - `GOOGLE_CLIENT_ID`
+- `VITE_GOOGLE_MAPS_API_KEY` (optional at frontend build time; restrict it to Maps Embed API and the production HTTPS referrer).
 - `ALLOW_MOCK_GOOGLE_TOKENS=false`
 - `POSTMAN_LOGIN_ENABLED=false` (startup rejects this flag outside automated tests).
 - `EXPOSE_SESSION_TOKEN=false` (startup rejects response-token exposure in staging/production).
@@ -62,12 +63,12 @@ Branch directors must be assigned to one or more branches through `/api/v1/users
 ## Deployment Steps
 1. Create private RDS PostgreSQL with encryption, automated backups/PITR, deletion protection and a security group reachable only from application roles.
 2. Build in CI or a controlled build host with `npm ci`, `npm test`, `npm run db:generate` and `npm run frontend:build`.
-3. Snapshot the target database and run `npm run db:migrate:status`, then `npm run db:migrate`. The runner applies ordered migrations `001` through `012` using a lock, checksums and transactions; never invoke a schema push.
+3. Snapshot the target database and run `npm run db:migrate:status`, then `npm run db:migrate`. The runner applies ordered migrations `001` through `013` using a lock, checksums and transactions; never invoke a schema push.
 4. For a new database, run the one-time `npm run db:bootstrap-admin`, log in, rotate its temporary password and immediately remove `BOOTSTRAP_ADMIN_*` from the environment. Create real branch records through the controlled application workflow. Do not run demo/role seeds in production.
 5. Run `npm run db:smoke:prisma` and `npm run db:smoke:operational` against the migrated target before accepting traffic.
-6. Deploy source plus the already-built `dist/frontend`. If build and runtime share one host, run `npm ci`, build, then `npm prune --omit=dev`; start `node src/server.js` with `systemd`/PM2. Do not invoke an npm prestart build after pruning Vite.
+6. Deploy source plus the already-built `dist/frontend`. If build and runtime share one host, run `npm ci`, build, then `npm prune --omit=dev`; start `node backend/src/server.js` with `systemd`/PM2. Do not invoke an npm prestart build after pruning Vite.
 7. Deploy the Node application as identical instances behind the ALB; expose only port 3000 to the proxy security group.
-8. On the Python Analytics instance, create a virtual environment, install the pinned `06Code/python-analytics-api/requirements.txt` and start Uvicorn on port 8000 under a process manager.
+8. On the Python Analytics instance, create a virtual environment, install the pinned `06Code/apis/python-analytics-api/requirements.txt` and start Uvicorn on port 8000 under a process manager.
 9. Configure Nginx/ALB routing, ACM HTTPS, HTTP→HTTPS, HSTS and exact production origins.
 10. Configure ALB health checks: `/api/v1/health/live` for process liveness and `/api/v1/health/ready` for traffic readiness. Treat `503` readiness as unavailable without expecting internal error details.
 11. Verify auth/session/CSRF, branch scope, roster finalization, finance reversal, reports, audit filters, `/api/analytics/v1/health`, cache headers and private-page redirects.
@@ -94,10 +95,10 @@ npm run db:generate
 npm test
 npm run frontend:build
 npm prune --omit=dev
-node src/server.js
+node backend/src/server.js
 ```
 
-The Vite output is `06Code/dist/frontend`. Express serves that directory and keeps `/api/v1` as the API prefix. `npm start` is convenient for local/source deployments because its prestart hook builds the frontend; a pruned production runtime must use its prebuilt artifact and start `node src/server.js`. If Nginx is used, configure the site root to `06Code/dist/frontend` and proxy `/api/v1` to the Node.js process.
+The Vite output is `06Code/dist/frontend`. Express serves that directory and keeps `/api/v1` as the API prefix. `npm start` is convenient for local/source deployments because its prestart hook builds the frontend; a pruned production runtime must use its prebuilt artifact and start `node backend/src/server.js`. If Nginx is used, configure the site root to `06Code/dist/frontend` and proxy `/api/v1` to the Node.js process.
 
 For the current EC2 frontend instance, the reference Nginx configuration is versioned at `07Other/nginx-alc-frontend.conf`. It includes:
 - `/api/v1/health/live` and `/api/v1/health/ready` proxy to the Node application and remain sanitized/public for infrastructure probes.
@@ -149,7 +150,7 @@ Recommended setup:
 sudo apt update
 sudo apt install -y python3 python3-venv python3-pip
 git clone https://github.com/dxmar24/AWD-30716-Quantum-Code.git
-cd AWD-30716-Quantum-Code/06Code/python-analytics-api
+cd AWD-30716-Quantum-Code/06Code/apis/python-analytics-api
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt

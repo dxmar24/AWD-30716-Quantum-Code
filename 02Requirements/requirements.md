@@ -28,9 +28,9 @@
 ## Non-Functional Requirements
 | ID | Requirement | Evidence |
 |---|---|---|
-| NFR-01 | REST API versioned with `/api/v1`. | `06Code/src/routes/api.js` |
+| NFR-01 | REST API versioned with `/api/v1`. | `06Code/backend/src/routes/api.js` |
 | NFR-02 | Clean Code, MVC, services and repositories. | Controllers delegate to services; persistence is isolated by repository classes. |
-| NFR-03 | PostgreSQL normalized schema and controlled reference data. | Ordered `06Code/migrations/001_*.sql`–`012_*.sql`, Prisma mapping and localhost-only demo seeds. |
+| NFR-03 | PostgreSQL normalized schema and controlled reference data. | Ordered `06Code/persistence/migrations/001_*.sql`-`013_*.sql`, Prisma mapping and localhost-only demo seeds. |
 | NFR-04 | No production secrets in repository. | `.env.example`, Postman and deployment documentation contain placeholders only; real secrets are injected outside version control. |
 | NFR-05 | Restricted CORS. | `CORS_ORIGINS` env configuration. |
 | NFR-06 | Public/auth rate limiting. | `express-rate-limit` protects email login, Google login and public enrollment submission. |
@@ -39,7 +39,7 @@
 | NFR-09 | Consistent error handling. | `AppError` and `errorHandler` middleware. |
 | NFR-10 | AWS deployment preparation. | EC2/RDS/ALB guide and PlantUML deployment diagram. |
 | NFR-11 | Production-safe configuration. | Production/staging fails fast on default secrets, missing database URL or enabled mock Google tokens. |
-| NFR-12 | Controlled HTTP and in-memory cache behavior. | `03Documentation/cache-management.md`, `06Code/src/services/CacheService.js`, `06Code/src/middleware/cacheControl.js`, `07Other/nginx-alc-frontend.conf` |
+| NFR-12 | Controlled HTTP and in-memory cache behavior. | `03Documentation/cache-management.md`, `06Code/backend/src/services/CacheService.js`, `06Code/backend/src/middleware/cacheControl.js`, `07Other/nginx-alc-frontend.conf` |
 | NFR-13 | Auditable transactional mutations. | Business writes and their audit rows share a database transaction; concurrency-sensitive enrollment, attendance, leads and finance use transactional checks. |
 | NFR-14 | Safe schema evolution. | Ordered SQL migration runner uses advisory lock, per-file transaction, immutable checksum and `schema_migrations`; no schema-push deployment path. |
 | NFR-15 | Web security baseline. | Exact-origin CORS, secure cookie policy, CSRF for cookie writes, HTTPS enforcement, CSP/Helmet, bounded JSON and redacted errors with request IDs. |

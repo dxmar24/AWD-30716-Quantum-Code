@@ -10,9 +10,9 @@ Repository state:
 - Backend framework is Node.js + Express.
 - Frontend framework is React + Vite under 06Code/frontend.
 - ORM is Prisma with PostgreSQL:
-  - 06Code/prisma/schema.prisma
-  - 06Code/src/repositories/PrismaRepository.js
-  - 06Code/src/repositories/PrismaDatabaseContext.js
+  - 06Code/persistence/prisma/schema.prisma
+  - 06Code/backend/src/repositories/PrismaRepository.js
+  - 06Code/backend/src/repositories/PrismaDatabaseContext.js
   - DB_DRIVER=prisma in .env.example
 - In-memory repositories remain for automated tests.
 - Legacy raw pg repositories remain only as fallback with DB_DRIVER=pg; Prisma is the required production path.
@@ -26,7 +26,7 @@ Current validation commands:
 - npm run db:migrate:status
 - npm run db:smoke:prisma
 - npm run db:smoke:operational
-- cd python-analytics-api && python -m pytest -q
+- cd 06Code/apis/python-analytics-api && python -m pytest -q
 
 Possible future hardening:
 1. Run Prisma against a live PostgreSQL database:

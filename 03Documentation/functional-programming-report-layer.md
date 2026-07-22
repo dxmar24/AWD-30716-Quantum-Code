@@ -2,7 +2,7 @@
 
 ## Resultado verificado
 
-La implementación funcional está conectada a los reportes reales de American Latin Class y tiene pruebas automatizadas. La capa principal está en `06Code/src/functional/reportMetrics.js`; `ReportsController` obtiene únicamente los datos autorizados y finalizados, y después inyecta esos datos y una fecha de corte en las funciones de cálculo.
+La implementación funcional está conectada a los reportes reales de American Latin Class y tiene pruebas automatizadas. La capa principal está en `06Code/backend/src/functional/reportMetrics.js`; `ReportsController` obtiene únicamente los datos autorizados y finalizados, y después inyecta esos datos y una fecha de corte en las funciones de cálculo.
 
 Esta separación es deliberada:
 

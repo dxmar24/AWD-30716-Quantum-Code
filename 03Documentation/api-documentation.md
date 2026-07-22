@@ -55,7 +55,9 @@ Detailed cache evidence is documented in `03Documentation/cache-management.md`.
 | GET | `/enrollment-requests` | List public requests. | BranchDirector, GeneralDirector, Admin | None | None | `200` list | Restricted to directors/admin. | `401`, `403` |
 | PATCH | `/enrollment-requests/{id}/status` | Advance a lead through the academy pipeline. | BranchDirector, GeneralDirector, Admin | Path `id` | status, optional notes/followUpAt/convertedStudentId | `200` lead | Graph: pending→contacted/lost; contacted→trial_scheduled/enrolled/lost; trial_scheduled→contacted/enrolled/lost. Trial needs a future date, lost needs a reason, enrolled needs an active matching student. Audited. | `401`, `403`, `404`, `409`, `422` |
 | GET | `/users` | List users. | GeneralDirector, Admin | None | None | `200` list | Internal roles only. | `401`, `403` |
-| POST | `/users` | Create an academy user with a temporary password. | GeneralDirector, Admin | None | email, name, role, optional temporaryPassword, active, branchIds, studentProfile, teacherProfile | `201` user, linked profile when applicable, and one-time temporary password | Stores only a password hash. New users require first password change. Student/Teacher need a compatible linked profile; BranchDirector needs branch access. Only Admin may create Admin or GeneralDirector. Audited atomically. | `401`, `403`, `404`, `409`, `422` |
+| POST | `/users` | Create an academy user and send an access invitation. | GeneralDirector, Admin | None | email, name, role, active, branchIds, studentProfile, teacherProfile | `201` user, linked profile and safe email-delivery confirmation | The generated password is delivered only by email and is never returned by the API. The account remains inactive if delivery fails. New users require a password change. Student/Teacher need a compatible profile; BranchDirector needs branch access. | `401`, `403`, `404`, `409`, `422`, `502` |
+| POST | `/users/{id}/resend-invitation` | Generate and resend an access invitation. | GeneralDirector, Admin | Path `id` | None | `200` user and safe delivery confirmation | Sends a new temporary password, activates the role-ready account, revokes old sessions and never exposes the credential in HTTP responses. Audited. | `401`, `403`, `404`, `422`, `502` |
+| POST | `/users/{id}/reset-password` | Reset another user's password by email. | Admin | Path `id` | None | `200` user and safe delivery confirmation | Sends the temporary password before replacing the stored hash, revokes old sessions and requires password change. Self-reset is rejected. | `401`, `403`, `404`, `422`, `502` |
 | PATCH | `/users/{id}/role` | Assign internal role. | Admin | Path `id` | `{ "role": "Teacher" }` | `200` user | Student and Teacher roles require an existing linked profile; BranchDirector requires assigned branch access. Admin role is Admin-only. Audited. | `401`, `403`, `404`, `422` |
 | GET | `/users/{id}/branch-access` | List branch access assigned to a user. | GeneralDirector, Admin | Path `id` | None | `200` list | Used to scope BranchDirector permissions to specific branches. | `401`, `403`, `404` |
 | PATCH | `/users/{id}/branch-access` | Replace branch access assigned to a user. | GeneralDirector, Admin | Path `id` | `{ "branchIds": ["uuid"] }` | `200` list | Target user must be BranchDirector, at least one branch is required and IDs must exist. Audited atomically. | `401`, `403`, `404`, `422` |
@@ -75,6 +77,7 @@ Detailed cache evidence is documented in `03Documentation/cache-management.md`.
 | GET | `/class-group-enrollments` | List visible group memberships/history. | Authenticated | None | None | `200` scoped list | Student sees own links; Teacher sees assigned-group links; directors/admin see their branch/global scope. | `401`, `403` |
 | POST | `/class-group-enrollments` | Enroll or re-enroll a student in a group. | BranchDirector, GeneralDirector, Admin | None | studentId, classGroupId, optional status/startsAt/endsAt/enrolledAt/withdrawalReason | `201` episode | Branch/level/active resources must match. Active/trial consume capacity; overflow is atomically waitlisted. Re-enrollment needs every prior episode withdrawn/completed with `endsAt`, a non-overlapping new interval and no current active/trial/waitlisted/frozen episode. Audit links episode number/previous IDs. | `401`, `403`, `404`, `409`, `422` |
 | PATCH | `/class-group-enrollments/{id}` | Move one enrollment episode through its lifecycle. | BranchDirector, GeneralDirector, Admin | Path `id` | status/startsAt/endsAt/withdrawalReason | `200` episode | Uses explicit transition graph/effective dates and rejects overlap with another episode. Withdrawal needs a reason; withdrawn/completed are terminal for that row. Re-enrollment uses POST and preserves history. | `401`, `403`, `404`, `409`, `422` |
+| DELETE | `/class-group-enrollments/{id}` | Delete an erroneous enrollment with no attendance history. | BranchDirector, GeneralDirector, Admin | Path `id` | None | `200` deleted episode | Refuses deletion when any attendance record belongs to the student and group during the enrollment period. Historical enrollments must be withdrawn or completed instead. Audited. | `401`, `403`, `404`, `409` |
 | GET | `/class-sessions/{id}/roster` | Load the session's historical roster and current marks. | Teacher, BranchDirector, GeneralDirector, Admin | Path `id` | None | `200` session, group, state, roster | Selects the enrollment episode covering the session date. Access is assigned teacher or authorized branch/global director; waitlisted students do not enter the roster. | `401`, `403`, `404` |
 | PUT | `/class-sessions/{id}/attendance` | Save a draft or finalize roster attendance. | Teacher, BranchDirector, GeneralDirector, Admin | Path `id` | state (`draft`/`finalized`), records[], optional correctionReason | `200` batch result | Draft is allowed after class starts. Finalization/correction waits until `endsAt`, requires exact roster and completes the session. Cannot return to draft. Final correction is director-only, reasoned, versioned and idempotent when unchanged. | `401`, `403`, `404`, `409`, `422` |
 | GET | `/student-payments` and `/{id}` | List/read visible financial ledger rows. | Authenticated | Optional path `id` | None | `200` scoped data | Student sees own ledger; BranchDirector sees assigned branch; global roles see all. Effective overdue status is derived from due date. | `401`, `403`, `404` |
@@ -88,7 +91,8 @@ Detailed cache evidence is documented in `03Documentation/cache-management.md`.
 | POST | `/teacher-attendance/check-in` | Teacher check-in. | Teacher, BranchDirector, GeneralDirector, Admin | None | teacherId, classSessionId | `201` record | Session must be scheduled, active and assigned to the teacher. Window is from 60 minutes before to 60 minutes after class; duplicate session/open shift rejected. Snapshots rate. | `401`, `403`, `404`, `409`, `422` |
 | PATCH | `/teacher-attendance/{id}/check-out` | Teacher check-out. | Teacher, BranchDirector, GeneralDirector, Admin | Path `id` | None | `200` record | Cannot close twice. Stores payable minutes capped by actual time, scheduled duration +30 minutes and 12 hours. Audited. | `401`, `403`, `404`, `409` |
 | GET | `/absence-justifications` | List visible absence justifications. | Authenticated | None | None | `200` scoped list | Student sees own requests; teacher/director visibility follows academic/branch scope. | `401`, `403` |
-| POST | `/absence-justifications` | Submit absence justification. | Student, Teacher, directors/admin | None | attendanceRecordId, reason, optional HTTPS evidenceUrl | `201` request | Attendance must exist and remain absent; access is resource-scoped. Justification remains a separate review fact. | `401`, `403`, `404`, `422` |
+| POST | `/absence-justifications` | Submit absence justification. | Student, Teacher, directors/admin | None | `multipart/form-data`: attendanceRecordId, reason, optional `evidence` file | `201` request without file bytes | Evidence accepts valid JPEG, PNG, WebP or PDF content up to 5 MB. The signature must match the declared MIME type. Attendance must exist and remain absent; access is resource-scoped. | `401`, `403`, `404`, `413`, `422` |
+| GET | `/absence-justifications/{id}/evidence` | View a private justification attachment. | Authenticated and resource-scoped | Path `id` | None | `200` original file bytes | Uses the same student/teacher/branch scope as the justification, sends `private, no-store` and never exposes a public storage URL. | `401`, `403`, `404` |
 | PATCH | `/absence-justifications/{id}/review` | Approve/reject justification. | BranchDirector, GeneralDirector, Admin | Path `id` | status, optional reviewNotes | `200` request | Pending reviews only. Approval excludes the absence from adjusted denominator while raw physical absence remains visible. Audited. | `401`, `403`, `404`, `409`, `422` |
 | GET | `/reports/branches/summary?from=&to=` | Branch summary report. | BranchDirector, GeneralDirector, Admin | Optional ISO period | None | `200` branch metrics/quality alerts | Only finalized, non-cancelled academic evidence. Includes students, raw/adjusted attendance, punctuality, occupancy/waitlist, income/reversals, receivables/aging and quality alerts. Scoped and cached 30s. | `401`, `403`, `422` |
 | GET | `/reports/general?from=&to=` | Consolidated management report. | GeneralDirector, Admin | Optional ISO period, maximum 1095 days | None | `200` totals, distributions, six-month trends, funnel, branches and alerts | `generatedAt` is execution time; `asOf` is the earlier of `to` and generation time. Income distinguishes gross, reversals and net. | `401`, `403`, `422` |
@@ -104,7 +108,7 @@ Detailed cache evidence is documented in `03Documentation/cache-management.md`.
 
 ## Python Analytics API Reference
 
-The Python Analytics API is implemented with FastAPI under `06Code/python-analytics-api`. It reuses the JWT session token issued by the Node Auth API and enforces the same resource-scope policy for students, teachers and assigned branches.
+The Python Analytics API is implemented with FastAPI under `06Code/apis/python-analytics-api`. It reuses the JWT session token issued by the Node Auth API and enforces the same resource-scope policy for students, teachers and assigned branches.
 
 | Method | URI | Description | Required Role | Params/Query | Body | Success | Business/Validation | Errors |
 |---|---|---|---|---|---|---|---|---|
@@ -153,9 +157,23 @@ Create academy account:
   "email": "new-student@example.invalid",
   "name": "Student Name",
   "role": "Student",
-  "temporaryPassword": "<one-time-secret>"
+  "studentProfile": {
+    "branchId": "<branch-uuid>",
+    "level": "B1"
+  }
 }
 ```
+
+Safe account-creation response excerpt:
+```json
+{
+  "user": { "email": "new-student@example.invalid", "mustChangePassword": true },
+  "invitation": { "status": "sent", "recipient": "new-student@example.invalid", "transport": "smtp" },
+  "message": "The account was registered and the temporary password was sent by email."
+}
+```
+
+The response intentionally has no `temporaryPassword` field.
 
 Change temporary password:
 ```json

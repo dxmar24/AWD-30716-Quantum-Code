@@ -1,0 +1,38 @@
+{
+  "generatedAt": "2026-07-22T04:55:50.886Z",
+  "collection": "postman/American-Latin-Class-Analytics-API.postman_collection.json",
+  "target": {
+    "nodeApi": "http://127.0.0.1:3005/api/v1",
+    "analyticsApi": "http://127.0.0.1:8005/api/analytics/v1",
+    "database": "local PostgreSQL"
+  },
+  "selectedRecords": {
+    "studentId": "37c0e264-cef5-4a55-a351-d3958aaaf413",
+    "branchId": "06d1e68e-c66b-4634-8e6d-31074e4f4563",
+    "teacherId": "1c92ef34-02ea-4a77-ac56-5285fdb396f1"
+  },
+  "stats": {
+    "requests": {
+      "total": 6,
+      "pending": 0,
+      "failed": 0
+    },
+    "assertions": {
+      "total": 12,
+      "pending": 0,
+      "failed": 0
+    },
+    "testScripts": {
+      "total": 12,
+      "pending": 0,
+      "failed": 0
+    },
+    "prerequestScripts": {
+      "total": 6,
+      "pending": 0,
+      "failed": 0
+    }
+  },
+  "failures": [],
+  "security": "A real Node session token was used in memory and removed with the temporary environment."
+}

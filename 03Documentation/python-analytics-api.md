@@ -154,7 +154,7 @@ http://<python-analytics-private-ip>:8000/api/analytics/v1
 ## Local Validation
 
 ```bash
-cd 06Code/python-analytics-api
+cd 06Code/apis/python-analytics-api
 python -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements.txt
@@ -163,9 +163,9 @@ pip install -r requirements.txt
 
 The tests validate service calculations, the health endpoint and analytics cache headers.
 
-Latest verified result:
+Latest verified result on July 21, 2026:
 
 ```text
-Ran 9 tests
+Ran 15 tests
 OK
 ```

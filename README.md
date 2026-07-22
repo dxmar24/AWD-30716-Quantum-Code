@@ -2,7 +2,7 @@
 
 Sistema web para operar una academia de baile con trazabilidad académica, comercial y financiera. El proyecto ejecutable está en `06Code`; requisitos, documentación, UML, pruebas y evidencia permanecen en las carpetas numeradas.
 
-El sistema incluye autenticación y control de acceso por rol/sede, matrículas con cupo y lista de espera, agenda de clases, asistencia por roster, justificaciones, becas y promociones, jornada/pago docente, prospectos, cartera, reversos, reportes gerenciales, alertas de calidad y bitácora de auditoría.
+El sistema incluye autenticación y control de acceso por rol/sede, matrículas con cupo y lista de espera, agenda de clases, asistencia por roster, justificaciones, becas y promociones, jornada/pago docente, solicitudes de inscripción en seguimiento, cartera, reversos, reportes gerenciales, alertas de calidad y bitácora de auditoría.
 
 ## Inicio rápido
 
@@ -17,7 +17,7 @@ npm run db:migrate:status
 npm start
 ```
 
-`npm start` compila el frontend React antes de iniciar Express. Abra `http://localhost:3000` salvo que cambie `PORT`.
+`npm start` compila el frontend React antes de iniciar Express. Abra `http://localhost:3000` salvo que `PORT` lo cambie; el entorno local de defensa actual usa `http://127.0.0.1:3005`.
 
 Para crear el primer administrador, únicamente después de aplicar migraciones y antes de que exista otro Admin activo:
 
@@ -47,11 +47,14 @@ npm run frontend:build
 npm audit
 npm run db:smoke:operational   # requiere PostgreSQL y revierte sus datos de prueba
 
-cd python-analytics-api
-python -m pytest -q
+cd apis/python-analytics-api
+.\.venv\Scripts\python.exe -m unittest discover -s tests -v
 ```
 
 ## Documentación operativa
+
+- Índice y guía de defensa: `03Documentation/README.md`
+- Ejecución local completa: `03Documentation/local-defense-runbook.md`
 
 - Contratos y runbook: `03Documentation/system-hardening-and-business-rules.md`
 - API: `03Documentation/api-documentation.md`

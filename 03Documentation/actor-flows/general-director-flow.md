@@ -3,9 +3,9 @@
 Status: Passed
 
 Verification source:
-- Automated test: `06Code/tests/integration/actor-flows.test.js`
+- Automated test: `06Code/backend/tests/integration/actor-flows.test.js`
 - Command: `npm test`
-- Latest observed result: `6 passed, 6 total`, `38 passed, 38 total`
+- Latest observed result: `11 passed, 11 total`, `91 passed, 91 total`
 
 ## Actor Goal
 The GeneralDirector should operate as the academy owner: create accounts, assign branch access, review global academic activity and keep visibility over branches, users and reports.
@@ -35,7 +35,7 @@ Expected result: GeneralDirector can manage academy accounts and branch scopes w
 - Creating an Admin account as GeneralDirector returns `403 ADMIN_ROLE_RESTRICTED`.
 - Assigning a non-existent branch returns `404`.
 - GeneralDirector can create users and branch access, but cannot change existing user roles through `PATCH /api/v1/users/{id}/role`; that action remains Admin-only.
-- Created users receive a temporary password and must change it before protected academic flows.
+- Created users receive the temporary password through a branded email and must change it before protected academic flows. The director sees only the delivery confirmation.
 - Google Sign-In for created users only works after their email is registered and linked.
 
 ## Verified Endpoints

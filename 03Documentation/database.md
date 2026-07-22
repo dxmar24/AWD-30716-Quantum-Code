@@ -1,6 +1,6 @@
 # Database Documentation
 
-Production uses normalized PostgreSQL. Versioned SQL files in `06Code/migrations` are the schema change source of truth; `06Code/prisma/schema.prisma` is the application mapping used by Prisma. Database-specific partial/expression indexes, checks, the migration ledger and some referential details intentionally live only in SQL, so an unreviewed Prisma schema push is not an approved deployment mechanism.
+Production uses normalized PostgreSQL. Versioned SQL files in `06Code/persistence/migrations` are the schema change source of truth; `06Code/persistence/prisma/schema.prisma` is the application mapping used by Prisma. Database-specific partial/expression indexes, checks, the migration ledger and some referential details intentionally live only in SQL, so an unreviewed Prisma schema push is not an approved deployment mechanism.
 
 ## Main Tables
 
