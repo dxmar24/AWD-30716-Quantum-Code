@@ -5,7 +5,7 @@ This record describes the staging deployment verified on July 22, 2026. Public E
 ## Deployed Release
 
 - Git branch: `agent/academy-hardening`
-- Git commit: `8238008`
+- Executable release commit: `3ef6cbc` (later commits add diagrams, deployment records and Postman environment data only).
 - Public application URL: `https://3-19-30-6.sslip.io`
 - PostgreSQL: RDS instance `american-latin-class`
 - RDS endpoint: `american-latin-class.c38uoym8e77j.us-east-2.rds.amazonaws.com`
@@ -32,12 +32,13 @@ The three Node instances run the same deployable backend. Nginx separates route 
 - Python tests: 15 of 15 passed locally and again on the Analytics instance.
 - Public health checks: landing, login, Node liveness/readiness and Python health returned HTTP `200` over HTTPS.
 - Cross-instance flow: login, current user, branches, general report, attendance report and CSRF-protected logout returned HTTP `200`.
-- RDS backup before deployment: `/home/ubuntu/deploy-backups/alc-rds-before-013-20260722161917.dump` on the Core instance.
-- Frontend rollback copy: `/var/www/alc-frontend.previous-20260722163158` on the Frontend instance.
+- RDS backup before the defense dataset reset: `/home/ubuntu/alc-backups/pre-defense-reset-20260722163619.dump` on the Core instance (171 catalog entries, SHA-256 recorded during deployment).
+- Frontend rollback copy: `/var/www/alc-frontend-backup-20260722162131` on the Frontend instance.
+- Dataset verification: 5 active branches, 25 students, 23 active students, 11 active teachers, 11 named groups, 141 attendance records, 79 payments, 5 events and 0 placeholder account emails.
 
 ## Email Environment
 
-The staging environment uses Mailpit on `127.0.0.1:1025` of the Core instance. Its web inbox is bound to `127.0.0.1:8025` and is not publicly exposed. The branded invitation was accepted by SMTP and captured during deployment verification.
+The staging environment uses Mailpit on `127.0.0.1:1025` of each Node instance. Its web inbox is bound to `127.0.0.1:8025` and is not publicly exposed. SMTP delivery and capture were verified on Core.
 
 This is staging evidence, not external mailbox delivery. Before production, replace `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASSWORD` and `EMAIL_FROM` with a real transactional SMTP provider. Do not claim that Mailpit delivers to Gmail or Outlook.
 
