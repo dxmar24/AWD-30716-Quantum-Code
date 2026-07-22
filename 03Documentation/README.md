@@ -42,6 +42,7 @@ Product requirements and traceability are maintained in `../02Requirements/requi
 | Local demo data and database access | `demo-data-and-database-visual-access.md` |
 | Private cloud database inspection | `cloud-database-viewer.md` |
 | AWS deployment | `aws-deployment-guide.md` |
+| Current AWS staging deployment | `aws-current-deployment.md` |
 | Hardening and business rules | `system-hardening-and-business-rules.md` |
 
 ## Evidence Locations
@@ -52,4 +53,4 @@ Product requirements and traceability are maintained in `../02Requirements/requi
 - UI captures by actor: `../07Other/visual-evidence/defense/`.
 - Unit and integration tests: `../06Code/backend/tests/`.
 
-The AWS instances are intentionally stopped while local work continues to protect the remaining free-tier credit. The defense workflow does not require them: Node, React, PostgreSQL and FastAPI run locally with the same application code.
+The AWS staging deployment was verified on July 22, 2026. Because public EC2 addresses can change after a stop/start cycle, consult `aws-current-deployment.md` before a live defense. The same Node, React, PostgreSQL and FastAPI code can also run locally.
