@@ -1,0 +1,50 @@
+@startuml
+title American Latin Class - System Context
+left to right direction
+skinparam backgroundColor #FAFAF7
+skinparam shadowing false
+skinparam rectangle {
+  BackgroundColor #FFFFFF
+  BorderColor #242424
+}
+skinparam ArrowColor #9A8700
+
+actor Visitante
+actor Estudiante
+actor Profesor
+actor "Director de sede" as BranchDirector
+actor "Director general" as GeneralDirector
+actor Administrador
+
+rectangle "American Latin Class Platform" as ALC {
+  rectangle "Public academy experience\nprograms, branches, maps, enrollment" as Public
+  rectangle "Academic management\naccounts, groups, classes, attendance, events" as Academic
+  rectangle "Management control\nfinance, reports, analytics and audit" as Management
+}
+
+cloud "Google Identity Services" as GoogleIdentity
+cloud "Google Maps" as GoogleMaps
+cloud "Transactional email service" as Email
+database "PostgreSQL / Amazon RDS" as Database
+
+Visitante --> Public : explores and requests enrollment
+Estudiante --> Academic : profile, events, payments, attendance, justifications
+Profesor --> Academic : classes, roster, attendance, check-in/out
+BranchDirector --> Academic : branch operation and follow-up
+BranchDirector --> Management : branch reports
+GeneralDirector --> Academic : academy-wide management
+GeneralDirector --> Management : financial/attendance reports and analytics
+Administrador --> Academic : accounts, roles and operational support
+Administrador --> Management : audit and security oversight
+
+Public --> GoogleMaps : branch maps and directions
+Academic --> GoogleIdentity : optional login for existing account
+Academic --> Email : access invitation and temporary credential
+ALC --> Database : persistent transactional and analytical data
+
+note bottom of ALC
+The attendance system is the private operational platform
+of the American Latin Class dance academy; the public landing
+page promotes the academy, not the software itself.
+end note
+@enduml

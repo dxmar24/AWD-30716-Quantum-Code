@@ -1,12 +1,98 @@
 @startuml
-node "Public Subnet" { node "ALB / HTTPS" as ALB node "Frontend EC2\nNginx 80/443" as FE }
-node "Private App Subnet" { node "Core API EC2\n3000" as CORE node "Auth API EC2\n3001" as AUTH node "Reports API EC2\n3002" as REP }
-database "Amazon RDS PostgreSQL\n5432" as RDS
-ALB --> FE
-FE --> CORE
-FE --> AUTH
-FE --> REP
-CORE --> RDS
-AUTH --> RDS
-REP --> RDS
+title American Latin Class - AWS Staging Deployment
+left to right direction
+skinparam backgroundColor #FAFAF7
+skinparam shadowing false
+skinparam componentStyle rectangle
+skinparam packageStyle rectangle
+skinparam ArrowColor #9A8700
+
+actor "Web user" as User
+actor "Deployment operator" as Operator
+cloud "Google Identity\nand Maps" as Google
+cloud "Future production SMTP" as ExternalSMTP
+
+node "AWS Region us-east-2" {
+  node "VPC" {
+    frame "Public edge" {
+      node "Frontend EC2\nUbuntu + Nginx" as Frontend {
+        artifact "React/Vite static build\n/var/www/alc-frontend" as Static
+        component "Nginx\n80 -> 443\nTLS + HSTS + reverse proxy" as Nginx
+      }
+    }
+
+    frame "Application instances" {
+      node "Core Node EC2" as Core {
+        component "PM2 alc-api-core\nExpress app :3000" as CoreApp
+        component "Mailpit SMTP :1025\nUI :8025 loopback only" as CoreMail
+      }
+      node "Auth Node EC2" as AuthNode {
+        component "PM2 alc-api-auth\nSame Express build :3001" as AuthApp
+        component "Mailpit\nloopback only" as AuthMail
+      }
+      node "Reports Node EC2" as ReportsNode {
+        component "PM2 alc-api-reports\nSame Express build :3002" as ReportsApp
+        component "Mailpit\nloopback only" as ReportsMail
+      }
+      node "Analytics EC2" as AnalyticsNode {
+        component "systemd alc-python-analytics\nFastAPI/Uvicorn :8000" as AnalyticsApp
+      }
+    }
+
+    frame "Private data tier" {
+      database "Amazon RDS PostgreSQL\namerican-latin-class :5432\nprivate access only" as RDS
+      artifact "Migrations 001-013\nPrisma schema" as Migrations
+    }
+  }
+}
+
+User --> Nginx : HTTPS 443
+Nginx --> Static : landing/login/dashboard/assets
+Nginx --> AuthApp : /api/v1/auth/*\nprivate :3001
+Nginx --> ReportsApp : /api/v1/reports/*\nprivate :3002
+Nginx --> CoreApp : remaining /api/v1/*\nprivate :3000
+Nginx --> AnalyticsApp : /api/analytics/v1/*\nprivate :8000
+
+CoreApp --> RDS : TLS PostgreSQL 5432
+AuthApp --> RDS : TLS PostgreSQL 5432
+ReportsApp --> RDS : TLS PostgreSQL 5432
+AnalyticsApp --> RDS : scoped analytics reads 5432
+Migrations --> RDS : controlled deployment
+AuthApp --> Google : verify ID token
+Static --> Google : Maps / Identity browser resources
+CoreApp --> CoreMail : staging invitation email
+AuthApp --> AuthMail
+ReportsApp --> ReportsMail
+CoreApp ..> ExternalSMTP : production replacement
+
+Operator --> Frontend : temporary restricted SSH 22
+Operator --> Core : temporary restricted SSH 22
+Operator --> AuthNode : temporary restricted SSH 22
+Operator --> ReportsNode : temporary restricted SSH 22
+Operator --> AnalyticsNode : temporary restricted SSH 22
+
+note top of Frontend
+Public security group:
+80/443 from Internet.
+SSH 22 only during deployment
+and restricted to operator IP.
+end note
+
+note bottom of Core
+The three Node EC2 instances use the same
+deployable Express application. Nginx separates
+route groups for staging; this is not a claim
+of independently coded microservices.
+end note
+
+note bottom of RDS
+RDS accepts 5432 only from application
+security groups. It is never public.
+end note
+
+legend right
+  Current public IPv4 addresses are intentionally omitted.
+  They are ephemeral and documented separately in
+  03Documentation/aws-current-deployment.md.
+endlegend
 @enduml

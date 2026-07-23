@@ -1,0 +1,45 @@
+@startuml
+title Class Group Enrollment - State Diagram
+skinparam backgroundColor #FAFAF7
+skinparam shadowing false
+skinparam ArrowColor #9A8700
+
+[*] --> trial : trial enrollment
+[*] --> active : regular enrollment with capacity
+[*] --> waitlisted : no available capacity
+
+trial --> active : confirms enrollment / capacity available
+trial --> withdrawn : leaves during trial / reason
+trial --> completed : trial period completed
+waitlisted --> active : seat becomes available
+waitlisted --> withdrawn : cancels request / reason
+active --> frozen : temporary pause
+frozen --> active : resumes within episode
+active --> withdrawn : early exit / reason required
+frozen --> withdrawn : definitive exit / reason required
+active --> completed : academic period completed
+frozen --> completed : period closed by director
+
+withdrawn --> [*]
+completed --> [*]
+
+note right of active
+Counts against group capacity and
+covers sessions between startsAt/endsAt.
+end note
+
+note bottom of withdrawn
+Terminal state. History is preserved.
+end note
+
+note bottom of completed
+Terminal state indicating the student
+finished the class/program period.
+end note
+
+note left of trial
+Hard delete is allowed only for an erroneous
+enrollment with no attendance history.
+end note
+@enduml
+

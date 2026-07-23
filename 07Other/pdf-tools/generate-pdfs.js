@@ -10,6 +10,9 @@ const buildRoot = path.join(outputRoot, '.build');
 const htmlRoot = path.join(buildRoot, 'html');
 const generatedMarkdownRoot = path.join(buildRoot, 'generated-md');
 const stylePath = path.join(__dirname, 'pdf-style.html');
+const landscapeMarkdownSources = new Set([
+  '03Documentation/api-documentation.md',
+]);
 
 const markdownSources = [
   'README.md',
@@ -21,13 +24,17 @@ const markdownSources = [
   '03Documentation/aws-deployment-guide.md',
   '03Documentation/business-rules-api-test-report.md',
   '03Documentation/cache-management.md',
+  '03Documentation/client-director-program-review.md',
   '03Documentation/clean-code-solid.md',
   '03Documentation/database.md',
+  '03Documentation/functional-programming-presentation-guide.md',
+  '03Documentation/functional-programming-report-layer.md',
   '03Documentation/oauth-session.md',
   '03Documentation/postman-token-auth-proof.md',
   '03Documentation/product-backlog-validation.md',
   '03Documentation/python-analytics-api.md',
   '03Documentation/security-guide.md',
+  '03Documentation/system-hardening-and-business-rules.md',
   '03Documentation/technology-stack.md',
   '03Documentation/testing-guide.md',
   '03Documentation/uri-design.md',
@@ -132,7 +139,7 @@ function renderHtmlToPdf(chromePath, htmlPath, pdfPath) {
     '--headless=new',
     '--disable-gpu',
     '--no-sandbox',
-    '--print-to-pdf-no-header',
+    '--no-pdf-header-footer',
     `--print-to-pdf=${pdfPath}`,
     pathToFileURL(htmlPath).href,
   ]);
@@ -163,6 +170,15 @@ function convertMarkdownToPdf(chromePath, relativePath, pdfPathOverride) {
     '--output',
     htmlPath,
   ]);
+
+  if (landscapeMarkdownSources.has(relativePath)) {
+    const html = fs.readFileSync(htmlPath, 'utf8');
+    fs.writeFileSync(htmlPath, html.replace('</head>', `<style>
+      @page { size: A4 landscape; margin: 14mm; }
+      table { font-size: 7.6pt; }
+      th, td { padding: 4px 5px; }
+    </style></head>`), 'utf8');
+  }
 
   renderHtmlToPdf(chromePath, htmlPath, pdfPath);
   return pdfPath;

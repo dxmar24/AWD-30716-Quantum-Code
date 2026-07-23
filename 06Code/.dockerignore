@@ -1,0 +1,12 @@
+node_modules
+dist
+.env
+.env.*
+!.env.example
+coverage
+tmp
+npm-debug.log*
+apis/python-analytics-api/.venv
+apis/python-analytics-api/__pycache__
+**/__pycache__
+**/*.pyc

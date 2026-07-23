@@ -1,8 +1,0 @@
-class RulesService {
-  constructor(db, attendanceService) { this.db = db; this.attendanceService = attendanceService; }
-  defaultTwoMonthWindow() { const to = new Date(); const from = new Date(to); from.setMonth(from.getMonth() - 2); return { from: from.toISOString(), to: to.toISOString() }; }
-  async scholarshipCandidate(studentId, from, to) { const window = from || to ? { from, to } : this.defaultTwoMonthWindow(); const attendanceRate = await this.attendanceService.attendanceRate(studentId, window.from, window.to); return { studentId, attendanceRate, candidate: attendanceRate >= 0.9, rule:'>= 90% attendance in two-month period; director evaluation required' }; }
-  async promotionCandidate(studentId, from, to) { const student = await this.db.students.findById(studentId); const window = from || to ? { from, to } : this.defaultTwoMonthWindow(); const attendanceRate = await this.attendanceService.attendanceRate(studentId, window.from, window.to); return { studentId, attendanceRate, candidate: Boolean(student && student.level === 'B1' && attendanceRate >= 0.85), rule:'B1 student with attendance and consistency evidence; theory/practice approval required' }; }
-  async teacherPayment(teacherId) { const rows = (await this.db.teacherAttendance.all()).filter((r) => r.teacherId === teacherId && r.checkInAt && r.checkOutAt); const hours = rows.reduce((sum, r) => sum + ((new Date(r.checkOutAt) - new Date(r.checkInAt)) / 3600000), 0); const teacher = await this.db.teachers.findById(teacherId); const hourlyRate = teacher?.hourlyRate || 12.5; return { teacherId, hours: Number(hours.toFixed(2)), hourlyRate, amount: Number((hours * hourlyRate).toFixed(2)) }; }
-}
-module.exports = { RulesService };

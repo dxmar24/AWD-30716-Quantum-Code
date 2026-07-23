@@ -1,6 +1,6 @@
 # PDF Deliverables
 
-Generated: 2026-07-06T11:08:32.777Z
+Generated: 2026-07-13T16:03:18.764Z
 
 This folder contains the academic-professional PDF package for the American Latin Class Attendance System.
 
@@ -28,12 +28,16 @@ node 07Other/pdf-tools/generate-pdfs.js
 | Business Rules Api Test Report | `03Documentation/business-rules-api-test-report.pdf` | `03Documentation/business-rules-api-test-report.md` |
 | Cache Management | `03Documentation/cache-management.pdf` | `03Documentation/cache-management.md` |
 | Clean Code Solid | `03Documentation/clean-code-solid.pdf` | `03Documentation/clean-code-solid.md` |
+| Client Director Program Review | `03Documentation/client-director-program-review.pdf` | `03Documentation/client-director-program-review.md` |
 | Database | `03Documentation/database.pdf` | `03Documentation/database.md` |
+| Functional Programming Presentation Guide | `03Documentation/functional-programming-presentation-guide.pdf` | `03Documentation/functional-programming-presentation-guide.md` |
+| Functional Programming Report Layer | `03Documentation/functional-programming-report-layer.pdf` | `03Documentation/functional-programming-report-layer.md` |
 | Oauth Session | `03Documentation/oauth-session.pdf` | `03Documentation/oauth-session.md` |
 | Postman Token Auth Proof | `03Documentation/postman-token-auth-proof.pdf` | `03Documentation/postman-token-auth-proof.md` |
 | Product Backlog Validation | `03Documentation/product-backlog-validation.pdf` | `03Documentation/product-backlog-validation.md` |
 | Python Analytics Api | `03Documentation/python-analytics-api.pdf` | `03Documentation/python-analytics-api.md` |
 | Security Guide | `03Documentation/security-guide.pdf` | `03Documentation/security-guide.md` |
+| System Hardening And Business Rules | `03Documentation/system-hardening-and-business-rules.pdf` | `03Documentation/system-hardening-and-business-rules.md` |
 | Technology Stack | `03Documentation/technology-stack.pdf` | `03Documentation/technology-stack.md` |
 | Testing Guide | `03Documentation/testing-guide.pdf` | `03Documentation/testing-guide.md` |
 | Uri Design | `03Documentation/uri-design.pdf` | `03Documentation/uri-design.md` |

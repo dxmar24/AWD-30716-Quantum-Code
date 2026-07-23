@@ -1,0 +1,323 @@
+@startuml
+title American Latin Class - Complete Domain Class Diagram
+left to right direction
+skinparam backgroundColor #FAFAF7
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam classAttributeIconSize 0
+skinparam ArrowColor #9A8700
+skinparam class {
+  BackgroundColor #FFFFFF
+  BorderColor #242424
+  FontColor #171717
+}
+hide methods
+
+package "Identity and access" {
+  class Role <<entity>> {
+    + id: UUID {PK}
+    + name: String(40) {unique}
+  }
+  class Permission <<entity>> {
+    + id: UUID {PK}
+    + code: String(80) {unique}
+    + description: Text?
+  }
+  class RolePermission <<association>> {
+    + roleId: UUID {PK, FK}
+    + permissionId: UUID {PK, FK}
+  }
+  class User <<entity>> {
+    + id: UUID {PK}
+    + googleSub: String(160)? {unique}
+    + email: String(160) {unique}
+    + name: String(160)
+    - passwordHash: String?
+    + mustChangePassword: Boolean
+    + passwordChangedAt: DateTime?
+    + roleId: UUID? {FK}
+    + active: Boolean
+    + createdAt: DateTime
+  }
+  class UserBranchAccess <<association>> {
+    + id: UUID {PK}
+    + userId: UUID {FK}
+    + branchId: UUID {FK}
+    + createdAt: DateTime
+  }
+  class Session <<entity>> {
+    + id: UUID {PK}
+    + userId: UUID? {FK}
+    - tokenHash: String
+    + expiresAt: DateTime
+    + revoked: Boolean
+  }
+  class AuditLog <<entity>> {
+    + id: UUID {PK}
+    + actorUserId: UUID? {FK}
+    + action: String(120)
+    + entity: String(120)
+    + entityId: UUID?
+    + metadata: JSON
+    + createdAt: DateTime
+  }
+}
+
+package "Academy catalog and people" {
+  class Branch <<entity>> {
+    + id: UUID {PK}
+    + name: String(80) {unique}
+    + city: String(80)?
+    + active: Boolean
+    + createdAt: DateTime
+  }
+  class Student <<entity>> {
+    + id: UUID {PK}
+    + userId: UUID? {FK, unique}
+    + branchId: UUID {FK}
+    + fullName: String(160)
+    + level: String(2)
+    + active: Boolean
+    + profilePhotoUrl: String?
+    + profilePhotoUpdatedAt: DateTime?
+  }
+  class Teacher <<entity>> {
+    + id: UUID {PK}
+    + userId: UUID? {FK, unique}
+    + branchId: UUID? {FK}
+    + fullName: String(160)
+    + hourlyRate: Decimal(10,2)
+    + active: Boolean
+  }
+  class DanceCategory <<entity>> {
+    + id: UUID {PK}
+    + name: String(80) {unique}
+  }
+  class DanceStyle <<entity>> {
+    + id: UUID {PK}
+    + categoryId: UUID? {FK}
+    + name: String(80) {unique}
+  }
+  class TeacherStyle <<association>> {
+    + teacherId: UUID {PK, FK}
+    + styleId: UUID {PK, FK}
+  }
+  class AcademyEvent <<entity>> {
+    + id: UUID {PK}
+    + branchId: UUID? {FK}
+    + title: String(160)
+    + description: Text?
+    + level: String(3)
+    + startsAt: DateTime
+    + endsAt: DateTime?
+    + location: String(160)?
+    + showIncome: Decimal(10,2)
+    + active: Boolean
+    + createdAt: DateTime
+  }
+  class EnrollmentRequest <<entity>> {
+    + id: UUID {PK}
+    + fullName: String(160)
+    + email: String(160)
+    + phone: String(40)?
+    + branchId: UUID? {FK}
+    + preferredBranch: String(80)?
+    + styleInterest: String(120)?
+    + message: Text?
+    + status: String(20)
+    + statusNotes: Text?
+    + followUpAt: DateTime?
+    + convertedStudentId: UUID?
+    + updatedBy: UUID?
+    + createdAt: DateTime
+    + updatedAt: DateTime
+  }
+}
+
+package "Classes and attendance" {
+  class ClassGroup <<entity>> {
+    + id: UUID {PK}
+    + branchId: UUID? {FK}
+    + styleId: UUID? {FK}
+    + teacherId: UUID? {FK}
+    + name: String(120)
+    + level: String(2)?
+    + active: Boolean
+    + capacity: Integer
+  }
+  class ClassGroupEnrollment <<entity>> {
+    + id: UUID {PK}
+    + studentId: UUID {FK}
+    + classGroupId: UUID {FK}
+    + status: String(20)
+    + startsAt: DateTime
+    + endsAt: DateTime?
+    + enrolledAt: DateTime
+    + withdrawalReason: Text?
+    + createdBy: UUID? {FK}
+    + createdAt: DateTime
+    + updatedAt: DateTime
+  }
+  class ClassSession <<entity>> {
+    + id: UUID {PK}
+    + classGroupId: UUID? {FK}
+    + startsAt: DateTime
+    + endsAt: DateTime
+    + name: String(120)?
+    + status: String(20)
+    + attendanceState: String(20)
+    + attendanceFinalizedAt: DateTime?
+    + attendanceFinalizedBy: UUID? {FK}
+    + cancellationReason: Text?
+    + cancelledAt: DateTime?
+    + cancelledBy: UUID? {FK}
+    + completedAt: DateTime?
+    + completedBy: UUID? {FK}
+  }
+  class StudentAttendanceRecord <<entity>> {
+    + id: UUID {PK}
+    + studentId: UUID? {FK}
+    + classSessionId: UUID? {FK}
+    + status: String(20)
+    + notes: Text?
+    + recordedBy: UUID? {FK}
+    + updatedBy: UUID? {FK}
+    + correctionReason: Text?
+    + version: Integer
+    + createdAt: DateTime
+    + updatedAt: DateTime
+  }
+  class TeacherAttendanceRecord <<entity>> {
+    + id: UUID {PK}
+    + teacherId: UUID? {FK}
+    + classSessionId: UUID? {FK}
+    + checkInAt: DateTime
+    + checkOutAt: DateTime?
+    + hourlyRateSnapshot: Decimal(10,2)?
+    + payableMinutes: Integer?
+  }
+  class AbsenceJustification <<entity>> {
+    + id: UUID {PK}
+    + attendanceRecordId: UUID? {FK}
+    + reason: Text
+    + evidenceUrl: String?
+    + evidenceFileName: String(180)?
+    + evidenceMimeType: String(80)?
+    + evidenceSize: Integer?
+    - evidenceData: Bytes?
+    + status: String(20)
+    + reviewedBy: UUID? {FK}
+    + reviewNotes: Text?
+    + reviewedAt: DateTime?
+  }
+}
+
+package "Evaluation and finance" {
+  class ScholarshipRule <<entity>> {
+    + id: UUID {PK}
+    + minAttendancePercent: Decimal(5,2)
+    + periodMonths: Integer
+    + minimumSessions: Integer
+    + active: Boolean
+  }
+  class ScholarshipEvaluation <<entity>> {
+    + id: UUID {PK}
+    + studentId: UUID? {FK}
+    + percentage: Integer?
+    + evaluationFrom: DateTime?
+    + evaluationTo: DateTime?
+    + attendanceRate: Decimal(5,2)?
+    + theoryScore: Decimal(5,2)?
+    + practiceScore: Decimal(5,2)?
+    + approved: Boolean
+    + evaluatedBy: UUID? {FK}
+    + evaluatedAt: DateTime?
+  }
+  class LevelPromotionEvaluation <<entity>> {
+    + id: UUID {PK}
+    + studentId: UUID? {FK}
+    + fromLevel: String(2)?
+    + toLevel: String(2)?
+    + evaluationFrom: DateTime?
+    + evaluationTo: DateTime?
+    + attendanceRate: Decimal(5,2)?
+    + consistencyScore: Decimal(5,2)?
+    + theoryScore: Decimal(5,2)?
+    + practiceScore: Decimal(5,2)?
+    + approved: Boolean
+    + evaluatedBy: UUID? {FK}
+    + evaluatedAt: DateTime?
+  }
+  class StudentPayment <<entity>> {
+    + id: UUID {PK}
+    + studentId: UUID? {FK}
+    + branchId: UUID? {FK}
+    + amount: Decimal(10,2)
+    + concept: String(100)
+    + period: String(7)
+    + status: String(20)
+    + paidAt: DateTime?
+    + dueAt: DateTime?
+    + notes: Text?
+    + transactionType: String(20)
+    + reversalOfId: UUID? {unique}
+    + reversalReason: Text?
+    + createdBy: UUID?
+    + updatedBy: UUID?
+    + createdAt: DateTime
+    + updatedAt: DateTime
+  }
+}
+
+Role "1" -- "0..*" User : assigns >
+Role "1" -- "0..*" RolePermission
+Permission "1" -- "0..*" RolePermission
+User "1" -- "0..*" Session
+User "1" -- "0..*" AuditLog : actor >
+User "1" -- "0..*" UserBranchAccess
+Branch "1" -- "0..*" UserBranchAccess
+User "0..1" -- "0..1" Student : profile >
+User "0..1" -- "0..1" Teacher : profile >
+
+Branch "1" -- "0..*" Student
+Branch "0..1" -- "0..*" Teacher
+Branch "0..1" -- "0..*" ClassGroup
+Branch "0..1" -- "0..*" AcademyEvent
+Branch "0..1" -- "0..*" EnrollmentRequest
+Branch "0..1" -- "0..*" StudentPayment
+DanceCategory "0..1" -- "0..*" DanceStyle
+Teacher "1" -- "0..*" TeacherStyle
+DanceStyle "1" -- "0..*" TeacherStyle
+Teacher "0..1" -- "0..*" ClassGroup
+DanceStyle "0..1" -- "0..*" ClassGroup
+
+Student "1" -- "0..*" ClassGroupEnrollment
+ClassGroup "1" -- "0..*" ClassGroupEnrollment
+User "0..1" -- "0..*" ClassGroupEnrollment : creates >
+ClassGroup "0..1" -- "0..*" ClassSession
+Student "0..1" -- "0..*" StudentAttendanceRecord
+ClassSession "0..1" -- "0..*" StudentAttendanceRecord
+Teacher "0..1" -- "0..*" TeacherAttendanceRecord
+ClassSession "0..1" -- "0..*" TeacherAttendanceRecord
+StudentAttendanceRecord "0..1" -- "0..*" AbsenceJustification
+User "0..1" -- "0..*" AbsenceJustification : reviews >
+
+Student "0..1" -- "0..*" ScholarshipEvaluation
+Student "0..1" -- "0..*" LevelPromotionEvaluation
+User "0..1" -- "0..*" ScholarshipEvaluation : evaluates >
+User "0..1" -- "0..*" LevelPromotionEvaluation : evaluates >
+Student "0..1" -- "0..*" StudentPayment
+
+note bottom of ClassGroupEnrollment
+Status: active, trial, waitlisted,
+frozen, withdrawn, completed.
+Only records without attendance history
+may be deleted.
+end note
+
+note bottom of StudentPayment
+Financial records are never hard-deleted.
+A reversal creates an opposite movement
+linked through reversalOfId.
+end note
+@enduml

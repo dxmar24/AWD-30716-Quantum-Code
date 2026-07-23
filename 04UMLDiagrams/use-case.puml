@@ -1,37 +1,182 @@
 @startuml
+title American Latin Class - Complete Use Case Diagram
 left to right direction
-actor Visitor
-actor Student
-actor Teacher
-actor BranchDirector
-actor GeneralDirector
-actor Admin
-rectangle "American Latin Class System" {
-  usecase "View landing page" as U1
-  usecase "Request enrollment" as U2
-  usecase "Login with Google" as U3
-  usecase "Record student attendance" as U4
-  usecase "Check in/out teacher" as U5
-  usecase "Review scholarship candidates" as U6
-  usecase "Register evaluations" as U7
-  usecase "View reports" as U8
-  usecase "Audit actions" as U9
-  usecase "Submit absence justification" as U10
-  usecase "Review level promotion candidates" as U11
-  usecase "Assign internal roles" as U12
+skinparam backgroundColor #FAFAF7
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam ArrowColor #9A8700
+skinparam usecase {
+  BackgroundColor #FFFFFF
+  BorderColor #242424
 }
-Visitor --> U1
-Visitor --> U2
-Student --> U3
-Student --> U10
-Teacher --> U4
-Teacher --> U5
-Teacher --> U10
-BranchDirector --> U6
-BranchDirector --> U7
-BranchDirector --> U11
-GeneralDirector --> U8
-GeneralDirector --> U11
-Admin --> U9
-Admin --> U12
+
+actor Visitante as Visitor
+actor "Usuario autenticado" as User
+actor Estudiante as Student
+actor Profesor as Teacher
+actor "Director de sede" as BranchDirector
+actor "Director general" as GeneralDirector
+actor Administrador as Admin
+actor "Google Identity" as Google
+actor "Proveedor SMTP" as SMTP
+
+Student --|> User
+Teacher --|> User
+BranchDirector --|> User
+GeneralDirector --|> User
+Admin --|> User
+
+rectangle "American Latin Class" {
+  package "Acceso e identidad" {
+    usecase "Iniciar sesion" as Login
+    usecase "Ingresar con correo y clave" as PasswordLogin
+    usecase "Ingresar con Google" as GoogleLogin
+    usecase "Cambiar clave obligatoria" as ChangePassword
+    usecase "Cerrar sesion" as Logout
+    usecase "Validar sesion, rol y sede" as Authorize
+    usecase "Gestionar cuentas" as ManageAccounts
+    usecase "Enviar invitacion de acceso" as InviteUser
+    usecase "Asignar sedes" as AssignBranches
+    usecase "Enviar correo institucional" as SendEmail
+  }
+
+  package "Ingreso y vida academica" {
+    usecase "Consultar landing, programas y sedes" as ViewLanding
+    usecase "Enviar solicitud de inscripcion" as RequestEnrollment
+    usecase "Gestionar solicitudes" as ManageRequests
+    usecase "Programar clase de prueba" as ScheduleTrial
+    usecase "Convertir solicitud en estudiante" as ConvertLead
+    usecase "Gestionar matriculas" as ManageEnrollments
+    usecase "Crear matricula" as CreateEnrollment
+    usecase "Cambiar estado de matricula" as UpdateEnrollment
+    usecase "Eliminar matricula erronea" as DeleteEnrollment
+    usecase "Gestionar grupos y clases" as ManageClasses
+    usecase "Gestionar eventos" as ManageEvents
+    usecase "Consultar eventos por nivel" as ViewEvents
+  }
+
+  package "Asistencia y seguimiento" {
+    usecase "Consultar roster de clase" as ViewRoster
+    usecase "Registrar asistencia por lote" as RecordAttendance
+    usecase "Finalizar asistencia" as FinalizeAttendance
+    usecase "Corregir asistencia finalizada" as CorrectAttendance
+    usecase "Registrar entrada y salida docente" as TeacherCheck
+    usecase "Consultar historial personal" as ViewAttendance
+    usecase "Justificar ausencia" as JustifyAbsence
+    usecase "Adjuntar evidencia privada" as UploadEvidence
+    usecase "Revisar justificacion" as ReviewJustification
+    usecase "Evaluar beca" as EvaluateScholarship
+    usecase "Evaluar promocion de nivel" as EvaluatePromotion
+  }
+
+  package "Finanzas, reportes y control" {
+    usecase "Gestionar cartera" as ManageFinance
+    usecase "Registrar obligacion o cobro" as RecordPayment
+    usecase "Reversar movimiento" as ReversePayment
+    usecase "Consultar reportes" as ViewReports
+    usecase "Reporte financiero" as FinancialReport
+    usecase "Reporte de asistencia" as AttendanceReport
+    usecase "Filtrar por fecha, sede y estado" as FilterReports
+    usecase "Ver detalle por sede" as BranchDetail
+    usecase "Exportar CSV" as ExportCsv
+    usecase "Imprimir o exportar PDF" as ExportPdf
+    usecase "Consultar analitica avanzada" as ViewAnalytics
+    usecase "Consultar auditoria" as ViewAudit
+    usecase "Filtrar auditoria por fecha" as FilterAudit
+    usecase "Registrar trazabilidad" as WriteAudit
+  }
+}
+
+Visitor --> ViewLanding
+Visitor --> RequestEnrollment
+User --> Login
+User --> Logout
+User --> ViewAttendance
+
+Student --> ViewEvents
+Student --> JustifyAbsence
+Student --> ViewAttendance
+Teacher --> ViewRoster
+Teacher --> RecordAttendance
+Teacher --> TeacherCheck
+Teacher --> JustifyAbsence
+BranchDirector --> ManageRequests
+BranchDirector --> ManageEnrollments
+BranchDirector --> ManageClasses
+BranchDirector --> ManageEvents
+BranchDirector --> ReviewJustification
+BranchDirector --> ViewReports
+BranchDirector --> EvaluateScholarship
+BranchDirector --> EvaluatePromotion
+GeneralDirector --> ManageAccounts
+GeneralDirector --> ManageRequests
+GeneralDirector --> ManageEnrollments
+GeneralDirector --> ManageClasses
+GeneralDirector --> ManageEvents
+GeneralDirector --> ManageFinance
+GeneralDirector --> ViewReports
+GeneralDirector --> ViewAnalytics
+GeneralDirector --> ViewAudit
+Admin --> ManageAccounts
+Admin --> AssignBranches
+Admin --> ManageEnrollments
+Admin --> ManageClasses
+Admin --> ManageFinance
+Admin --> ViewReports
+Admin --> ViewAudit
+
+PasswordLogin ..> Login : <<extend>>
+GoogleLogin ..> Login : <<extend>>
+ChangePassword ..> Login : <<extend>>\n[mustChangePassword=true]
+Google --> GoogleLogin
+ManageAccounts ..> Authorize : <<include>>
+ManageAccounts ..> InviteUser : <<include>>
+InviteUser ..> SendEmail : <<include>>
+SMTP --> SendEmail
+AssignBranches ..> ManageAccounts : <<extend>>\n[rol Director de sede]
+
+ManageRequests ..> Authorize : <<include>>
+ScheduleTrial ..> ManageRequests : <<extend>>\n[interes confirmado]
+ConvertLead ..> ManageRequests : <<extend>>\n[matricula confirmada]
+ManageEnrollments ..> Authorize : <<include>>
+CreateEnrollment ..> ManageEnrollments : <<include>>
+UpdateEnrollment ..> ManageEnrollments : <<include>>
+DeleteEnrollment ..> ManageEnrollments : <<extend>>\n[sin historial de asistencia]
+ManageClasses ..> Authorize : <<include>>
+ManageEvents ..> Authorize : <<include>>
+
+RecordAttendance ..> ViewRoster : <<include>>
+RecordAttendance ..> Authorize : <<include>>
+FinalizeAttendance ..> RecordAttendance : <<extend>>\n[clase terminada]
+CorrectAttendance ..> RecordAttendance : <<extend>>\n[motivo obligatorio]
+UploadEvidence ..> JustifyAbsence : <<extend>>\n[archivo opcional]
+ReviewJustification ..> Authorize : <<include>>
+EvaluateScholarship ..> ViewAttendance : <<include>>
+EvaluatePromotion ..> ViewAttendance : <<include>>
+
+ManageFinance ..> Authorize : <<include>>
+RecordPayment ..> ManageFinance : <<include>>
+ReversePayment ..> ManageFinance : <<extend>>\n[movimiento conciliado]
+FinancialReport ..> ViewReports : <<extend>>
+AttendanceReport ..> ViewReports : <<extend>>
+FilterReports ..> ViewReports : <<include>>
+BranchDetail ..> ViewReports : <<extend>>\n[sede seleccionada]
+ExportCsv ..> ViewReports : <<extend>>
+ExportPdf ..> ViewReports : <<extend>>
+ViewReports ..> Authorize : <<include>>
+FilterAudit ..> ViewAudit : <<include>>
+
+ManageAccounts ..> WriteAudit : <<include>>
+ManageRequests ..> WriteAudit : <<include>>
+ManageEnrollments ..> WriteAudit : <<include>>
+RecordAttendance ..> WriteAudit : <<include>>
+ReviewJustification ..> WriteAudit : <<include>>
+ManageFinance ..> WriteAudit : <<include>>
+
+legend right
+  |= Relationship |= Meaning |
+  | <<include>> | Mandatory reused behavior |
+  | <<extend>> | Conditional or alternative flow |
+  | Actor generalization | Student/staff specialize authenticated user |
+endlegend
 @enduml

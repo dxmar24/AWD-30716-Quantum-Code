@@ -7,8 +7,8 @@ Node.js with Express is used for a clear academic backend that supports REST, mi
 Controllers only parse HTTP concerns and delegate to services. Services implement business rules. Repositories isolate persistence. Validators centralize request validation. Middleware handles sessions, authorization, cache control, CORS and errors.
 
 Runtime layers:
-- Controllers: `AuthController`, `CrudController`, `AttendanceController`, `ReportsController`, `AcademicController`.
-- Services: `AuthService`, `AccessPolicy`, `AttendanceService`, `RulesService`, `AcademicService`, `AuditService`, `CacheService`.
+- Controllers: `AuthController`, `CrudController`, `AttendanceController`, `ReportsController`, `AcademicController`, `FinancialController` and `AuditController`.
+- Services: `AuthService`, `AccessPolicy`, `AttendanceService`, `RulesService`, `AcademicService`, `FinancialService`, `AuditService`, `CacheService` and `EmailService`.
 - Repositories: in-memory repositories for tests/local demos and Prisma repositories for production when `DB_DRIVER=prisma`.
 - Middleware: validation, session resolver, RBAC, private page guard, explicit cache control and error handling.
 
@@ -17,7 +17,7 @@ RBAC decides whether a role can enter a workflow. `AccessPolicy` then checks the
 ## Cache management architecture
 The Express application creates one in-process `CacheService` at startup and passes it into controllers/services through dependency injection. The cache stores safe repeated reads with TTLs and tag invalidation. Cache keys include the authenticated actor role and id/email whenever the response can differ by role or branch scope.
 
-HTTP cache policies are centralized in `src/middleware/cacheControl.js`:
+HTTP cache policies are centralized in `backend/src/middleware/cacheControl.js`:
 - Sensitive API and private page responses use `Cache-Control: no-store, no-cache, must-revalidate, private`.
 - Public OAuth client configuration uses a one-hour public cache.
 - Reference catalog and branch/report reads use private browser cache plus server memory cache where safe.
@@ -26,7 +26,7 @@ HTTP cache policies are centralized in `src/middleware/cacheControl.js`:
 State-changing services invalidate tags such as `branches`, `students`, `attendance`, `evaluations` and `reports`. This keeps repeated director dashboards fast while preventing stale academic data from remaining after writes.
 
 ## Python analytics microservice
-An additional Python FastAPI API is included under `06Code/python-analytics-api` for analytical academic endpoints. It is not responsible for creating sessions or writing transactional attendance records. It reads from the same PostgreSQL database and validates the same JWT session token issued by the Node Auth API.
+An additional Python FastAPI API is included under `06Code/apis/python-analytics-api` for analytical academic endpoints. It is not responsible for creating sessions or writing transactional attendance records. It reads from the same PostgreSQL database and validates the same JWT session token issued by the Node Auth API.
 
 Runtime responsibility:
 - Base path: `/api/analytics/v1`.
@@ -42,19 +42,26 @@ Node private APIs use `/api/v1`. The Python analytics API uses `/api/analytics/v
 The React login page supports email/password and Google Sign-In. Email is the academy username and `/api/v1/auth/login` authenticates existing users through `users.password_hash`. Google Identity Services sends an ID token to `POST /api/v1/auth/google`; the backend verifies it in production and links `google_sub` only to an existing active user with the same verified email. Google never creates private users and rejects unverified or mismatched Google emails. Admin and GeneralDirector users can create academy accounts from the private dashboard or `POST /api/v1/users`; Student and Teacher accounts are created together with their linked academic profile, while BranchDirector accounts require assigned branches through `user_branch_access`. New director-created accounts always require a first password change through `must_change_password`; protected academic endpoints reject those sessions until `/api/v1/auth/change-password` succeeds. Only a session token hash is stored server-side. Logout revokes the server-side session. Private pages use `Cache-Control: no-store` and a session guard that redirects anonymous users to `/login.html?session=expired`.
 
 ## Database model
-PostgreSQL schema is normalized around users/roles/permissions, explicit user branch access, branches, students, teachers, dance styles, class groups, class sessions, student attendance, teacher attendance, absence justifications, scholarship evaluations, level promotion evaluations, enrollment requests, sessions and audit logs.
+PostgreSQL schema is normalized around users/roles/permissions, explicit user branch access, branches, students, teachers, dance styles, class groups, enrollment episodes, class sessions, student attendance, teacher attendance, private absence justifications, scholarship and promotion evaluations, enrollment requests, academy events, student payments with reversals, sessions and audit logs.
+
+Absence evidence is stored in the justification row as private `BYTEA` content with sanitized filename, detected MIME type and byte size. Upload parsing lives in `backend/src/middleware/evidenceUpload.js`; content-signature validation and authorization live in `AcademicService`; HTTP download headers live in `AcademicController`. API list/create/review responses omit `evidence_data`, and file reads use an authenticated, resource-scoped endpoint with `Cache-Control: private, no-store`.
 
 ## AWS deployment
-- Frontend EC2: Nginx on ports 80/443 serving static landing/app assets.
-- Core Business API EC2: port 3000 for branches, students, teachers, classes and attendance.
-- Auth & Session API EC2: port 3001 for OAuth, sessions, roles and permissions.
-- Reports & Rules API EC2: port 3002 for scholarship, promotion, hours and payments.
-- Python Analytics API EC2: port 8000 for attendance risk, scholarship readiness, branch performance and workload summaries.
-- PostgreSQL: Amazon RDS private subnet on port 5432.
-Security groups should allow public 443 only to ALB/Nginx, API traffic only from frontend/ALB, and RDS only from API security groups. HTTPS with ACM certificates and an optional ALB is recommended.
+- Frontend EC2: Nginx on ports 80/443 serves the React/Vite build, terminates HTTPS and proxies API requests.
+- Three Node EC2 instances run the same Express deployable on ports 3000, 3001 and 3002. Nginx distributes route groups between them for the current staging topology; the repository does not claim independently implemented microservices.
+- Python Analytics EC2: FastAPI on port 8000 provides attendance risk, scholarship readiness, branch performance and workload summaries.
+- PostgreSQL: Amazon RDS on private port 5432 is shared by the transactional and analytical applications.
+- Mailpit is loopback-only staging evidence. Production email must use a transactional SMTP provider.
+Security groups allow public 80/443 only on the frontend, internal API ports only from the frontend security group, and RDS only from application security groups. SSH 22 is temporary and restricted to the deployment operator IP.
 
 ## Environment variables
 See `06Code/.env.example` for required runtime variables.
+
+### Public branch locator
+
+The landing page keeps the five current academy addresses in its public branch catalog and changes the embedded Google map and selected address without reloading the page. Search and directions use the official Google Maps URLs contract (`api=1`), which does not require a key. When `VITE_GOOGLE_MAPS_API_KEY` is available at build time, the location area uses the official Google Maps Embed API; otherwise it uses Google's query-based embedded map viewer so the map remains visible in local demonstrations.
+
+The Maps key is optional, must never be committed, and should be restricted in Google Cloud to the Maps Embed API and the exact HTTPS/localhost HTTP referrers used by the frontend. In both modes, visitors receive the verified address plus working Google Maps search and directions links.
 
 ## Clean Code and SOLID decisions
 Business rules live in services, HTTP details live in controllers, cross-cutting concerns live in middleware, and constants avoid magic strings. Classes depend on abstractions supplied through constructors.

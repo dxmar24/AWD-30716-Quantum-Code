@@ -1,0 +1,36 @@
+@startuml
+title Student Payment - State and Reversal Diagram
+skinparam backgroundColor #FAFAF7
+skinparam shadowing false
+skinparam ArrowColor #9A8700
+
+[*] --> pending : create charge
+pending --> overdue : dueAt passed (presentation state)
+pending --> paid : record collection
+overdue --> paid : collect outstanding amount
+pending --> cancelled : cancel unpaid obligation / reason
+overdue --> cancelled : administrative cancellation / reason
+paid --> reversed : create opposite movement / reason
+
+cancelled --> [*]
+reversed --> [*]
+
+state reversed {
+  state "Original remains paid" as Original
+  state "New reversal row\namount = -original amount" as ReversalRow
+  [*] --> Original
+  Original --> ReversalRow
+  ReversalRow --> [*]
+}
+
+note right of paid
+Paid movements are immutable financial evidence.
+They are corrected through a linked reversal,
+never by deletion.
+end note
+
+note bottom of reversed
+reversalOfId is unique and preserves
+the complete accounting trace.
+end note
+@enduml

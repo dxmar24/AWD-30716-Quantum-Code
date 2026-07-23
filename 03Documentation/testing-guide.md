@@ -1,60 +1,61 @@
 # Testing Guide
 
-Run tests from `06Code`:
-```bash
-npm install
+All defense verification can run locally while AWS remains stopped.
+
+## Complete Commands
+
+From `06Code`:
+
+```powershell
 npm test
-```
-
-Run the API validation report:
-```bash
 npm run test:api:validation
-```
-
-Run the Postman/Newman JWT evidence:
-```bash
+npm run frontend:build
+npm run postman:coverage
 npm run postman:evidence:local
+npm run postman:evidence:analytics
 ```
 
-Current automated coverage:
-- Auth/session: registered Google login, unregistered Google rejection, unverified Google email rejection, Google email linking, linked-email mismatch rejection, inactive account rejection, email/password login, seeded password-hash role login, temporary password change enforcement, director-created account login, invalid branch assignment rejection, logout, invalid Google token, expired session, private page redirect/no-store and valid private dashboard access.
-- JWT/Postman session: `/auth/login` returns `sessionToken`, Bearer token can call `/auth/me`, logout revokes the backend session, and the same token returns `401`.
-- Cache management: public auth config cache headers, no-store session responses, private catalog memory-cache `MISS/HIT`, branch-list invalidation after writes and scoped branch report cache.
-- RBAC: invalid role cannot access consolidated reports.
-- Actor flows: Visitor enrollment, Student first-password change and own-scope access, Teacher attendance work, BranchDirector branch scope, GeneralDirector account/branch-access management, and Admin governance.
-- Rules: scholarship threshold, promotion candidate rule, teacher payment calculation.
-- Academic integration: enrollment request, duplicate attendance rejection, absence review, scholarship evaluation, level promotion evaluation.
-- Python analytics: health cache headers, protected no-store responses and analytics service calculations.
+From `06Code/apis/python-analytics-api`:
 
-Expected result:
-```text
-Test Suites: 6 passed, 6 total
-Tests:       38 passed, 38 total
+```powershell
+.\.venv\Scripts\python.exe -m unittest discover -s tests -v
 ```
 
-Current API validation result:
-```text
-API validation completed: 122/122 passed.
-```
+The analytics evidence command requires both local services and PostgreSQL. The main Postman evidence command starts an isolated in-memory test server automatically.
 
-Current Python analytics test result:
-```text
-Ran 9 tests in 0.042s
-OK
-```
+## Current Verified Results
 
-Current Postman/Newman evidence:
-```text
-Requests:   67 executed, 0 failed
-Assertions: 78 executed, 0 failed
-```
+Verified on July 21, 2026:
 
-Evidence files:
-- `03Documentation/cache-management.md`
+| Verification | Result |
+| --- | --- |
+| Node unit/integration suites | 11 suites, 91 tests passed |
+| API HTTP validation | 134/134 checks passed |
+| React production build | Successful |
+| Main Postman/Newman collection | 105 requests, 135 assertions, 0 failures; all 86 Express routes represented |
+| Postman route inventory | 86/86 declared Express route contracts represented |
+| Python unit/API tests | 15 tests passed |
+| Python analytics Postman/Newman | 6 requests, 12 assertions, 0 failures |
+| npm dependency audit | 0 known vulnerabilities |
+
+## Coverage
+
+- Auth/session: password and Google linking, verification, first-login change, logout, expiry and revoked sessions.
+- Authorization: role checks plus student, teacher and branch resource scope.
+- Account lifecycle: create, reset, deactivate, reactivate, role and branch access.
+- Academic integrity: enrollment capacity/history, session overlap/lifecycle, exact roster, draft/final attendance, corrections and justifications.
+- Finance/rules: charges, reversals, scholarships, promotion and teacher pay.
+- Reports: general, branch and attendance calculations, filters, cutoff dates, immutable inputs and data-quality alerts.
+- Cache: public, private, no-store, memory HIT/MISS and invalidation.
+- Python analytics: token/session validation, resource scope, calculations and cache headers.
+- Actor workflows: Visitor, Student, Teacher, Branch Director, General Director and Administrator.
+
+## Evidence Files
+
 - `03Documentation/api-validation-report.md`
-- `03Documentation/actor-flows/`
 - `07Other/api-validation-results.json`
 - `postman/evidence/postman-local-jwt-auth-evidence.md`
-- `postman/evidence/postman-local-jwt-auth-evidence.json`
+- `postman/evidence/python-analytics-api-evidence.md`
+- `07Other/visual-evidence/defense/`
 
-If npm reports `UNABLE_TO_VERIFY_LEAF_SIGNATURE` in a local/corporate Windows environment, configure the local certificate chain or run the install in a trusted shell configuration. Do not disable TLS verification in production.
+Test mode forces the in-memory repository through `06Code/backend/tests/setup-env.js`, so Jest never changes the local or cloud PostgreSQL database.

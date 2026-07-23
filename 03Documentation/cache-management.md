@@ -60,10 +60,10 @@ This keeps cache entries short-lived and removes affected entries as soon as bus
 Manual verification can be done with:
 
 ```bash
-curl -k -I https://18-217-255-109.sslip.io/api/v1/auth/config
-curl -k -I https://18-217-255-109.sslip.io/api/v1/auth/me
-curl -k -I https://18-217-255-109.sslip.io/
-curl -k -I https://18-217-255-109.sslip.io/assets/<built-asset-file>
+curl -I https://academy.example.invalid/api/v1/auth/config
+curl -I https://academy.example.invalid/api/v1/auth/me
+curl -I https://academy.example.invalid/
+curl -I https://academy.example.invalid/assets/<built-asset-file>
 ```
 
 Expected evidence:
@@ -76,8 +76,8 @@ Expected evidence:
 Authenticated memory cache evidence requires a valid session token:
 
 ```bash
-curl -k -H "Authorization: Bearer <session-token>" https://18-217-255-109.sslip.io/api/v1/roles
-curl -k -H "Authorization: Bearer <session-token>" https://18-217-255-109.sslip.io/api/v1/roles
+curl -H "Authorization: Bearer <session-token>" https://academy.example.invalid/api/v1/roles
+curl -H "Authorization: Bearer <session-token>" https://academy.example.invalid/api/v1/roles
 ```
 
 The first request should expose `X-Memory-Cache: MISS`; the second repeated request should expose `X-Memory-Cache: HIT`.
@@ -86,19 +86,19 @@ The first request should expose `X-Memory-Cache: MISS`; the second repeated requ
 
 Automated validation is included in:
 
-- `06Code/tests/integration/cache.test.js`
+- `06Code/backend/tests/integration/cache.test.js`
 - `06Code/scripts/api-validation-suite.js`
-- `06Code/python-analytics-api/tests/test_api.py`
+- `06Code/apis/python-analytics-api/tests/test_api.py`
 
 Latest verified commands:
 
 ```text
 cd 06Code && npm test
-Result: 5 test suites passed, 24 tests passed.
+Result: 11 test suites passed, 91 tests passed.
 
 cd 06Code && npm run test:api:validation
-Result: 114/114 API validation cases passed.
+Result: 134/134 API validation cases passed.
 
-cd 06Code/python-analytics-api && .\.venv\Scripts\python.exe -m unittest discover -s tests -v
-Result: 9 tests passed.
+cd 06Code/apis/python-analytics-api && .\.venv\Scripts\python.exe -m unittest discover -s tests -v
+Result: 15 tests passed.
 ```

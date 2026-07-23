@@ -13,13 +13,13 @@
 10. Internal roles are assigned only through the application, mainly `POST /api/v1/users` and `PATCH /api/v1/users/{id}/role`.
 
 ## Google Console Origin Rules
-Google OAuth browser origins must use an allowed web origin. For deployed environments, use an HTTPS origin with a public domain name. Do not use a raw public IP such as `http://18.217.255.109`; Google rejects raw IP origins because they do not end in a public top-level domain. Localhost origins such as `http://localhost:5500` and `http://127.0.0.1:5500` are acceptable for local development.
+Google OAuth browser origins must use an exact allowed web origin. Deployed origins use the organization HTTPS domain; localhost is reserved for development. Never publish infrastructure addresses in the repository.
 
 Recommended production origin:
 - `https://<owned-domain>`
 
 Temporary testing origin, only after DNS and HTTPS are configured:
-- `https://18-217-255-109.sslip.io`
+- `https://academy.example.invalid` (documentation placeholder)
 
 Google documentation reference: https://support.google.com/cloud/answer/15549257
 
@@ -45,21 +45,14 @@ Google documentation reference: https://support.google.com/cloud/answer/15549257
 3. BranchDirector account creation requires at least one assigned branch.
 4. The email is the username for password login.
 5. The backend stores only `password_hash`.
-6. The director gives the user a temporary password.
+6. The system sends the temporary password and instructions to the user's registered email.
 7. The user signs in and must change the temporary password.
 8. Google Sign-In can then be used as an alternate login when the Google email matches the academy account.
 
 ## Manual Role-Test Login
 Run `npm run db:seed:role-test` after the database schema is applied to create temporary users for Admin, GeneralDirector, BranchDirector, Teacher and Student. The seed stores only one-way password hashes in `users.password_hash`.
 
-Default local credentials:
-- `admin@alc.edu` / `adminALC2026*`
-- `generaldirector@alc.edu` / `generaldirectorALC2026*`
-- `branchdirector@alc.edu` / `branchdirectorALC2026*`
-- `teacher@alc.edu` / `teacherALC2026*`
-- `student@alc.edu` / `studentALC2026*`
-
-Override defaults with `SEED_*_PASSWORD` variables before running the seed. The legacy `POSTMAN_LOGIN_ENABLED` fallback should stay disabled outside controlled verification windows; seeded user password hashes work through the normal email/password login.
+There are no default credentials. Supply local `SEED_*_EMAIL` and `SEED_*_PASSWORD` secrets explicitly; seeded accounts require a first-login password rotation. Mock Google tokens and the legacy Postman fallback are technically impossible outside tests.
 
 ## Postman Session Verification
 1. Run `Auth & Session / Current Session - No Token`; it must return `401`.
@@ -78,11 +71,13 @@ Override defaults with `SEED_*_PASSWORD` variables before running the seed. The 
 
 ## Frontend Private Entry
 - Public landing access points to `/login.html`.
+- The landing header revalidates `/auth/me` after normal load, browser-history restoration and tab visibility changes. Active sessions replace **Ingresar** with the user's name/photo and a link back to the private panel.
 - Successful email/password or Google login redirects to `/private/dashboard.html`.
 - First-login users see the mandatory password-change screen before the academic dashboard.
-- Admin and GeneralDirector users can create academy accounts from the private dashboard, assign BranchDirector branches and see the one-time temporary password.
+- Admin and GeneralDirector users can create academy accounts from the private dashboard, assign BranchDirector branches and confirm email delivery without seeing the temporary password.
 - Logout revokes the server-side session and redirects to `/login.html?session=logout`.
 - The Content Security Policy allows the Google Identity Services script/frame while keeping application resources self-hosted.
+- The Google button uses only supported Google Identity Services appearance properties (`filled_black`, rectangular shape, localized continuation text and left-aligned logo).
 
 ## Required Environment Variables
 - `GOOGLE_CLIENT_ID`

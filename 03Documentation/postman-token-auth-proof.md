@@ -1,160 +1,18 @@
 # Postman Token Authentication Proof
 
-This document describes the manual backend-only Postman proof for JWT authentication.
+The committed Postman environment is a sanitized local template. Fill `login_email`, `login_password`, resource IDs, and tokens only in a private local copy.
 
-## Environment
+Bearer tokens are returned in the JSON login response only in automated tests, or in an explicitly enabled local development run (`EXPOSE_SESSION_TOKEN=true`). Staging and production refuse this flag and use the Secure, HttpOnly `alc_session` cookie.
 
-Use the Postman environment:
+For a local API-client proof:
 
-- `site_url`: `https://18-217-255-109.sslip.io`
-- `base_url`: `https://18-217-255-109.sslip.io/api/v1`
-- `login_email`: `verification-admin-real-20260624154645@alc.test`
-- `login_password`: academic demo password configured for `POSTMAN_LOGIN_PASSWORD`
-- `session_token`: blank before login; filled automatically by the login request
+1. Start the API in development with a persistent local database and explicitly enable response-token exposure.
+2. `POST {{base_url}}/auth/login` using a locally provisioned account.
+3. Save `data.sessionToken` as the secret `session_token` variable.
+4. Verify `GET {{base_url}}/auth/me` returns `200` with `Authorization: Bearer {{session_token}}`.
+5. `POST {{base_url}}/auth/logout` with the same bearer token.
+6. Verify the same token then returns `401`.
 
-## 1. Protected URI Without Token
+Changing a password revokes every prior session and returns a newly rotated token only under the local/test exposure rule. The old token must return `401`.
 
-Method: `GET`
-
-URI:
-```text
-{{base_url}}/auth/me
-```
-
-Authorization:
-```text
-No Auth
-```
-
-Expected response:
-
-| HTTP | Message |
-| --- | --- |
-| `401 Unauthorized` | `{ "success": false, "message": "Authentication required" }` |
-
-Postman request:
-```text
-Auth & Session / Current Session - No Token
-```
-
-## 2. Login To Receive JWT Token
-
-Method: `POST`
-
-URI:
-```text
-{{base_url}}/auth/login
-```
-
-JSON body:
-```json
-{
-  "email": "{{login_email}}",
-  "password": "{{login_password}}"
-}
-```
-
-Expected response:
-
-| HTTP | Message |
-| --- | --- |
-| `200 OK` | Response includes `data.sessionToken`, `data.tokenType = "Bearer"` and `data.user`. |
-
-Postman request:
-```text
-Auth & Session / Password Login - Demo
-```
-
-The Postman test script stores:
-```text
-session_token = data.sessionToken
-```
-
-## 3. Protected URI With Bearer Token
-
-Method: `GET`
-
-URI:
-```text
-{{base_url}}/auth/me
-```
-
-Authorization:
-```text
-Type: Bearer Token
-Token: {{session_token}}
-```
-
-Expected response:
-
-| HTTP | Message |
-| --- | --- |
-| `200 OK` | Response includes the authenticated user object. |
-
-Postman request:
-```text
-Auth & Session / Current Session - Bearer Token
-```
-
-## 4. Logout Revokes Token
-
-Method: `POST`
-
-URI:
-```text
-{{base_url}}/auth/logout
-```
-
-Authorization:
-```text
-Type: Bearer Token
-Token: {{session_token}}
-```
-
-Expected response:
-
-| HTTP | Message |
-| --- | --- |
-| `200 OK` | `Logout successful` |
-
-Postman request:
-```text
-Session Teardown / Logout
-```
-
-## 5. Same Token After Logout
-
-Method: `GET`
-
-URI:
-```text
-{{base_url}}/auth/me
-```
-
-Authorization:
-```text
-Type: Bearer Token
-Token: the same token returned by login
-```
-
-Expected response:
-
-| HTTP | Message |
-| --- | --- |
-| `401 Unauthorized` | `{ "success": false, "message": "Authentication required" }` |
-
-Postman request:
-```text
-Session Teardown / Current Session - After Logout
-```
-
-## Automated Evidence
-
-Latest Newman evidence:
-
-| Metric | Result |
-| --- | --- |
-| Requests | `67 executed, 0 failed` |
-| Assertions | `78 executed, 0 failed` |
-| API validation | `114/114 passed` |
-| Jest tests | `24 passed` |
+The legacy Postman credential bypass and mock Google tokens are test-only. Configuration validation aborts startup if either is requested outside `NODE_ENV=test`.

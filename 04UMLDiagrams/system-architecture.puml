@@ -1,0 +1,125 @@
+@startuml
+title American Latin Class - Detailed System Architecture
+top to bottom direction
+skinparam backgroundColor #FAFAF7
+skinparam shadowing false
+skinparam componentStyle rectangle
+skinparam packageStyle rectangle
+skinparam ArrowColor #9A8700
+
+rectangle "Client layer" {
+  component "Responsive React SPA\nLanding + login + dashboards" as SPA
+  component "Role modules\nStudent | Teacher | Branch Director\nGeneral Director | Administrator" as RoleUI
+  component "Reports UI\nfilters + charts + CSV + print/PDF" as ReportUI
+  component "Google Maps embed/search" as MapsUI
+  component "HTTP client\ncredentials + CSRF + friendly errors" as HTTP
+  SPA --> RoleUI
+  SPA --> ReportUI
+  SPA --> MapsUI
+  RoleUI --> HTTP
+  ReportUI --> HTTP
+}
+
+rectangle "Edge and delivery layer" {
+  component "Nginx" as Nginx
+  component "TLS / HTTPS\nredirect + HSTS" as TLS
+  component "Static asset cache\nimmutable hashed assets" as StaticCache
+  component "Reverse proxy routing\n/api/v1 + /api/analytics/v1" as Proxy
+  TLS --> Nginx
+  Nginx --> StaticCache
+  Nginx --> Proxy
+}
+
+rectangle "Transactional application - Node.js / Express" {
+  component "Request pipeline\nrequest ID -> Helmet -> HTTPS -> CORS\nCSRF -> JSON -> session resolver" as Pipeline
+  component "Authentication\npassword + Google link + session revoke" as Auth
+  component "Authorization\nRBAC + password-ready + branch/resource scope" as Authorization
+  component "Validation\nZod schemas + upload signature checks" as Validation
+
+  component "Academic module\naccounts, branches, students, teachers,\ngroups, sessions, events, requests" as Academic
+  component "Attendance module\nroster, batch finalization, corrections,\nteacher check-in/out, justifications" as Attendance
+  component "Finance module\ncharges, collections, cancellation, reversals" as Finance
+  component "Reports and rules\nfinancial, attendance, scholarships,\npromotions, teacher payments" as Reports
+
+  component "AccessPolicy\nrow/resource scope" as Policy
+  component "AuditService\nappend-only trace" as Audit
+  component "CacheService\nTTL + actor-aware keys + tag invalidation" as MemoryCache
+  component "EmailService\nbranded access invitations" as Email
+  component "Repository ports + DatabaseContext\ntransaction boundary" as Persistence
+
+  Pipeline --> Auth
+  Pipeline --> Authorization
+  Authorization --> Validation
+  Validation --> Academic
+  Validation --> Attendance
+  Validation --> Finance
+  Validation --> Reports
+  Academic --> Policy
+  Attendance --> Policy
+  Finance --> Policy
+  Reports --> Policy
+  Academic --> Audit
+  Attendance --> Audit
+  Finance --> Audit
+  Academic --> MemoryCache
+  Attendance --> MemoryCache
+  Finance --> MemoryCache
+  Reports --> MemoryCache
+  Academic --> Email
+  Auth --> Persistence
+  Academic --> Persistence
+  Attendance --> Persistence
+  Finance --> Persistence
+  Reports --> Persistence
+  Policy --> Persistence
+  Audit --> Persistence
+}
+
+rectangle "Analytical application - Python / FastAPI" {
+  component "Analytics router" as AnalyticsRouter
+  component "Shared JWT validation\n+ session hash lookup" as AnalyticsAuth
+  component "AnalyticsService\nrisk, readiness, branch performance, workload" as AnalyticsService
+  component "AnalyticsRepository\nread-only SQL" as AnalyticsRepository
+  AnalyticsRouter --> AnalyticsAuth
+  AnalyticsAuth --> AnalyticsService
+  AnalyticsService --> AnalyticsRepository
+}
+
+rectangle "Data and external services" {
+  database "PostgreSQL\nnormalized transactional schema\n001-013 migrations" as DB
+  cloud "Google Identity Services" as Google
+  cloud "Google Maps" as Maps
+  cloud "Transactional SMTP\nMailpit only for staging evidence" as SMTP
+  storage "Private absence evidence\nBYTEA + MIME metadata" as Evidence
+}
+
+HTTP --> TLS : HTTPS
+MapsUI --> Maps
+StaticCache --> SPA
+Proxy --> Pipeline : /api/v1
+Proxy --> AnalyticsRouter : /api/analytics/v1
+Auth --> Google : verify ID token
+Email --> SMTP : SMTP
+Persistence --> DB : Prisma / parameterized SQL
+AnalyticsAuth --> DB : session lookup
+AnalyticsRepository --> DB : scoped read
+Persistence --> Evidence : evidence stored in DB row
+
+note right of MemoryCache
+Reads expose X-Memory-Cache evidence.
+Sensitive/private responses use no-store.
+Mutations invalidate tagged entries.
+end note
+
+note right of Authorization
+RBAC grants workflow access.
+AccessPolicy narrows it to the actor's
+branch, class, teacher or student record.
+end note
+
+note bottom of DB
+Source of truth: users/roles, academy catalog,
+enrollments, sessions, attendance, finance,
+evaluations, events, requests and audit logs.
+end note
+@enduml

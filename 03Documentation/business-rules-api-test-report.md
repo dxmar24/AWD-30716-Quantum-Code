@@ -412,7 +412,7 @@ Recommended manual order:
 
 1. Select the `American Latin Class - AWS` environment.
 2. Run `Auth & Session / Auth Config`.
-3. Login through the browser at `https://18-217-255-109.sslip.io/login.html` and obtain a valid application session, or use a real Google ID token for the Postman login request.
+3. Login through the configured organization HTTPS domain and obtain a valid application session, or use a real Google ID token in a private local Postman environment.
 4. Run the folders in this order: Auth & Session, Public Enrollment, Identity And RBAC, Catalog CRUD, Attendance And Absences, Reports And Evaluations, Session Teardown.
 5. Use the seeded `BRDEMO-20260624132922` records when manual tests need existing attendance, scholarship, promotion, payment or audit data.
 
@@ -427,4 +427,4 @@ The API validation suite covers auth, sessions, RBAC, CRUD, attendance, absence,
 The Jest suite covers integration, auth, RBAC, cache management and unit-level rules tests.
 
 - Command: `npm test`
-- Result: 5 test suites passed, 24 tests passed, 0 failed.
+- Current regression result: 11 test suites passed, 91 tests passed, 0 failed.

@@ -1,38 +1,355 @@
 @startuml
-class AuthController
-class CrudController
-class AttendanceController
-class ReportsController
-class AcademicController
-class AuthService
-class AttendanceService
-class RulesService
-class AcademicService
-class AuditService
-interface Repository
-class InMemoryRepository
-class PostgresRepository
-class PostgresUserRepository
-class DatabaseContext
-class PostgresDatabaseContext
+title American Latin Class - Application Class Diagram
+left to right direction
+skinparam backgroundColor #FAFAF7
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam classAttributeIconSize 0
+skinparam ArrowColor #9A8700
+skinparam class {
+  BackgroundColor #FFFFFF
+  BorderColor #242424
+  FontColor #171717
+}
+skinparam interface {
+  BackgroundColor #FFF8B8
+  BorderColor #9A8700
+}
+
+package "HTTP controllers" {
+  class AuthController {
+    - authService: AuthService
+    - db: DatabaseContext
+    + config(req, res): Response
+    + passwordLogin(req, res): Response
+    + login(req, res): Response
+    + me(req, res): Response
+    + changePassword(req, res): Response
+    + logout(req, res): Response
+  }
+
+  class CrudController {
+    - repository: RepositoryPort
+    - entityName: String
+    - accessPolicy: AccessPolicy
+    - cacheService: CacheService
+    - auditService: AuditService
+    - dbContext: DatabaseContext
+    + index(req, res): Response
+    + show(req, res): Response
+    + create(req, res): Response
+    + update(req, res): Response
+  }
+
+  class AttendanceController {
+    - attendanceService: AttendanceService
+    + listEnrollments(req, res): Response
+    + createEnrollment(req, res): Response
+    + updateEnrollment(req, res): Response
+    + deleteEnrollment(req, res): Response
+    + sessionRoster(req, res): Response
+    + sessionAttendance(req, res): Response
+    + teacherCheckIn(req, res): Response
+    + teacherCheckOut(req, res): Response
+  }
+
+  class AcademicController {
+    - academicService: AcademicService
+    - db: DatabaseContext
+    + submitEnrollment(req, res): Response
+    + createUser(req, res): Response
+    + resendUserInvitation(req, res): Response
+    + createAbsenceJustification(req, res): Response
+    + getAbsenceEvidence(req, res): Response
+    + reviewAbsenceJustification(req, res): Response
+  }
+
+  class FinancialController {
+    - financialService: FinancialService
+    + index(req, res): Response
+    + show(req, res): Response
+    + create(req, res): Response
+    + update(req, res): Response
+    + reverse(req, res): Response
+  }
+
+  class ReportsController {
+    - db: DatabaseContext
+    - rulesService: RulesService
+    - accessPolicy: AccessPolicy
+    - cacheService: CacheService
+    + generalReport(req, res): Response
+    + branchSummary(req, res): Response
+    + branchDetail(req, res): Response
+    + attendanceReport(req, res): Response
+    + scholarshipCandidate(req, res): Response
+    + promotionCandidate(req, res): Response
+    + teacherPayment(req, res): Response
+  }
+
+  class AuditController {
+    - db: DatabaseContext
+    + index(req, res): Response
+  }
+}
+
+package "Business services" {
+  class AuthService {
+    - db: DatabaseContext
+    - googleClient: OAuth2Client
+    - audit: AuditService
+    + loginWithPassword(email, password): SessionResult
+    + loginWithGoogle(idToken): SessionResult
+    + changePassword(user, current, next): User
+    + createSession(user, db): SessionResult
+    + resolveSession(token): User
+    + revokeSessionsForUser(userId): void
+    + logout(token): void
+  }
+
+  class AcademicService {
+    - db: DatabaseContext
+    - auditService: AuditService
+    - rulesService: RulesService
+    - accessPolicy: AccessPolicy
+    - cacheService: CacheService
+    - emailService: EmailService
+    + submitEnrollmentRequest(data): EnrollmentRequest
+    + updateEnrollmentRequestStatus(actor, id, data): EnrollmentRequest
+    + createAcademicUser(actor, data): InvitationResult
+    + resendUserInvitation(actor, userId): InvitationResult
+    + updateUserBranchAccess(actor, userId, branches): BranchAccess[]
+    + createAbsenceJustification(actor, data, file): AbsenceJustification
+    + reviewAbsenceJustification(actor, id, data): AbsenceJustification
+    + createScholarshipEvaluation(actor, data): ScholarshipEvaluation
+    + createLevelPromotionEvaluation(actor, data): PromotionEvaluation
+  }
+
+  class AttendanceService {
+    - db: DatabaseContext
+    - audit: AuditService
+    - accessPolicy: AccessPolicy
+    - cacheService: CacheService
+    + listEnrollments(actor): Enrollment[]
+    + createEnrollment(actor, data): Enrollment
+    + updateEnrollment(actor, id, data): Enrollment
+    + deleteEnrollment(actor, id): Enrollment
+    + buildRoster(db, session): RosterRow[]
+    + recordSessionAttendance(actor, sessionId, data): AttendanceResult
+    + checkInTeacher(actor, data): TeacherAttendance
+    + checkOutTeacher(actor, recordId): TeacherAttendance
+    + attendanceMetrics(studentId, from, to): AttendanceMetrics
+  }
+
+  class FinancialService {
+    - db: DatabaseContext
+    - auditService: AuditService
+    - accessPolicy: AccessPolicy
+    - cacheService: CacheService
+    + list(actor): StudentPayment[]
+    + show(actor, id): StudentPayment
+    + create(actor, data): StudentPayment
+    + update(actor, id, data): StudentPayment
+    + reverse(actor, id, reason): StudentPayment
+  }
+
+  class RulesService {
+    - db: DatabaseContext
+    - attendanceService: AttendanceService
+    + scholarshipCandidate(studentId, from, to): CandidateResult
+    + promotionCandidate(studentId, from, to): CandidateResult
+    + teacherPayment(teacherId, from, to): PaymentResult
+  }
+
+  class AccessPolicy {
+    - db: DatabaseContext
+    + branchIdsForUser(user): UUID[]
+    + requireBranchAccess(user, branchId): void
+    + filterList(user, entity, rows): Object[]
+    + assertCanRead(user, entity, resource): void
+    + assertCanCreate(user, entity, data): void
+    + assertCanUpdate(user, entity, resource, updates): void
+    + enrollmentCoversSession(enrollment, session): Boolean
+    + assertClassSessionConsistency(data, existing): void
+  }
+
+  class AuditService {
+    - db: DatabaseContext
+    + log(actorId, action, entity, entityId, metadata): AuditLog
+    + logRequest(actorId, action, entity, entityId, req, metadata): AuditLog
+  }
+
+  class CacheService {
+    - entries: Map
+    - now: Function
+    + get(key): CacheResult
+    + set(key, value, ttlSeconds, tags): void
+    + remember(key, ttlSeconds, tags, loader): Object
+    + invalidateTags(tags): Number
+    + clear(): void
+  }
+
+  class EmailService {
+    - config: EmailConfig
+    - transport: Transporter
+    - outbox: Message[]
+    + sendAccessInvitation(message): DeliveryResult
+    + latestInvitationFor(email): Message
+  }
+}
+
+package "Persistence" {
+  interface RepositoryPort {
+    + all(): Object[]
+    + findById(id): Object
+    + findBy(field, value): Object
+    + findByFields(fields): Object
+    + create(data): Object
+    + update(id, data): Object
+    + deleteById(id): Object
+  }
+
+  interface DatabaseContext {
+    + transaction(work): Object
+    + close(): void
+    + repositories: RepositoryPort[]
+  }
+
+  class InMemoryRepository {
+    - rows: Object[]
+    + filter(predicate): Object[]
+    + deleteWhere(predicate): Number
+  }
+
+  class PrismaRepository {
+    # model: PrismaModel
+    + all(): Object[]
+    + findById(id): Object
+    + create(data): Object
+    + update(id, data): Object
+    + deleteById(id): Object
+  }
+
+  class PrismaUserRepository {
+    - prisma: PrismaClient
+    + findAuthByEmail(email): User
+    + roleId(roleName): UUID
+    + toUser(row): User
+  }
+
+  class PrismaUserBranchAccessRepository {
+    + listByUser(userId): BranchAccess[]
+    + replaceForUser(userId, branchIds): BranchAccess[]
+  }
+
+  class PrismaDatabaseContext {
+    - prisma: PrismaClient
+    + transaction(work): Object
+    + close(): void
+  }
+
+  class PostgresRepository {
+    # pool: Pool
+    # tableName: String
+    + all(): Object[]
+    + findById(id): Object
+    + create(data): Object
+    + update(id, data): Object
+    + deleteById(id): Object
+  }
+
+  class PostgresUserRepository {
+    - pool: Pool
+    + findAuthByEmail(email): User
+    + mapUser(row): User
+  }
+
+  class PostgresUserBranchAccessRepository {
+    + listByUser(userId): BranchAccess[]
+    + replaceForUser(userId, branchIds): BranchAccess[]
+  }
+
+  class PostgresDatabaseContext {
+    - pool: Pool
+    + transaction(work): Object
+    + close(): void
+  }
+}
+
+package "Errors and analytics extension" {
+  class Error
+  class Exception
+  class AppError {
+    + status: Number
+    + details: Object
+  }
+  class NotFoundError
+  class ForbiddenError
+  class AnalyticsService {
+    - repository: AnalyticsRepository
+    + attendanceRisk(actor, studentId, range): RiskResult
+    + scholarshipReadiness(actor, studentId, range): ReadinessResult
+    + branchPerformance(actor, branchId, range): BranchResult
+    + teacherWorkload(actor, teacherId, range): WorkloadResult
+  }
+  class AnalyticsRepository {
+    - database: Database
+    + studentAttendance(studentId, range): Row[]
+    + branchPerformance(branchId, range): Row[]
+    + teacherWorkload(teacherId, range): Row[]
+  }
+  class SessionRepository {
+    - database: Database
+    + resolve(tokenHash): Session
+  }
+}
+
+AppError --|> Error
+NotFoundError --|> Exception
+ForbiddenError --|> Exception
+PrismaUserRepository --|> PrismaRepository
+PrismaUserBranchAccessRepository --|> PrismaRepository
+PostgresUserBranchAccessRepository --|> PostgresRepository
+
+InMemoryRepository ..|> RepositoryPort
+PrismaRepository ..|> RepositoryPort
+PostgresRepository ..|> RepositoryPort
+PrismaDatabaseContext ..|> DatabaseContext
+PostgresDatabaseContext ..|> DatabaseContext
 
 AuthController --> AuthService
-CrudController --> Repository
+CrudController --> RepositoryPort
+CrudController --> AccessPolicy
 AttendanceController --> AttendanceService
-ReportsController --> RulesService
 AcademicController --> AcademicService
-AcademicController --> Repository
-AttendanceService --> AuditService
-AttendanceService --> Repository
-AcademicService --> RulesService
+FinancialController --> FinancialService
+ReportsController --> RulesService
+ReportsController --> AccessPolicy
+AuditController --> DatabaseContext
+
+AuthService --> DatabaseContext
+AuthService --> AuditService
+AcademicService --> DatabaseContext
 AcademicService --> AuditService
-AuthService --> Repository
+AcademicService --> RulesService
+AcademicService --> AccessPolicy
+AcademicService --> CacheService
+AcademicService --> EmailService
+AttendanceService --> DatabaseContext
+AttendanceService --> AuditService
+AttendanceService --> AccessPolicy
+AttendanceService --> CacheService
+FinancialService --> DatabaseContext
+FinancialService --> AuditService
+FinancialService --> AccessPolicy
+FinancialService --> CacheService
 RulesService --> AttendanceService
-RulesService --> Repository
-InMemoryRepository ..|> Repository
-PostgresRepository ..|> Repository
-PostgresUserRepository ..|> Repository
-DatabaseContext --> InMemoryRepository
-PostgresDatabaseContext --> PostgresRepository
-PostgresDatabaseContext --> PostgresUserRepository
+AnalyticsService --> AnalyticsRepository
+AnalyticsService --> SessionRepository
+
+note bottom of RepositoryPort
+JavaScript uses a structural repository contract.
+The dashed realization documents the common API
+implemented by memory, Prisma and PostgreSQL adapters.
+end note
 @enduml

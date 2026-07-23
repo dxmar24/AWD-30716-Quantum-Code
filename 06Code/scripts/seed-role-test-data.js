@@ -1,50 +1,51 @@
 require('dotenv').config();
 
 const { PrismaClient } = require('@prisma/client');
-const { Roles } = require('../src/models/constants');
-const { hashPassword } = require('../src/utils/passwordHasher');
+const { Roles } = require('../backend/src/models/constants');
+const { hashPassword } = require('../backend/src/utils/passwordHasher');
+const { assertLocalDevelopmentSeed, requiredSeedValue } = require('./seed-safety');
 
 const prisma = new PrismaClient();
 
 const roleCredentials = [
   {
     role: Roles.ADMIN,
-    email: 'admin@alc.edu',
+    email: requiredSeedValue('SEED_ADMIN_EMAIL'),
     name: 'ALC Admin',
     googleSub: 'role-test-admin',
-    password: process.env.SEED_ADMIN_PASSWORD || 'adminALC2026*',
+    password: requiredSeedValue('SEED_ADMIN_PASSWORD', 12),
     scope: 'global',
   },
   {
     role: Roles.GENERAL_DIRECTOR,
-    email: 'generaldirector@alc.edu',
+    email: requiredSeedValue('SEED_GENERAL_DIRECTOR_EMAIL'),
     name: 'ALC General Director',
     googleSub: 'role-test-general-director',
-    password: process.env.SEED_GENERAL_DIRECTOR_PASSWORD || 'generaldirectorALC2026*',
+    password: requiredSeedValue('SEED_GENERAL_DIRECTOR_PASSWORD', 12),
     scope: 'all branches',
   },
   {
     role: Roles.BRANCH_DIRECTOR,
-    email: 'branchdirector@alc.edu',
+    email: requiredSeedValue('SEED_BRANCH_DIRECTOR_EMAIL'),
     name: 'ALC Branch Director',
     googleSub: 'role-test-branch-director',
-    password: process.env.SEED_BRANCH_DIRECTOR_PASSWORD || 'branchdirectorALC2026*',
+    password: requiredSeedValue('SEED_BRANCH_DIRECTOR_PASSWORD', 12),
     scope: 'ALC Santo Domingo Norte only',
   },
   {
     role: Roles.TEACHER,
-    email: 'teacher@alc.edu',
+    email: requiredSeedValue('SEED_TEACHER_EMAIL'),
     name: 'ALC Teacher',
     googleSub: 'role-test-teacher',
-    password: process.env.SEED_TEACHER_PASSWORD || 'teacherALC2026*',
+    password: requiredSeedValue('SEED_TEACHER_PASSWORD', 12),
     scope: 'own teacher profile and sessions',
   },
   {
     role: Roles.STUDENT,
-    email: 'student@alc.edu',
+    email: requiredSeedValue('SEED_STUDENT_EMAIL'),
     name: 'ALC Student',
     googleSub: 'role-test-student',
-    password: process.env.SEED_STUDENT_PASSWORD || 'studentALC2026*',
+    password: requiredSeedValue('SEED_STUDENT_PASSWORD', 12),
     scope: 'own student profile',
   },
 ];
@@ -96,13 +97,7 @@ const permissionDescriptions = {
 };
 
 function assertSafeEnvironment() {
-  const isDeployed = ['production', 'staging'].includes(process.env.NODE_ENV);
-  if (isDeployed && process.env.ALLOW_DEMO_ROLE_SEED !== 'true') {
-    throw new Error('Refusing to seed demo role credentials in production/staging without ALLOW_DEMO_ROLE_SEED=true.');
-  }
-  if (!process.env.DATABASE_URL) {
-    throw new Error('DATABASE_URL is required to seed role test data.');
-  }
+  assertLocalDevelopmentSeed('Role test seed');
 }
 
 async function upsertRole(name) {
@@ -193,6 +188,8 @@ async function upsertUser(roles, credential) {
       googleSub: credential.googleSub,
       name: credential.name,
       passwordHash,
+      mustChangePassword: true,
+      passwordChangedAt: null,
       active: true,
       roleId: roles[credential.role].id,
     },
@@ -201,6 +198,8 @@ async function upsertUser(roles, credential) {
       email: credential.email,
       name: credential.name,
       passwordHash,
+      mustChangePassword: true,
+      passwordChangedAt: null,
       active: true,
       roleId: roles[credential.role].id,
     },
@@ -360,7 +359,7 @@ async function main() {
 
   console.log(JSON.stringify({
     message: 'Role test seed ready',
-    credentials: roleCredentials.map(({ role, email, password, scope }) => ({ role, email, password, scope })),
+    accounts: roleCredentials.map(({ role, scope }) => ({ role, scope, mustChangePassword:true })),
     ids: {
       branches: {
         assignedToBranchDirector: catalog.northBranch.id,
@@ -373,8 +372,8 @@ async function main() {
       classSessions: sessions.map((session) => session.id),
     },
     notes: [
-      'Use /api/v1/auth/login with the seeded email and temporary password; POSTMAN_LOGIN_ENABLED is only a legacy fallback.',
-      'Do not run this seed in production/staging unless this temporary credential set is explicitly required.',
+      'Credentials are intentionally omitted from output and must come from a local secret source.',
+      'This seed is technically blocked outside an explicitly opted-in localhost development database.',
     ],
   }, null, 2));
 }

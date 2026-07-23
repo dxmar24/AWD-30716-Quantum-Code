@@ -1,6 +1,8 @@
 require('dotenv').config();
 
 const { PrismaClient } = require('@prisma/client');
+const { hashPassword } = require('../backend/src/utils/passwordHasher');
+const { assertLocalDevelopmentSeed, requiredSeedValue } = require('./seed-safety');
 
 const prisma = new PrismaClient();
 
@@ -53,11 +55,14 @@ async function createReferenceData(prefix) {
 
   const admin = await prisma.user.create({
     data: {
-      email: `verification-admin-${prefix.toLowerCase()}@alc.test`,
+      email: `verification-admin-${prefix.toLowerCase()}@example.invalid`,
       name: 'Verification Admin',
       roleId: adminRole.id,
       googleSub: `verification-admin-${prefix}`,
       active: true,
+      passwordHash: hashPassword(requiredSeedValue('SEED_VERIFICATION_ADMIN_PASSWORD', 12)),
+      mustChangePassword: true,
+      passwordChangedAt: null,
     },
   });
 
@@ -78,7 +83,7 @@ async function createEnrollmentRequests(prefix, branch) {
       prisma.enrollmentRequest.create({
         data: {
           fullName: name,
-          email: `prospect-${index + 1}-${prefix.toLowerCase()}@alc.test`,
+          email: `prospect-${index + 1}-${prefix.toLowerCase()}@example.invalid`,
           phone: `809-555-${String(3100 + index).padStart(4, '0')}`,
           branchId: branch.id,
           preferredBranch: branch.name,
@@ -365,9 +370,7 @@ async function getTableCounts() {
 }
 
 async function main() {
-  if (!process.env.DATABASE_URL) {
-    throw new Error('DATABASE_URL is required to seed real verification data.');
-  }
+  assertLocalDevelopmentSeed('Real-verification demo seed');
 
   const prefix = `REAL-${compactTimestamp(new Date())}`;
   const { branch, category, salsa, bachata, admin } = await createReferenceData(prefix);

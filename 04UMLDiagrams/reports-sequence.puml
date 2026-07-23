@@ -1,0 +1,66 @@
+@startuml
+title Management Reports - Filters, Functional Pipeline, Cache and Export
+autonumber
+skinparam backgroundColor #FAFAF7
+skinparam shadowing false
+skinparam ArrowColor #9A8700
+
+actor "Director general" as Director
+participant "React ReportsPanel" as UI
+participant "Express auth + RBAC" as Security
+participant ReportsController as Controller
+participant AccessPolicy as Policy
+participant CacheService as Cache
+participant "reportMetrics.js\npure functions + lambdas" as Metrics
+database PostgreSQL as DB
+
+Director -> UI: Select financial or attendance report
+Director -> UI: Set date range, branch, status, level, group/student
+UI -> Security: GET /api/v1/reports/{type}?filters
+Security -> Controller: authenticated director and normalized query
+Controller -> Policy: visibleBranches(actor)
+Policy -> DB: user_branch_access when actor is branch director
+DB --> Policy: permitted branch ids
+Controller -> Controller: build actor-scoped cache key\nrole + user + branches + filters + period
+Controller -> Cache: get(key)
+
+alt fresh cache hit
+  Cache --> Controller: immutable cached report
+  Controller --> UI: 200 + X-Memory-Cache: HIT
+else cache miss
+  Cache --> Controller: MISS
+  Controller -> DB: non-blocking Promise.all source reads
+  DB --> Controller: branches, students, sessions, attendance,\npayments, events, enrollments
+  Controller -> Policy: filterList(actor, each resource)
+  Policy --> Controller: branch/resource-scoped rows
+  Controller -> Metrics: compose report pipeline
+  Metrics -> Metrics: filter(predicate lambdas)
+  Metrics -> Metrics: map(selector functions)
+  Metrics -> Metrics: reduce(sum/group/average)
+  Metrics -> Metrics: sort comparators + immutable projections
+  Metrics --> Controller: totals, groups, alerts and chart series
+  Controller -> Cache: set(key, report, 30s, report tags)
+  Controller --> UI: 200 + X-Memory-Cache: MISS
+end
+
+UI --> Director: topic index -> selected subtopic only
+
+opt export evidence
+  Director -> UI: Export CSV
+  UI -> UI: map visible rows and escape CSV cells
+  UI --> Director: download filtered .csv
+end
+
+opt print or PDF
+  Director -> UI: Imprimir / PDF
+  UI -> UI: apply print stylesheet
+  UI --> Director: browser print/PDF dialog
+end
+
+note over Metrics
+Functional interfaces are callback contracts used by
+map, filter, reduce, sort and composeMetrics.
+The callbacks are lambdas/arrow functions and the
+metric helpers avoid shared mutable state.
+end note
+@enduml

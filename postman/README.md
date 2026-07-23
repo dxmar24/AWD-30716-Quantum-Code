@@ -1,48 +1,76 @@
-# Postman Manual Verification
+# Postman Defense Guide
 
-Import these two files into Postman:
-- `American-Latin-Class.postman_environment.json`
-- `American-Latin-Class-API.postman_collection.json`
-- `American-Latin-Class-Analytics-API.postman_collection.json`
+## Import
 
-The environment now includes real RDS verification IDs from seed `REAL-20260624154645`; the old dummy fixture IDs were removed.
+Import these files:
 
-Manual order:
-1. Select the `American Latin Class - AWS` environment.
-2. Run `Auth & Session / Auth Config`.
-3. Run `Auth & Session / Current Session - No Token`; it must return `401 Authentication required`.
-4. Run `Auth & Session / Password Login - Invalid Credentials`; it must return `401`.
-5. Set `login_password` locally in Postman, then run `Auth & Session / Password Login - Demo`. Postman sends `login_email` and `login_password`, then stores `data.sessionToken` in `session_token`.
-6. Open any protected request, choose Authorization type `Bearer Token`, and use `{{session_token}}`. The collection already does this automatically at collection level.
-7. Run `Auth & Session / Current Session - Bearer Token`; it must return `200` and the logged-in user.
-8. Run the remaining folders in order: Public Enrollment, Identity And RBAC, Catalog CRUD, Attendance And Absences, Reports And Evaluations.
-9. Run `Session Teardown / Logout` and then `Session Teardown / Current Session - After Logout`; the same token must return `401`.
+1. One environment: `American-Latin-Class.postman_environment.json` for local work or `American-Latin-Class-AWS.postman_environment.json` for the current defense deployment.
+2. `American-Latin-Class-API.postman_collection.json`
+3. `American-Latin-Class-Analytics-API.postman_collection.json`
 
-Python Analytics API order:
-1. Run `Auth & Session / Password Login - Demo` from the main collection first.
-2. Open `American Latin Class - Python Analytics API`.
-3. Run `Authentication Proof / Student Attendance Risk - No Token`; it must return `401`.
-4. Run `Student Analytics`, `Branch Analytics` and `Teacher Analytics`; they inherit `Bearer {{session_token}}` and must return `200` after login.
-5. Run logout from the main collection and repeat one protected analytics request; the revoked token must return `401`.
+The committed environment targets the local defense services:
 
-Notes:
-- Do not commit real Google ID tokens, database passwords or session cookies.
-- `login_email` and `login_password` are academic Postman verification credentials for the configured demo user; the shared environment leaves `login_password` blank on purpose.
-- After running `npm run db:seed:role-test`, you can switch `login_email` to `generaldirector@alc.edu`, `branchdirector@alc.edu`, `teacher@alc.edu` or `student@alc.edu` and use the matching temporary local password for role-scope checks.
-- `google_id_token` is intentionally blank in the environment file.
-- `session_token` is intentionally blank in the environment file and is filled by `Password Login - Demo`.
-- The collection uses `{{base_url}}` for API calls and `{{site_url}}` for private page checks.
-- The collection is configured with Bearer auth using `{{session_token}}`, while the browser flow still uses the `alc_session` cookie.
-- Create/update requests save generated IDs back into the active Postman environment.
-- Existing environment IDs point to records already loaded in AWS RDS; they can be used immediately for read/report tests.
-- `analytics_base_url` is prepared for the Python FastAPI service through the frontend Nginx path `/api/analytics/v1`.
+- Site: `http://127.0.0.1:3005`
+- Node API: `http://127.0.0.1:3005/api/v1`
+- Python analytics: `http://127.0.0.1:8005/api/analytics/v1`
 
-Automated evidence:
-```bash
-cd 06Code
+The AWS defense environment targets:
+
+- Site: `https://3-19-30-6.sslip.io`
+- Node API: `https://3-19-30-6.sslip.io/api/v1`
+- Python analytics: `https://3-19-30-6.sslip.io/api/analytics/v1`
+
+The AWS hostname is tied to the current temporary EC2 public IP. Update or recreate that environment after the instance receives a different public IP.
+
+Secrets and generated IDs are intentionally blank. Put the General Director email and password in Postman's **Current value**, never Initial/shared value.
+
+Start the local Mailpit service with `npm run db:local:up`. The environment already points `mailpit_url` to `http://127.0.0.1:8025`. The account lifecycle folder reads the captured invitation from Mailpit to test first login while also asserting that `/users` never returns the temporary password.
+
+## Main Collection
+
+The collection contains 110 requests organized in execution order and covers all 89 declared Express route contracts:
+
+1. Health And Public
+2. Authentication And Session
+3. Enrollment Requests
+4. Catalog And Academic Resources
+5. Identity And Access
+6. Attendance And Absences
+7. Events
+8. Payments
+9. Reports
+10. Student Self Service
+11. Session Teardown
+
+Login saves `data.sessionToken` as `session_token`. Collection-level Bearer authorization then protects subsequent requests. Dynamic dates and generated IDs allow a complete academic flow without hard-coded fixture identifiers.
+
+Run the complete collection to exercise the end-to-end academic workflow. The last requests log out and prove that the revoked token returns `401`.
+
+From `06Code`, run `npm run postman:coverage` to compare the collection against the Express router automatically. The current result is 89/89 declared route contracts represented by 110 requests.
+
+## Python Analytics Collection
+
+Keep the Node login token active, then run the six analytics requests. They prove:
+
+- anonymous access is rejected;
+- attendance risk and scholarship readiness work for a persisted student;
+- branch performance and teacher workload read the same PostgreSQL database;
+- the Python service accepts the Node-issued session only while it remains active.
+
+## Automated Evidence
+
+From `06Code`:
+
+```powershell
 npm run postman:evidence:local
+npm run postman:evidence:analytics
 ```
 
-This produces:
+Outputs:
+
 - `postman/evidence/postman-local-jwt-auth-evidence.md`
 - `postman/evidence/postman-local-jwt-auth-evidence.json`
+- `postman/evidence/python-analytics-api-evidence.md`
+- `postman/evidence/python-analytics-api-evidence.json`
+
+`scripts/sync-postman-defense-collection.js` is the structural source used to synchronize the expanded collection. Do not manually commit passwords, Google ID tokens, session tokens or private database values.

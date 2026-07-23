@@ -1,0 +1,50 @@
+@startuml
+title American Latin Class - Use Case Overview For Presentation
+left to right direction
+skinparam backgroundColor #FAFAF7
+skinparam shadowing false
+skinparam ArrowColor #9A8700
+skinparam usecase {
+  BackgroundColor #FFFFFF
+  BorderColor #242424
+}
+
+actor Visitante
+actor Estudiante
+actor Profesor
+actor "Director de sede" as BranchDirector
+actor "Director general" as GeneralDirector
+actor Administrador
+
+rectangle "American Latin Class" {
+  usecase "Discover academy and\nrequest enrollment" as Public
+  usecase "Access account and\nmanage personal profile" as Account
+  usecase "View personal attendance,\npayments, events and requests" as StudentSelf
+  usecase "Manage class roster, attendance\nand teacher working time" as Teaching
+  usecase "Manage branch requests,\nenrollments, groups and events" as BranchOps
+  usecase "Manage academy accounts,\noperations and finance" as AcademyOps
+  usecase "Analyze financial and\nattendance reports" as Reports
+  usecase "Control roles, security\nand audit trail" as Governance
+}
+
+Visitante --> Public
+Estudiante --> Account
+Estudiante --> StudentSelf
+Profesor --> Account
+Profesor --> Teaching
+BranchDirector --> Account
+BranchDirector --> BranchOps
+BranchDirector --> Reports
+GeneralDirector --> Account
+GeneralDirector --> AcademyOps
+GeneralDirector --> Reports
+GeneralDirector --> Governance
+Administrador --> Account
+Administrador --> AcademyOps
+Administrador --> Governance
+
+note bottom of Public
+The public experience sells the dance academy.
+The private experience operates attendance and management.
+end note
+@enduml

@@ -18,7 +18,7 @@ The objective is to demonstrate that the backlog was not only listed as planning
 | JWT/Postman evidence | `postman/evidence/postman-local-jwt-auth-evidence.md` |
 | Python API evidence | `postman/evidence/python-analytics-api-evidence.md` |
 | Cache management evidence | `03Documentation/cache-management.md`, `03Documentation/api-validation-report.md` |
-| Database evidence | `06Code/migrations/001_initial_schema.sql`, `06Code/seeders/001_seed.sql` |
+| Database evidence | `06Code/persistence/migrations/001_initial_schema.sql`, `06Code/persistence/seeders/001_seed.sql` |
 | Deployment evidence | `03Documentation/aws-deployment-guide.md`, `07Other/nginx-alc-frontend.conf` |
 
 ## Backlog Validation Summary
@@ -50,7 +50,7 @@ The objective is to demonstrate that the backlog was not only listed as planning
 | --- | --- |
 | Related requirements | FR-05 through FR-14, NFR-03 |
 | Acceptance criteria | Normalized PostgreSQL schema exists; seed data loads roles, permissions, branches, dance categories/styles and rules; repository layer isolates persistence. |
-| Code evidence | `06Code/migrations/001_initial_schema.sql`, `06Code/seeders/001_seed.sql`, `06Code/prisma/schema.prisma`, `06Code/src/repositories` |
+| Code evidence | `06Code/persistence/migrations/001_initial_schema.sql`, `06Code/persistence/seeders/001_seed.sql`, `06Code/persistence/prisma/schema.prisma`, `06Code/backend/src/repositories` |
 | Status | Completed / Validated |
 
 ### PBI-03 - Academic Catalog Management APIs
@@ -138,7 +138,7 @@ The objective is to demonstrate that the backlog was not only listed as planning
 | --- | --- |
 | Related stories / requirements | Additional class activity, FR-07, FR-10, FR-12, FR-13 |
 | Acceptance criteria | A Python API exists for the project; it is deployed separately, protected by the same JWT session, and calculates real academic analytics. |
-| Code evidence | `06Code/python-analytics-api` |
+| Code evidence | `06Code/apis/python-analytics-api` |
 | Endpoint evidence | `/api/analytics/v1/health`, `/students/{student_id}/attendance-risk`, `/students/{student_id}/scholarship-readiness`, `/branches/{branch_id}/performance-summary`, `/teachers/{teacher_id}/workload-summary` |
 | Test evidence | `postman/evidence/python-analytics-api-evidence.md` |
 | Status | Completed / Validated |
@@ -149,9 +149,9 @@ The objective is to demonstrate that the backlog was not only listed as planning
 | --- | --- |
 | Related stories / requirements | US-08, FR-15, NFR-12, BR-14 |
 | Acceptance criteria | Public, private and no-store cache policies are explicit; repeated safe reads expose memory-cache `MISS/HIT`; state-changing academic actions invalidate affected cache tags; scoped reports are cached per authenticated actor. |
-| Code evidence | `06Code/src/services/CacheService.js`, `06Code/src/middleware/cacheControl.js`, `06Code/src/routes/api.js`, `07Other/nginx-alc-frontend.conf` |
+| Code evidence | `06Code/backend/src/services/CacheService.js`, `06Code/backend/src/middleware/cacheControl.js`, `06Code/backend/src/routes/api.js`, `07Other/nginx-alc-frontend.conf` |
 | Endpoint evidence | `/api/v1/auth/config`, `/api/v1/roles`, `/api/v1/branches`, `/api/v1/reports/branches/summary`, `/api/analytics/v1/health` |
-| Test evidence | `06Code/tests/integration/cache.test.js`, `03Documentation/api-validation-report.md` |
+| Test evidence | `06Code/backend/tests/integration/cache.test.js`, `03Documentation/api-validation-report.md` |
 | Status | Completed / Validated |
 
 ## Requirement Coverage
@@ -179,11 +179,11 @@ The objective is to demonstrate that the backlog was not only listed as planning
 
 | Method | Command / Tool | Result |
 | --- | --- | --- |
-| Node.js automated tests | `cd 06Code && npm test` | 5 suites passed, 24 tests passed |
-| API validation suite | `cd 06Code && npm run test:api:validation` | 114/114 validation cases passed |
-| Python API tests | `cd 06Code/python-analytics-api && .\.venv\Scripts\python.exe -m unittest discover -s tests -v` | 9 tests passed |
-| Manual Postman verification | Main API collection and Python analytics collection | Login, token use, API calculations and logout validated |
-| AWS deployment verification | HTTPS routes through Nginx and EC2 services | Node API and Python API reachable through public domain |
+| Node.js automated tests | `cd 06Code && npm test` | 11 suites passed, 91 tests passed |
+| API validation suite | `cd 06Code && npm run test:api:validation` | 134/134 validation cases passed |
+| Python API tests | `cd 06Code/apis/python-analytics-api && .\.venv\Scripts\python.exe -m unittest discover -s tests -v` | 15 tests passed |
+| Postman/Newman verification | Main API and Python analytics collections | 108 requests and 141 assertions passed in total |
+| AWS deployment verification | HTTPS routes through Nginx and EC2 services | Verified previously; instances intentionally stopped for cost control |
 | PDF deliverables | `node 07Other/pdf-tools/generate-pdfs.js` | Documentation package generated |
 
 ## Definition Of Done Validation
@@ -191,8 +191,8 @@ The objective is to demonstrate that the backlog was not only listed as planning
 | Definition Of Done Item | Evidence | Status |
 | --- | --- | --- |
 | Requirement is documented | `02Requirements/requirements.md` | Done |
-| API endpoint or UI workflow exists | `03Documentation/api-documentation.md`, `06Code/src`, `06Code/frontend`, `06Code/python-analytics-api` | Done |
-| Business rule is implemented in service layer | `06Code/src/services`, `06Code/python-analytics-api/app/services.py` | Done |
+| API endpoint or UI workflow exists | `03Documentation/api-documentation.md`, `06Code/backend/src`, `06Code/frontend`, `06Code/apis/python-analytics-api` | Done |
+| Business rule is implemented in service layer | `06Code/backend/src/services`, `06Code/apis/python-analytics-api/app/services.py` | Done |
 | Data model supports the feature | PostgreSQL migration, Prisma schema, RDS seed records | Done |
 | Automated or manual test evidence exists | Jest, API validation suite, Python unittest, Postman evidence | Done |
 | Deployment path is documented | AWS guide and Nginx configuration | Done |

@@ -3,9 +3,9 @@
 Status: Passed
 
 Verification source:
-- Automated test: `06Code/tests/integration/actor-flows.test.js`
+- Automated test: `06Code/backend/tests/integration/actor-flows.test.js`
 - Command: `npm test`
-- Latest observed result: `6 passed, 6 total`, `38 passed, 38 total`
+- Latest observed result: `11 passed, 11 total`, `91 passed, 91 total`
 
 ## Actor Goal
 A BranchDirector should manage the assigned branch only: students, teachers, classes, attendance review and branch reports. The same user must not see or modify other branches.

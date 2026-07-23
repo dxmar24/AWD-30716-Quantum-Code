@@ -3,9 +3,9 @@
 Status: Passed
 
 Verification source:
-- Automated test: `06Code/tests/integration/actor-flows.test.js`
+- Automated test: `06Code/backend/tests/integration/actor-flows.test.js`
 - Command: `npm test`
-- Latest observed result: `6 passed, 6 total`, `38 passed, 38 total`
+- Latest observed result: `11 passed, 11 total`, `91 passed, 91 total`
 
 ## Actor Goal
 Admin should keep full system governance: role changes, branch access governance, catalog and branch management, audit visibility and global reports.

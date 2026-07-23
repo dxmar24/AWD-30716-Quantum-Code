@@ -1,0 +1,54 @@
+@startuml
+title Account Invitation - Secure Provisioning Flow
+autonumber
+skinparam backgroundColor #FAFAF7
+skinparam shadowing false
+skinparam ArrowColor #9A8700
+
+actor "Director general" as Director
+participant "React accounts panel" as UI
+participant "Security middleware\nCSRF + session + RBAC + Zod" as Security
+participant AcademicController as Controller
+participant AcademicService as Service
+participant AccessPolicy as Policy
+participant EmailService as Email
+participant "SMTP provider\nMailpit in staging" as SMTP
+database PostgreSQL as DB
+participant AuditService as Audit
+
+Director -> UI: Enter name, email, role, branch and profile data
+UI -> Security: POST /api/v1/users + CSRF cookie/header
+Security -> Security: validate active GeneralDirector/Admin session
+Security -> Security: validate normalized input and allowed role
+Security -> Controller: createUser(actor, command)
+Controller -> Service: createAcademicUser(actor, command)
+Service -> Policy: assertActorCanCreateRole(actor, role)
+Policy -> DB: validate branch and role prerequisites
+Service -> Service: generate cryptographically random temporary password
+Service -> Service: hash temporary password
+Service -> DB: transaction: create inactive user\n+ Student/Teacher profile + branch access
+Service -> Email: sendAccessInvitation(name, email, password, role)
+Email -> SMTP: branded HTML + text message\nyellow, gray and white
+
+alt SMTP accepted the message
+  SMTP --> Email: messageId / accepted recipient
+  Email --> Service: delivery status sent
+  Service -> DB: activate user/profile; mustChangePassword=true
+  Service -> Audit: ACCOUNT_INVITATION_SENT
+  Audit -> DB: append metadata without password
+  Service --> Controller: public user + recipient + sent status
+  Controller --> UI: 201 confirmation (no temporary password)
+  UI --> Director: "Invitation sent to email"
+else SMTP failure
+  SMTP --> Email: delivery error
+  Email --> Service: exception
+  Service -> DB: keep account inactive
+  Service -> Audit: ACCOUNT_INVITATION_FAILED
+  Service --> UI: controlled error; retry is available
+end
+
+note right of UI
+The director never sees or copies the temporary password.
+Only the recipient receives it with first-login instructions.
+end note
+@enduml

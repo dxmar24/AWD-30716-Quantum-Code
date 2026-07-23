@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-06T11:02:47.056Z",
+  "generatedAt": "2026-07-22T04:51:56.637Z",
   "tool": "Newman/Postman collection runner",
   "collection": "postman/American-Latin-Class-API.postman_collection.json",
   "environment": "Generated local JWT evidence environment",
@@ -13,22 +13,22 @@
   },
   "stats": {
     "requests": {
-      "total": 67,
+      "total": 105,
       "pending": 0,
       "failed": 0
     },
     "assertions": {
-      "total": 78,
+      "total": 135,
       "pending": 0,
       "failed": 0
     },
     "testScripts": {
-      "total": 67,
+      "total": 105,
       "pending": 0,
       "failed": 0
     },
     "prerequestScripts": {
-      "total": 1,
+      "total": 106,
       "pending": 0,
       "failed": 0
     }

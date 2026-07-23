@@ -4,6 +4,9 @@ node_modules/
 coverage/
 npm-debug.log*
 06Code/dist/
+06Code/.npm-cache/
+06Code/.tmp/
+06Code/storage/
 __pycache__/
 .pytest_cache/
 .venv/

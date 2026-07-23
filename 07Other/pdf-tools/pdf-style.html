@@ -126,8 +126,15 @@
   th,
   td {
     border: 1px solid var(--rule);
+    overflow-wrap: break-word;
     padding: 7px 9px;
     vertical-align: top;
+    word-break: normal;
+  }
+
+  td code {
+    white-space: normal;
+    word-break: break-all;
   }
 
   tbody tr:nth-child(even) {
